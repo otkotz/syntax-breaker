@@ -1,0 +1,35 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but it can also be manually edited.
+
+config_version=5
+
+[application]
+
+config/name="Syntax Breaker"
+run/main_scene="res://scenes/main/main.tscn"
+config/features=PackedStringArray("4.4", "Mobile")
+
+[autoload]
+
+GameBus="*res://scripts/autoloads/game_bus.gd"
+InputManager="*res://scripts/autoloads/input_manager.gd"
+BehaviorRegistry="*res://scripts/autoloads/behavior_registry.gd"
+RunManager="*res://scripts/autoloads/run_manager.gd"
+MetaProgression="*res://scripts/autoloads/meta_progression.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/stretch/mode="viewport"
+window/stretch/aspect="keep"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
