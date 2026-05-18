@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/skill_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "static_field"
+name = "Static Field"
+tags = Array[String](["aoe", "lightning"])
+base_damage = 12.0
+base_cooldown = 2.0
+base_speed = 0.0
+base_range = 150.0
+base_pierce = 0
+max_supports = 2
+scene_path = "res://scenes/skills/static_field.tscn"
+rarity = "uncommon"
+description = "An electric pulse that shocks all nearby enemies"
