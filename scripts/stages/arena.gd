@@ -7,11 +7,13 @@ extends Node2D
 @onready var hud: Control = $CanvasLayer/HUD
 @onready var camera: CameraShake = $Player/Camera2D
 @onready var minimap: Minimap = $CanvasLayer/Minimap
+var _debug_menu: DebugMenu
 
 @export var arena_size := Vector2(3200, 3200)
 @export var balance: GameBalance
 
 var _arena_rect: Rect2
+var _stage_data: StageData
 
 signal stage_completed
 
@@ -21,14 +23,20 @@ func _ready() -> void:
 	GameBus.enemy_killed.connect(_on_enemy_killed)
 	GameBus.enemy_hit.connect(_on_enemy_hit)
 
-func start_stage(stage_number: int, skill_instances: Array[SkillInstance], boss_stage: bool = false) -> void:
+func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage_data: StageData = null) -> void:
+	_stage_data = stage_data
 	_arena_rect = Rect2(Vector2.ZERO, arena_size)
 	player.global_position = Vector2(arena_size.x / 2, arena_size.y * 0.7)
+
+	if _stage_data:
+		var speed_mult := _stage_data.get_player_speed_mult()
+		if speed_mult != 1.0 and player.has_method("set_speed_mult"):
+			player.set_speed_mult(speed_mult)
 
 	var caster := player.get_node("SkillCaster") as SkillCaster
 	caster.set_skills(skill_instances)
 
-	spawner.setup(player, _arena_rect, boss_stage)
+	spawner.setup(player, _arena_rect, stage_data)
 	spawner.all_waves_cleared.connect(_on_all_waves_cleared, CONNECT_ONE_SHOT)
 	spawner.start_next_wave()
 
@@ -37,6 +45,10 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], boss_
 
 	if minimap:
 		minimap.setup(player, _arena_rect)
+
+	_debug_menu = DebugMenu.new()
+	add_child(_debug_menu)
+	_debug_menu.setup(player)
 
 	queue_redraw()
 

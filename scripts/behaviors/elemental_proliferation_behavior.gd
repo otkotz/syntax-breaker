@@ -2,10 +2,12 @@ class_name ElementalProliferationBehavior
 extends BehaviorBase
 
 const SPREAD_RADIUS := 100.0
+const MAX_Q_SPREAD_RADIUS := 180.0
 
 func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	var tags: Array = skill_instance.get_all_tags()
-	var nearby := Targeting.find_enemies_in_range(target.global_position, SPREAD_RADIUS, 10)
+	var radius := MAX_Q_SPREAD_RADIUS if is_max_quality() else SPREAD_RADIUS
+	var nearby := Targeting.find_enemies_in_range(target.global_position, radius, 10)
 	var spread_count := 0
 
 	for enemy in nearby:

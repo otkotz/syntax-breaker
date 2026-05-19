@@ -6,6 +6,8 @@ extends CharacterBody2D
 
 var current_hp: float
 var _damage_cooldown: float = 0.0
+var _base_move_speed: float
+var _speed_mult: float = 1.0
 
 const IFRAME_DURATION := 0.5
 
@@ -13,8 +15,10 @@ signal hp_changed(current: float, maximum: float)
 signal died
 
 func _ready() -> void:
+	_base_move_speed = move_speed
 	current_hp = max_hp
 	hp_changed.emit(current_hp, max_hp)
+	add_to_group("player")
 
 func _process(delta: float) -> void:
 	_damage_cooldown = max(_damage_cooldown - delta, 0.0)
@@ -28,6 +32,8 @@ func _draw() -> void:
 
 func take_damage(amount: float) -> void:
 	if _damage_cooldown > 0.0:
+		return
+	if get_meta("god_mode", false):
 		return
 	_damage_cooldown = IFRAME_DURATION
 	current_hp = max(current_hp - amount, 0.0)
@@ -54,3 +60,7 @@ func set_max_hp(value: float) -> void:
 	max_hp = value
 	current_hp = min(current_hp, max_hp)
 	hp_changed.emit(current_hp, max_hp)
+
+func set_speed_mult(mult: float) -> void:
+	_speed_mult = mult
+	move_speed = _base_move_speed * _speed_mult

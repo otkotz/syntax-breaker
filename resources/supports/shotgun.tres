@@ -10,6 +10,6 @@ required_tags = Array[String](["projectile"])
 excluded_tags = Array[String]([])
 stat_modifiers = {"projectile_count": 3, "damage_mult": 0.7, "range_mult": 0.6}
 added_tags = Array[String]([])
-behavior_key = ""
+behavior_key = "shotgun"
 rarity = "rare"
 description = "+3 projectiles, 30% less damage, 40% less range"

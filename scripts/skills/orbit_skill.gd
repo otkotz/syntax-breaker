@@ -51,16 +51,29 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	_hit_cooldowns[body_id] = HIT_COOLDOWN
 
+	var hit_damage := damage
+	var is_crit := false
+	if skill_instance:
+		var roll := CombatUtils.roll_damage(damage, skill_instance)
+		hit_damage = roll["damage"]
+		is_crit = roll["is_crit"]
+		if is_crit:
+			RunManager.record_stat("crits_landed", 1)
+
+	var skill_name := skill_instance.base.name if skill_instance else "unknown"
 	if body.has_method("take_damage"):
-		body.take_damage(damage)
-		GameBus.enemy_hit.emit(body, damage, skill_instance.base if skill_instance else null)
+		body.take_damage(hit_damage, is_crit)
+		CombatLog.hit(skill_name, body.name, hit_damage, is_crit)
+		GameBus.enemy_hit.emit(body, hit_damage, skill_instance.base if skill_instance else null)
 	if skill_instance:
 		var tags := skill_instance.get_all_tags()
 		if body.has_method("apply_dot") and tags.has("fire"):
-			body.apply_dot("burn", damage * 0.2, 2.0, 0.5)
-		TagInteractions.process_hit(body, damage, tags, self)
+			body.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
+			CombatLog.dot_applied("burn", body.name, hit_damage * 0.2, 2.0)
+		TagInteractions.process_hit(body, hit_damage, tags, self)
 		skill_instance.notify_hit(body, self)
 		if body.has_method("is_alive") and not body.is_alive():
+			CombatLog.kill(skill_name, body.name)
 			skill_instance.notify_kill(body, self)
 
 func set_angle_offset(angle: float) -> void:

@@ -38,15 +38,27 @@ func _hit_enemies() -> void:
 	var tags: Array = skill_instance.get_all_tags() if skill_instance else []
 	for enemy in enemies:
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(damage)
+			var hit_damage := damage
+			var is_crit := false
+			if skill_instance:
+				var roll := CombatUtils.roll_damage(damage, skill_instance)
+				hit_damage = roll["damage"]
+				is_crit = roll["is_crit"]
+				if is_crit:
+					RunManager.record_stat("crits_landed", 1)
+			var skill_name := skill_instance.base.name if skill_instance else "unknown"
+			enemy.take_damage(hit_damage, is_crit)
+			CombatLog.hit(skill_name, enemy.name, hit_damage, is_crit)
 			if enemy.has_method("apply_dot"):
 				if tags.has("fire"):
-					enemy.apply_dot("burn", damage * 0.2, 2.0, 0.5)
-			GameBus.enemy_hit.emit(enemy, damage, skill_instance.base if skill_instance else null)
+					enemy.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
+					CombatLog.dot_applied("burn", enemy.name, hit_damage * 0.2, 2.0)
+			GameBus.enemy_hit.emit(enemy, hit_damage, skill_instance.base if skill_instance else null)
 			if skill_instance:
-				TagInteractions.process_hit(enemy, damage, tags, self)
+				TagInteractions.process_hit(enemy, hit_damage, tags, self)
 				skill_instance.notify_hit(enemy, self)
 				if enemy.has_method("is_alive") and not enemy.is_alive():
+					CombatLog.kill(skill_name, enemy.name)
 					skill_instance.notify_kill(enemy, self)
 					kill_count += 1
 	if kill_count > RunManager.run_stats.get("max_aoe_kill", 0):

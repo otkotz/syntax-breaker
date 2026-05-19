@@ -36,6 +36,7 @@ func _try_cast(si: SkillInstance) -> bool:
 			var pool: ObjectPool = _pools.get(si.base.scene_path)
 			if pool and pool.active_count() >= 3:
 				return false
+		CombatLog.skill_cast(si.base.name, 1)
 		_spawn_skill(si, Vector2.ZERO, null)
 		return true
 
@@ -53,6 +54,7 @@ func _try_cast(si: SkillInstance) -> bool:
 			var angle_offset := -spread / 2.0 + spread / (count - 1) * i
 			var dir := direction.rotated(angle_offset)
 			_spawn_skill(si, dir, target)
+	CombatLog.skill_cast(si.base.name, count)
 	RunManager.record_stat("projectiles_fired", count)
 	return true
 

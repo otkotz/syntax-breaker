@@ -1,6 +1,11 @@
 class_name BehaviorBase
 extends RefCounted
 
+var quality_level: int = 0
+
+func is_max_quality() -> bool:
+	return quality_level >= RunManager.MAX_QUALITY_LEVEL
+
 func modify_spawn(_skill_instance, _projectile: Node2D) -> void:
 	pass
 

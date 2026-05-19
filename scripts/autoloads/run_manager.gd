@@ -6,7 +6,10 @@ var skill_slots_unlocked: int = 1
 var equipped_skills: Array = []
 var owned_supports: Array = []
 var owned_passives: Array = []
+var support_quality: Dictionary = {}
 var run_stats: Dictionary = {}
+var last_shop_depth: int = 0
+var current_stage_data: StageData
 
 func start_run() -> void:
 	current_stage = 0
@@ -15,6 +18,9 @@ func start_run() -> void:
 	equipped_skills = []
 	owned_supports = []
 	owned_passives = []
+	support_quality = {}
+	last_shop_depth = 0
+	current_stage_data = null
 	run_stats = {
 		"enemies_killed": 0,
 		"damage_by_tag": {},
@@ -26,6 +32,7 @@ func start_run() -> void:
 		"mini_bosses_killed": 0,
 		"max_aoe_kill": 0,
 		"max_dot_spread_kill": 0,
+		"elites_cleared": 0,
 	}
 
 func add_gold(amount: int) -> void:
@@ -44,6 +51,22 @@ func advance_stage() -> void:
 	run_stats["stages_reached"] = current_stage
 	if current_stage == 2 or current_stage == 4:
 		skill_slots_unlocked = mini(skill_slots_unlocked + 1, 4)
+
+const MAX_QUALITY_LEVEL := 4
+const QUALITY_PER_LEVEL := 0.05
+
+func get_support_quality(support_id: String) -> int:
+	return support_quality.get(support_id, 0)
+
+func upgrade_support_quality(support_id: String) -> bool:
+	var current: int = support_quality.get(support_id, 0)
+	if current >= MAX_QUALITY_LEVEL:
+		return false
+	support_quality[support_id] = current + 1
+	return true
+
+func is_support_max_quality(support_id: String) -> bool:
+	return get_support_quality(support_id) >= MAX_QUALITY_LEVEL
 
 func record_stat(stat_key: String, value: Variant) -> void:
 	match typeof(run_stats.get(stat_key)):

@@ -13,10 +13,20 @@ var _dots: Dictionary = {}
 var _wander_dir: Vector2 = Vector2.ZERO
 var _wander_timer: float = 0.0
 var _arena_rect: Rect2
+var _slow_factor: float = 1.0
+var _slow_timer: float = 0.0
+var _base_max_hp: float
+var _base_move_speed: float
+var _base_contact_damage: float
+var _base_gold_value: int
 
 signal died(enemy: EnemyBase)
 
 func _ready() -> void:
+	_base_max_hp = max_hp
+	_base_move_speed = move_speed
+	_base_contact_damage = contact_damage
+	_base_gold_value = gold_value
 	current_hp = max_hp
 	add_to_group("enemies")
 	_pick_wander_dir()
@@ -31,21 +41,29 @@ func initialize(target: Node2D) -> void:
 	set_physics_process(true)
 
 func _physics_process(delta: float) -> void:
+	if _slow_timer > 0.0:
+		_slow_timer -= delta
+		if _slow_timer <= 0.0:
+			_slow_factor = 1.0
+			modulate.b = 1.0
+
+	var effective_speed := move_speed * _slow_factor
+
 	if _target and is_instance_valid(_target):
 		var dist := global_position.distance_to(_target.global_position)
 		if dist < 30.0:
 			var away := _target.global_position.direction_to(global_position)
-			velocity = away * move_speed * 0.5
+			velocity = away * effective_speed * 0.5
 		elif dist < aggro_range:
 			var dir := global_position.direction_to(_target.global_position)
-			velocity = dir * move_speed
+			velocity = dir * effective_speed
 		else:
 			_wander_timer -= delta
 			if _wander_timer <= 0.0:
 				_pick_wander_dir()
-			velocity = _wander_dir * move_speed * 0.3
+			velocity = _wander_dir * effective_speed * 0.3
 	else:
-		velocity = _wander_dir * move_speed * 0.3
+		velocity = _wander_dir * effective_speed * 0.3
 
 	move_and_slide()
 	_clamp_to_arena()
@@ -99,22 +117,30 @@ func _process(delta: float) -> void:
 	for key: String in expired:
 		_dots.erase(key)
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, crit: bool = false) -> void:
+	if current_hp <= 0.0:
+		return
 	current_hp -= amount
 	_flash_hit()
-	_spawn_damage_number(amount)
+	_spawn_damage_number(amount, crit)
 	queue_redraw()
 	if current_hp <= 0.0:
 		_die()
 
-func _spawn_damage_number(amount: float) -> void:
+func _spawn_damage_number(amount: float, crit: bool = false) -> void:
 	var dmg_num := DamageNumber.new()
 	dmg_num.amount = amount
+	dmg_num.is_crit = crit
 	dmg_num.global_position = global_position + Vector2(0, -20)
 	get_parent().add_child(dmg_num)
 
 func is_alive() -> bool:
 	return current_hp > 0.0
+
+func apply_slow(factor: float, duration: float) -> void:
+	_slow_factor = min(_slow_factor, factor)
+	_slow_timer = max(_slow_timer, duration)
+	modulate.b = 2.0
 
 func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float) -> void:
 	_dots[dot_type] = {
@@ -140,11 +166,25 @@ func _flash_hit() -> void:
 	var tween := create_tween()
 	tween.tween_property(self, "modulate", Color.WHITE, 0.1)
 
-func reset() -> void:
+func apply_scaling(hp_mult: float, speed_mult: float, damage_mult: float, gold_mult: float) -> void:
+	max_hp = _base_max_hp * hp_mult
 	current_hp = max_hp
+	move_speed = _base_move_speed * speed_mult
+	contact_damage = _base_contact_damage * damage_mult
+	gold_value = int(_base_gold_value * gold_mult)
+	queue_redraw()
+
+func reset() -> void:
+	max_hp = _base_max_hp
+	current_hp = max_hp
+	move_speed = _base_move_speed
+	contact_damage = _base_contact_damage
+	gold_value = _base_gold_value
 	modulate = Color.WHITE
 	velocity = Vector2.ZERO
 	collision_layer = 2
 	collision_mask = 5
 	_target = null
 	_dots.clear()
+	_slow_factor = 1.0
+	_slow_timer = 0.0

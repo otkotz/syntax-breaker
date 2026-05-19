@@ -22,7 +22,10 @@ func _on_gold_changed(amount: int) -> void:
 	gold_label.text = "Gold: %d" % amount
 
 func _update_stage() -> void:
-	stage_label.text = "Stage %d" % RunManager.current_stage
+	var stage_type := ""
+	if RunManager.current_stage_data:
+		stage_type = " - " + RunManager.current_stage_data.get_type_name()
+	stage_label.text = "Stage %d/%d%s" % [RunManager.current_stage, StageGenerator.MAX_DEPTH, stage_type]
 
 func update_cooldowns(skill_instances: Array[SkillInstance], timers: Array[float]) -> void:
 	for i in mini(skill_instances.size(), cooldown_container.get_child_count()):

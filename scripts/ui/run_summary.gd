@@ -18,8 +18,9 @@ func setup(victory: bool, new_unlocks: Array[String] = []) -> void:
 	for child: Node in stats_container.get_children():
 		child.queue_free()
 
-	_add_stat("Stage Reached", str(RunManager.current_stage))
+	_add_stat("Stage Reached", "%d / %d" % [RunManager.current_stage, StageGenerator.MAX_DEPTH])
 	_add_stat("Enemies Killed", str(RunManager.run_stats.get("enemies_killed", 0)))
+	_add_stat("Elites Cleared", str(RunManager.run_stats.get("elites_cleared", 0)))
 	_add_stat("Gold Earned", str(RunManager.gold))
 	_add_stat("Crits Landed", str(RunManager.run_stats.get("crits_landed", 0)))
 
