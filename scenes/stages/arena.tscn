@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://arena_scene"]
+[gd_scene load_steps=9 format=3 uid="uid://arena_scene"]
 
 [ext_resource type="Script" path="res://scripts/stages/arena.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/basic_melee.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/basic_ranged.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/mini_boss.tscn" id="7"]
+[ext_resource type="Script" path="res://scripts/enemies/spawner.gd" id="8"]
 
 [node name="Arena" type="Node2D"]
 script = ExtResource("1")
@@ -14,7 +15,7 @@ script = ExtResource("1")
 [node name="Player" parent="." instance=ExtResource("2")]
 
 [node name="Spawner" type="Node2D" parent="."]
-script = preload("res://scripts/enemies/spawner.gd")
+script = ExtResource("8")
 enemy_scenes = [ExtResource("5"), ExtResource("6")]
 mini_boss_scene = ExtResource("7")
 
