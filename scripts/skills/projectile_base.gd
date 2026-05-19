@@ -45,6 +45,9 @@ func _on_body_entered(body: Node2D) -> void:
 		GameBus.enemy_hit.emit(body, damage, skill_instance.base if skill_instance else null)
 
 	if skill_instance:
+		if skill_instance.base.has_tag("poison") and body.has_method("apply_dot"):
+			if randf() <= 0.5:
+				body.apply_dot("poison", damage * 0.3, 3.0, 0.5)
 		skill_instance.notify_hit(body, self)
 		if body.has_method("is_alive") and not body.is_alive():
 			skill_instance.notify_kill(body, self)

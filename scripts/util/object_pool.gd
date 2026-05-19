@@ -48,5 +48,8 @@ func release_all() -> void:
 func active_count() -> int:
 	return _active.size()
 
+func get_active() -> Array[Node]:
+	return _active
+
 func pool_count() -> int:
 	return _pool.size()

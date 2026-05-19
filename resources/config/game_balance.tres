@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="GameBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/game_balance.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+player_move_speed = 250.0
+player_max_hp = 100.0
+iframe_duration = 0.5
+aggro_range = 200.0
+enemy_move_speed = 80.0
+enemy_hp = 20.0
+contact_damage = 10.0
+gold_value = 1
+wander_speed_mult = 0.3
+enemies_per_stage = 40
+group_size_min = 4
+group_size_max = 6
+group_spread = 40.0
+spawn_margin = 50.0
+min_spawn_dist_from_player = 200.0
+enemy_hp_per_stage = 5.0
+enemies_per_stage_growth = 5
+boss_stage_interval = 3
+screen_shake_on_hit = 3.0
+screen_shake_on_kill = 1.5
+screen_shake_duration = 0.15
+hit_stop_duration = 0.03

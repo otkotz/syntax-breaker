@@ -6,6 +6,7 @@ enum State { MENU, COMBAT, SHOP, BOSS, RUN_END }
 const ARENA_SCENE := preload("res://scenes/stages/arena.tscn")
 const SHOP_SCENE := preload("res://scenes/ui/shop.tscn")
 const RUN_SUMMARY_SCENE := preload("res://scenes/ui/run_summary.tscn")
+const SKILL_PICKER_SCENE := preload("res://scenes/ui/skill_picker.tscn")
 
 var _state: State = State.MENU
 var _arena: Arena
@@ -30,14 +31,17 @@ func _on_player_died() -> void:
 
 func start_run() -> void:
 	RunManager.start_run()
-	_setup_starter_skills()
-	_advance_to_combat()
-
-func _setup_starter_skills() -> void:
 	_skill_instances.clear()
-	var fireball_res := load("res://resources/skills/fireball.tres") as SkillResource
-	if fireball_res:
-		_skill_instances.append(SkillInstance.new(fireball_res))
+	_show_skill_picker()
+
+func _show_skill_picker() -> void:
+	var picker := SKILL_PICKER_SCENE.instantiate() as SkillPicker
+	_ui_layer.add_child(picker)
+	picker.skill_chosen.connect(func(skill: SkillResource):
+		_skill_instances.append(SkillInstance.new(skill))
+		picker.queue_free()
+		_advance_to_combat()
+	, CONNECT_ONE_SHOT)
 
 func _advance_to_combat() -> void:
 	RunManager.advance_stage()

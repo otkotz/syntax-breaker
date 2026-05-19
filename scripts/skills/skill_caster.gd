@@ -32,6 +32,10 @@ func _try_cast(si: SkillInstance) -> bool:
 	var is_self_cast := si.base.has_tag("aoe") or si.base.has_tag("melee")
 
 	if is_self_cast:
+		if si.base.has_tag("melee"):
+			var pool: ObjectPool = _pools.get(si.base.scene_path)
+			if pool and pool.active_count() >= 3:
+				return false
 		_spawn_skill(si, Vector2.ZERO, null)
 		return true
 
@@ -40,8 +44,16 @@ func _try_cast(si: SkillInstance) -> bool:
 		return false
 
 	var direction := global_position.direction_to(target.global_position)
-	_spawn_skill(si, direction, target)
-	RunManager.record_stat("projectiles_fired", 1)
+	var count: int = si.computed_stats.get("projectile_count", 1)
+	if count <= 1:
+		_spawn_skill(si, direction, target)
+	else:
+		var spread := deg_to_rad(15.0) * (count - 1)
+		for i in count:
+			var angle_offset := -spread / 2.0 + spread / (count - 1) * i
+			var dir := direction.rotated(angle_offset)
+			_spawn_skill(si, dir, target)
+	RunManager.record_stat("projectiles_fired", count)
 	return true
 
 func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> void:
@@ -59,5 +71,13 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> voi
 
 	if projectile.has_method("set_orbit_parent"):
 		projectile.set_orbit_parent(get_parent())
+		_redistribute_orbit_offsets(pool)
 
 	si.notify_spawn(projectile)
+
+func _redistribute_orbit_offsets(pool: ObjectPool) -> void:
+	var active := pool.get_active()
+	var count := active.size()
+	for i in count:
+		if active[i].has_method("set_angle_offset"):
+			active[i].set_angle_offset(i * TAU / count)

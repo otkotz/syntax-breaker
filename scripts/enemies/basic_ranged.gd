@@ -30,6 +30,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 
 	move_and_slide()
+	_clamp_to_arena()
 	_check_contact_damage()
 
 	if dist < aggro_range:
@@ -38,9 +39,8 @@ func _physics_process(delta: float) -> void:
 			_fire_projectile(dir)
 			_fire_timer = 0.0
 
-func _draw() -> void:
+func _draw_body() -> void:
 	draw_circle(Vector2.ZERO, 12.0, Color(1.0, 0.53, 0.27))
-	_draw_health_bar()
 
 func _fire_projectile(dir: Vector2) -> void:
 	var proj := ENEMY_PROJECTILE_SCENE.instantiate() as EnemyProjectile

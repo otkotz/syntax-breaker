@@ -6,7 +6,7 @@ var damage: float = 8.0
 var orbit_radius: float = 60.0
 var orbit_speed: float = 4.0
 var pool_ref: ObjectPool
-var _angle: float = 0.0
+var _angle_offset: float = 0.0
 var _parent_node: Node2D
 var _hit_cooldowns: Dictionary = {}
 
@@ -27,9 +27,10 @@ func set_orbit_parent(parent: Node2D) -> void:
 	_parent_node = parent
 
 func _physics_process(delta: float) -> void:
-	_angle += orbit_speed * delta
+	var base_angle := fmod(Time.get_ticks_msec() / 1000.0 * orbit_speed, TAU)
+	var angle := base_angle + _angle_offset
 	if _parent_node and is_instance_valid(_parent_node):
-		global_position = _parent_node.global_position + Vector2(cos(_angle), sin(_angle)) * orbit_radius
+		global_position = _parent_node.global_position + Vector2(cos(angle), sin(angle)) * orbit_radius
 
 	var expired_keys: Array = []
 	for key: int in _hit_cooldowns:
@@ -55,9 +56,12 @@ func _on_body_entered(body: Node2D) -> void:
 		if body.has_method("is_alive") and not body.is_alive():
 			skill_instance.notify_kill(body, self)
 
+func set_angle_offset(angle: float) -> void:
+	_angle_offset = angle
+
 func reset() -> void:
 	skill_instance = null
 	pool_ref = null
 	_hit_cooldowns.clear()
-	_angle = 0.0
+	_angle_offset = 0.0
 	_parent_node = null

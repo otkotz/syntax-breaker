@@ -2,8 +2,8 @@ class_name HUD
 extends Control
 
 @onready var hp_bar: ProgressBar = $TopBar/HPBar
-@onready var gold_label: Label = $TopBar/GoldLabel
-@onready var stage_label: Label = $TopBar/StageLabel
+@onready var gold_label: Label = $InfoPanel/GoldLabel
+@onready var stage_label: Label = $InfoPanel/StageLabel
 @onready var cooldown_container: HBoxContainer = $BottomBar/CooldownContainer
 
 var _player: Player
@@ -19,7 +19,7 @@ func _on_hp_changed(current: float, maximum: float) -> void:
 	hp_bar.value = current
 
 func _on_gold_changed(amount: int) -> void:
-	gold_label.text = str(amount)
+	gold_label.text = "Gold: %d" % amount
 
 func _update_stage() -> void:
 	stage_label.text = "Stage %d" % RunManager.current_stage

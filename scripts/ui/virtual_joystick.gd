@@ -23,8 +23,6 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
 	if event.pressed:
 		if _touch_index != -1:
 			return
-		if event.position.x > get_viewport_rect().size.x * 0.5:
-			return
 		_touch_index = event.index
 		_center = event.position
 		base.global_position = _center - base.size * 0.5

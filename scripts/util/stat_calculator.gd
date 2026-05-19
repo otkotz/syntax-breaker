@@ -23,6 +23,7 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 		"speed": skill.base_speed,
 		"range": skill.base_range,
 		"pierce": skill.base_pierce,
+		"projectile_count": skill.base_projectile_count,
 		"area_mult": 1.0,
 		"chain_count": 0,
 		"split_count": 0,

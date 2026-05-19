@@ -9,6 +9,7 @@ extends Resource
 @export var base_speed: float = 300.0
 @export var base_range: float = 400.0
 @export var base_pierce: int = 0
+@export var base_projectile_count: int = 1
 @export var max_supports: int = 2
 @export var scene_path: String = ""
 @export var icon: Texture2D

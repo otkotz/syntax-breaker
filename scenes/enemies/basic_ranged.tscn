@@ -13,6 +13,7 @@ max_hp = 15.0
 move_speed = 60.0
 contact_damage = 5.0
 gold_value = 2
+aggro_range = 400.0
 preferred_distance = 250.0
 fire_rate = 2.0
 projectile_speed = 200.0

@@ -43,8 +43,8 @@ func take_damage(amount: float) -> void:
 func _spawn_damage_number(amount: float) -> void:
 	var dmg_num := DamageNumber.new()
 	dmg_num.amount = amount
-	dmg_num.position = Vector2(0, -20)
-	add_child(dmg_num)
+	dmg_num.global_position = global_position + Vector2(0, -20)
+	get_parent().add_child(dmg_num)
 
 func heal(amount: float) -> void:
 	current_hp = min(current_hp + amount, max_hp)
