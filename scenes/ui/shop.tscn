@@ -69,6 +69,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Reroll (2g)"
 
+[node name="ManageButton" type="Button" parent="MarginContainer/VBox/ButtonBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Manage"
+
 [node name="ContinueButton" type="Button" parent="MarginContainer/VBox/ButtonBar"]
 layout_mode = 2
 size_flags_horizontal = 3

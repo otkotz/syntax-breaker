@@ -19,12 +19,16 @@ var _pending_support: SupportResource = null
 @onready var gold_label: Label = $MarginContainer/VBox/Header/GoldLabel
 @onready var item_list: VBoxContainer = $MarginContainer/VBox/ScrollContainer/ItemList
 @onready var reroll_button: Button = $MarginContainer/VBox/ButtonBar/RerollButton
+@onready var manage_button: Button = $MarginContainer/VBox/ButtonBar/ManageButton
 @onready var continue_button: Button = $MarginContainer/VBox/ButtonBar/ContinueButton
 @onready var link_panel: PanelContainer = $MarginContainer/VBox/LinkPanel
 @onready var link_container: VBoxContainer = $MarginContainer/VBox/LinkPanel/LinkContainer
 
+var _skill_manager: SkillManagerUI
+
 func _ready() -> void:
 	reroll_button.pressed.connect(_on_reroll)
+	manage_button.pressed.connect(_on_manage)
 	continue_button.pressed.connect(func(): continue_pressed.emit())
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
@@ -178,6 +182,13 @@ func _on_link_skill(index: int) -> void:
 		_skill_instances[index].recompute(RunManager.owned_passives)
 	_pending_support = null
 	link_panel.visible = false
+
+func _on_manage() -> void:
+	if not _skill_manager:
+		_skill_manager = preload("res://scenes/ui/skill_manager.tscn").instantiate() as SkillManagerUI
+		add_child(_skill_manager)
+		_skill_manager.closed.connect(func(): _refresh_ui())
+	_skill_manager.open(_skill_instances, RunManager.owned_supports)
 
 func _on_reroll() -> void:
 	if not RunManager.spend_gold(_reroll_cost):
