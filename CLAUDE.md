@@ -26,6 +26,32 @@ Support behaviors implement the interface in scripts/behaviors/behavior_base.gd:
 - Run single test: GUT panel → select test script → Run
 - Run project: F5 in Godot editor, or `godot --path . scenes/main/main.tscn`
 
+## Implementation Plan
+
+docs/superpowers/plans/2026-05-19-syntax-breaker-mvp.md — 19 tasks total.
+
+### Progress
+
+- [x] Task 1: Project scaffold & Godot config
+- [x] Task 2: Resource scripts (skill, support, passive, unlock)
+- [x] Task 3: TagMatcher & StatCalculator + tests
+- [x] Task 4: Behavior system (base + pierce)
+- [x] Task 5: Object pool
+- [x] Task 6: Input system & virtual joystick
+- [x] Task 7: Player character
+- [x] Task 8: Skill runtime (SkillInstance, SkillCaster, Targeting)
+- [x] Task 9: Fireball — first complete skill
+- [x] Task 10: Base enemy & wave spawner
+- [x] Task 11: Arena stage & game loop
+- [x] Task 12: HUD (HP, gold, stage label)
+- [x] Task 13: All 6 MVP skills
+- [x] Task 14: Support behaviors, passives, DoT system
+- [x] Task 15: Enemy variants — basic ranged & mini-boss
+- [x] Task 16: Gold, drops & shop UI
+- [ ] Task 17: Skill manager UI (support linking)
+- [ ] Task 18: Meta-progression — unlock checking
+- [ ] Task 19: Main menu, run summary & full integration
+
 ## Design Spec
 
 docs/superpowers/specs/2026-05-19-syntax-breaker-mvp-design.md
