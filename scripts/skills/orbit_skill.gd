@@ -12,6 +12,9 @@ var _hit_cooldowns: Dictionary = {}
 
 const HIT_COOLDOWN := 0.5
 
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 10.0, Color(0.4, 0.9, 1.0))
+
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
 	damage = si.computed_stats.get("damage", 8.0)

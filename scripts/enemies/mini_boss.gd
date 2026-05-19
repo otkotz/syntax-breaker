@@ -28,10 +28,14 @@ func _physics_process(delta: float) -> void:
 		Phase.COOLDOWN:
 			_cooldown(delta)
 
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 24.0, Color(0.8, 0.13, 0.13))
+
 func _chase(delta: float) -> void:
 	var dir := global_position.direction_to(_target.global_position)
 	velocity = dir * move_speed
 	move_and_slide()
+	_check_contact_damage()
 
 	_ability_timer += delta
 	if _ability_timer >= ability_interval:
@@ -55,6 +59,7 @@ func _telegraph(delta: float) -> void:
 func _charge(delta: float) -> void:
 	velocity = _charge_dir * charge_speed
 	move_and_slide()
+	_check_contact_damage()
 	_phase_timer -= delta
 	if _phase_timer <= 0.0:
 		_phase = Phase.COOLDOWN

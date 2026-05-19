@@ -23,6 +23,9 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
 	_hit_targets.clear()
 	rotation = direction.angle()
 
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 8.0, Color(1.0, 0.8, 0.1))
+
 func _physics_process(delta: float) -> void:
 	var move_dist := speed * delta
 	position += direction * move_dist

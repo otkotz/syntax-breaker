@@ -9,6 +9,9 @@ var _lifetime: float = 0.3
 var _timer: float = 0.0
 var _has_hit: bool = false
 
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 100.0, Color(1.0, 0.9, 0.6, 0.35))
+
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
 	damage = si.computed_stats.get("damage", 10.0)

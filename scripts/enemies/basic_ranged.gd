@@ -25,11 +25,15 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 
 	move_and_slide()
+	_check_contact_damage()
 
 	_fire_timer += delta
 	if _fire_timer >= fire_rate and dist < preferred_distance + 100.0:
 		_fire_projectile(dir)
 		_fire_timer = 0.0
+
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 12.0, Color(1.0, 0.53, 0.27))
 
 func _fire_projectile(dir: Vector2) -> void:
 	var proj := ENEMY_PROJECTILE_SCENE.instantiate() as EnemyProjectile

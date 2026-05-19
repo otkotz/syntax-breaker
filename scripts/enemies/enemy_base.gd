@@ -29,6 +29,16 @@ func _physics_process(_delta: float) -> void:
 		var dir := global_position.direction_to(_target.global_position)
 		velocity = dir * move_speed
 		move_and_slide()
+		_check_contact_damage()
+
+func _draw() -> void:
+	draw_circle(Vector2.ZERO, 12.0, Color(1.0, 0.27, 0.27))
+
+func _check_contact_damage() -> void:
+	for i in get_slide_collision_count():
+		var collision := get_slide_collision(i)
+		if collision.get_collider() is Player:
+			collision.get_collider().take_damage(contact_damage)
 
 func _process(delta: float) -> void:
 	var expired: Array = []
