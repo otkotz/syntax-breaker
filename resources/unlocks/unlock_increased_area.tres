@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_increased_area"
+item_type = "supports"
+item_id = "increased_area"
+condition_type = "max_event"
+condition_params = {"event": "max_aoe_kill", "count": 10}
+description = "Kill 10 enemies with a single AoE cast"

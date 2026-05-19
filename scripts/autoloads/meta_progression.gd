@@ -8,8 +8,34 @@ var unlocked_items: Dictionary = {
 	"passives": ["thick_skin"],
 }
 
+var _unlock_conditions: Array = []
+
 func _ready() -> void:
 	load_progress()
+	_load_unlock_conditions()
+
+func _load_unlock_conditions() -> void:
+	var dir := DirAccess.open("res://resources/unlocks/")
+	if not dir:
+		return
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while file_name != "":
+		if file_name.ends_with(".tres"):
+			var res := load("res://resources/unlocks/" + file_name)
+			if res is UnlockConditionResource:
+				_unlock_conditions.append(res)
+		file_name = dir.get_next()
+
+func check_unlocks(run_stats: Dictionary) -> Array[String]:
+	var newly_unlocked: Array[String] = []
+	for condition: UnlockConditionResource in _unlock_conditions:
+		if is_unlocked(condition.item_type, condition.item_id):
+			continue
+		if condition.check(run_stats):
+			unlock_item(condition.item_type, condition.item_id)
+			newly_unlocked.append(condition.item_id)
+	return newly_unlocked
 
 func is_unlocked(item_type: String, item_id: String) -> bool:
 	return unlocked_items.get(item_type, []).has(item_id)

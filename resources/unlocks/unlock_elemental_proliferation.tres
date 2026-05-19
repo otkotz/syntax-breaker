@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_elemental_proliferation"
+item_type = "supports"
+item_id = "elemental_proliferation"
+condition_type = "max_event"
+condition_params = {"event": "max_dot_spread_kill", "count": 3}
+description = "Kill 3 enemies with a single DoT spread"
