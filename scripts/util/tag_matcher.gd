@@ -12,15 +12,14 @@ static func can_link_support(skill: SkillResource, support: SupportResource) -> 
 
 static func get_matching_passives(skill: SkillResource, passives: Array) -> Array:
 	var matching: Array = []
-	for passive in passives:
-		if passive is PassiveResource:
-			if passive.is_global() or skill.has_any_tag(passive.affected_tags):
-				matching.append(passive)
+	for passive: PassiveResource in passives:
+		if passive.is_global() or skill.has_any_tag(passive.affected_tags):
+			matching.append(passive)
 	return matching
 
 static func get_linkable_supports(skill: SkillResource, supports: Array) -> Array:
 	var linkable: Array = []
-	for support in supports:
-		if support is SupportResource and can_link_support(skill, support):
+	for support: SupportResource in supports:
+		if can_link_support(skill, support):
 			linkable.append(support)
 	return linkable

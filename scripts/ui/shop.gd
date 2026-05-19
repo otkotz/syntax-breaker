@@ -36,24 +36,24 @@ func _generate_offerings() -> void:
 	_offerings.clear()
 	var pool: Array[Dictionary] = []
 
-	for res in _load_resources("res://resources/skills/"):
+	for res: Resource in _load_resources("res://resources/skills/"):
 		if res is SkillResource and MetaProgression.is_unlocked("skills", res.id):
 			var owned := false
-			for si in _skill_instances:
+			for si: SkillInstance in _skill_instances:
 				if si.base.id == res.id:
 					owned = true
 					break
 			if not owned:
 				pool.append({"type": "skill", "resource": res, "cost": _get_cost("skill", res.rarity)})
 
-	for res in _load_resources("res://resources/supports/"):
+	for res: Resource in _load_resources("res://resources/supports/"):
 		if res is SupportResource and MetaProgression.is_unlocked("supports", res.id):
 			pool.append({"type": "support", "resource": res, "cost": _get_cost("support", res.rarity)})
 
-	for res in _load_resources("res://resources/passives/"):
+	for res: Resource in _load_resources("res://resources/passives/"):
 		if res is PassiveResource and MetaProgression.is_unlocked("passives", res.id):
 			var owned := false
-			for p in RunManager.owned_passives:
+			for p: Resource in RunManager.owned_passives:
 				if p is PassiveResource and p.id == res.id:
 					owned = true
 					break
@@ -85,10 +85,10 @@ func _refresh_ui() -> void:
 	gold_label.text = "Gold: %d" % RunManager.gold
 	reroll_button.text = "Reroll (%dg)" % _reroll_cost
 
-	for child in item_list.get_children():
+	for child: Node in item_list.get_children():
 		child.queue_free()
 
-	for offering in _offerings:
+	for offering: Dictionary in _offerings:
 		item_list.add_child(_create_card(offering))
 
 func _create_card(offering: Dictionary) -> Control:
@@ -146,7 +146,7 @@ func _show_link_panel() -> void:
 		return
 	link_panel.visible = true
 
-	for child in link_container.get_children():
+	for child: Node in link_container.get_children():
 		child.queue_free()
 
 	var header := Label.new()
@@ -187,5 +187,5 @@ func _on_reroll() -> void:
 	_refresh_ui()
 
 func _recompute_all_skills() -> void:
-	for si in _skill_instances:
+	for si: SkillInstance in _skill_instances:
 		si.recompute(RunManager.owned_passives)

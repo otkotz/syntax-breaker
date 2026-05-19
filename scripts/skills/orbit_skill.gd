@@ -32,11 +32,11 @@ func _physics_process(delta: float) -> void:
 		global_position = _parent_node.global_position + Vector2(cos(_angle), sin(_angle)) * orbit_radius
 
 	var expired_keys: Array = []
-	for key in _hit_cooldowns:
+	for key: int in _hit_cooldowns:
 		_hit_cooldowns[key] -= delta
 		if _hit_cooldowns[key] <= 0.0:
 			expired_keys.append(key)
-	for key in expired_keys:
+	for key: int in expired_keys:
 		_hit_cooldowns.erase(key)
 
 func _on_body_entered(body: Node2D) -> void:

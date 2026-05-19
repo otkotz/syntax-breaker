@@ -24,7 +24,7 @@ func check(run_stats: Dictionary) -> bool:
 			if tag_filter.is_empty():
 				return run_stats.get("skills_used", []).size() >= needed
 			var matching := 0
-			for skill_id in run_stats.get("skills_used", []):
+			for skill_id: String in run_stats.get("skills_used", []):
 				matching += 1
 			return matching >= needed
 		"stat_threshold":

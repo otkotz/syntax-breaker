@@ -42,7 +42,7 @@ func _check_contact_damage() -> void:
 
 func _process(delta: float) -> void:
 	var expired: Array = []
-	for dot_type in _dots:
+	for dot_type: String in _dots:
 		var dot: Dictionary = _dots[dot_type]
 		dot["timer"] += delta
 		dot["remaining"] -= delta
@@ -51,7 +51,7 @@ func _process(delta: float) -> void:
 			take_damage(dot["damage"])
 		if dot["remaining"] <= 0.0:
 			expired.append(dot_type)
-	for key in expired:
+	for key: String in expired:
 		_dots.erase(key)
 
 func take_damage(amount: float) -> void:

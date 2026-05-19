@@ -53,7 +53,7 @@ func record_stat(stat_key: String, value: Variant) -> void:
 			if not run_stats[stat_key].has(value):
 				run_stats[stat_key].append(value)
 		TYPE_DICTIONARY:
-			for tag_key in value:
+			for tag_key: String in value:
 				if run_stats[stat_key].has(tag_key):
 					run_stats[stat_key][tag_key] += value[tag_key]
 				else:

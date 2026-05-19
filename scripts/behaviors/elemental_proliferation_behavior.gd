@@ -4,7 +4,7 @@ extends BehaviorBase
 const SPREAD_RADIUS := 100.0
 
 func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
-	var tags := skill_instance.get_all_tags() if skill_instance.has_method("get_all_tags") else skill_instance.base.tags
+	var tags: Array = skill_instance.get_all_tags()
 	var nearby := Targeting.find_enemies_in_range(target.global_position, SPREAD_RADIUS, 10)
 	var spread_count := 0
 

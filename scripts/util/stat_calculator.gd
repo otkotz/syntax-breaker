@@ -30,35 +30,33 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 		"crit_mult": 1.5,
 	}
 
-	for support in supports:
-		if support is SupportResource:
-			_apply_modifiers(stats, support.stat_modifiers)
+	for support: SupportResource in supports:
+		_apply_modifiers(stats, support.stat_modifiers)
 
-	var matching_passives := TagMatcher.get_matching_passives(skill, passives)
-	for passive in matching_passives:
-		if passive is PassiveResource:
-			_apply_modifiers(stats, passive.stat_modifiers)
+	var matching_passives: Array = TagMatcher.get_matching_passives(skill, passives)
+	for passive: PassiveResource in matching_passives:
+		_apply_modifiers(stats, passive.stat_modifiers)
 
 	_clamp_stats(stats)
 	return stats
 
 static func _apply_modifiers(stats: Dictionary, modifiers: Dictionary) -> void:
-	for key in modifiers:
+	for key: String in modifiers:
 		if key.ends_with("_mult"):
-			var base_key := key.trim_suffix("_mult")
+			var base_key: String = key.trim_suffix("_mult")
 			if stats.has(base_key):
 				stats[base_key] *= modifiers[key]
 		elif key.ends_with("_add"):
-			var base_key := key.trim_suffix("_add")
+			var base_key: String = key.trim_suffix("_add")
 			if stats.has(base_key):
 				stats[base_key] += modifiers[key]
 		elif stats.has(key):
 			stats[key] += modifiers[key]
 
 static func _clamp_stats(stats: Dictionary) -> void:
-	for key in STAT_MINS:
+	for key: String in STAT_MINS:
 		if stats.has(key):
 			stats[key] = max(stats[key], STAT_MINS[key])
-	for key in STAT_MAXS:
+	for key: String in STAT_MAXS:
 		if stats.has(key):
 			stats[key] = min(stats[key], STAT_MAXS[key])
