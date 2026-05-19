@@ -48,9 +48,9 @@ docs/superpowers/plans/2026-05-19-syntax-breaker-mvp.md — 19 tasks total.
 - [x] Task 14: Support behaviors, passives, DoT system
 - [x] Task 15: Enemy variants — basic ranged & mini-boss
 - [x] Task 16: Gold, drops & shop UI
-- [ ] Task 17: Skill manager UI (support linking)
-- [ ] Task 18: Meta-progression — unlock checking
-- [ ] Task 19: Main menu, run summary & full integration
+- [x] Task 17: Skill manager UI (support linking)
+- [x] Task 18: Meta-progression — unlock checking
+- [x] Task 19: Main menu, run summary & full integration
 
 ## Design Spec
 

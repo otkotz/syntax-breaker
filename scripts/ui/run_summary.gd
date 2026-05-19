@@ -5,20 +5,28 @@ signal play_again_pressed
 
 @onready var result_label: Label = $CenterContainer/VBox/ResultLabel
 @onready var stats_container: VBoxContainer = $CenterContainer/VBox/StatsContainer
+@onready var unlocks_label: Label = $CenterContainer/VBox/UnlocksLabel
 @onready var play_again_button: Button = $CenterContainer/VBox/PlayAgainButton
 
 func _ready() -> void:
 	play_again_button.pressed.connect(func(): play_again_pressed.emit())
 
-func setup(victory: bool) -> void:
+func setup(victory: bool, new_unlocks: Array[String] = []) -> void:
 	result_label.text = "VICTORY!" if victory else "DEFEAT"
 	result_label.modulate = Color.GOLD if victory else Color.RED
+
+	for child: Node in stats_container.get_children():
+		child.queue_free()
 
 	_add_stat("Stage Reached", str(RunManager.current_stage))
 	_add_stat("Enemies Killed", str(RunManager.run_stats.get("enemies_killed", 0)))
 	_add_stat("Gold Earned", str(RunManager.gold))
-	_add_stat("Projectiles Fired", str(RunManager.run_stats.get("projectiles_fired", 0)))
 	_add_stat("Crits Landed", str(RunManager.run_stats.get("crits_landed", 0)))
+
+	if new_unlocks.is_empty():
+		unlocks_label.text = ""
+	else:
+		unlocks_label.text = "NEW UNLOCKS:\n" + "\n".join(new_unlocks)
 
 func _add_stat(stat_name: String, value: String) -> void:
 	var hbox := HBoxContainer.new()

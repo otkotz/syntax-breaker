@@ -16,6 +16,7 @@ var _ui_layer: CanvasLayer
 
 signal state_changed(new_state: State)
 signal run_completed(victory: bool)
+signal return_to_menu_requested
 
 func _ready() -> void:
 	_ui_layer = CanvasLayer.new()
@@ -88,19 +89,25 @@ func end_run(victory: bool) -> void:
 
 	_state = State.RUN_END
 	state_changed.emit(_state)
+
+	var new_unlocks := MetaProgression.check_unlocks(RunManager.run_stats)
+	if victory:
+		RunManager.run_stats["run_completed"] = true
+		new_unlocks.append_array(MetaProgression.check_unlocks(RunManager.run_stats))
+
 	GameBus.run_ended.emit(victory)
 	run_completed.emit(victory)
 
 	_run_summary = RUN_SUMMARY_SCENE.instantiate() as RunSummary
 	_ui_layer.add_child(_run_summary)
-	_run_summary.setup(victory)
-	_run_summary.play_again_pressed.connect(_on_play_again, CONNECT_ONE_SHOT)
+	_run_summary.setup(victory, new_unlocks)
+	_run_summary.play_again_pressed.connect(_on_return_to_menu, CONNECT_ONE_SHOT)
 
-func _on_play_again() -> void:
+func _on_return_to_menu() -> void:
 	if _run_summary:
 		_run_summary.queue_free()
 		_run_summary = null
-	start_run()
+	return_to_menu_requested.emit()
 
 func get_skill_instances() -> Array[SkillInstance]:
 	return _skill_instances
