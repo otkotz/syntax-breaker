@@ -87,9 +87,16 @@ func _process(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	current_hp -= amount
 	_flash_hit()
+	_spawn_damage_number(amount)
 	queue_redraw()
 	if current_hp <= 0.0:
 		_die()
+
+func _spawn_damage_number(amount: float) -> void:
+	var dmg_num := DamageNumber.new()
+	dmg_num.amount = amount
+	dmg_num.position = Vector2(0, -20)
+	add_child(dmg_num)
 
 func is_alive() -> bool:
 	return current_hp > 0.0

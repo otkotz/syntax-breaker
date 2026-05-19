@@ -32,12 +32,19 @@ func take_damage(amount: float) -> void:
 	_damage_cooldown = IFRAME_DURATION
 	current_hp = max(current_hp - amount, 0.0)
 	hp_changed.emit(current_hp, max_hp)
+	_spawn_damage_number(amount)
 	modulate = Color(10, 10, 10)
 	var tween := create_tween()
 	tween.tween_property(self, "modulate", Color.WHITE, 0.15)
 	if current_hp <= 0.0:
 		died.emit()
 		GameBus.player_died.emit()
+
+func _spawn_damage_number(amount: float) -> void:
+	var dmg_num := DamageNumber.new()
+	dmg_num.amount = amount
+	dmg_num.position = Vector2(0, -20)
+	add_child(dmg_num)
 
 func heal(amount: float) -> void:
 	current_hp = min(current_hp + amount, max_hp)
