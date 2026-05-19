@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "increased_area"
+name = "Increased Area"
+required_tags = Array[String](["aoe"])
+excluded_tags = Array[String]([])
+stat_modifiers = {"area_mult": 1.4}
+added_tags = Array[String]([])
+behavior_key = "increased_area"
+rarity = "common"
+description = "Increases the area of effect"

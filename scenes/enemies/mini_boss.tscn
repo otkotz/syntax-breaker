@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3 uid="uid://mini_boss_scene"]
+
+[ext_resource type="Script" path="res://scripts/enemies/mini_boss.gd" id="1"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 24.0
+
+[node name="MiniBoss" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1")
+max_hp = 200.0
+move_speed = 60.0
+contact_damage = 20.0
+gold_value = 10
+charge_speed = 400.0
+telegraph_duration = 0.8
+charge_duration = 0.5
+cooldown_duration = 1.5
+ability_interval = 3.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_body")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2, 2)

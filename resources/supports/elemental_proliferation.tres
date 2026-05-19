@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elemental_proliferation"
+name = "Elemental Proliferation"
+required_tags = Array[String](["fire", "lightning", "poison"])
+excluded_tags = Array[String]([])
+stat_modifiers = {}
+added_tags = Array[String]([])
+behavior_key = "elemental_proliferation"
+rarity = "rare"
+description = "On kill, spreads elemental effects to nearby enemies"

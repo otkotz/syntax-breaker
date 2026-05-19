@@ -4,14 +4,28 @@ extends Node
 enum State { MENU, COMBAT, SHOP, BOSS, RUN_END }
 
 const ARENA_SCENE := preload("res://scenes/stages/arena.tscn")
+const SHOP_SCENE := preload("res://scenes/ui/shop.tscn")
+const RUN_SUMMARY_SCENE := preload("res://scenes/ui/run_summary.tscn")
 
 var _state: State = State.MENU
 var _arena: Arena
 var _skill_instances: Array[SkillInstance] = []
-var _shop: Control
+var _shop: Shop
+var _run_summary: RunSummary
+var _ui_layer: CanvasLayer
 
 signal state_changed(new_state: State)
 signal run_completed(victory: bool)
+
+func _ready() -> void:
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.layer = 10
+	add_child(_ui_layer)
+	GameBus.player_died.connect(_on_player_died)
+
+func _on_player_died() -> void:
+	if _state == State.COMBAT:
+		end_run(false)
 
 func start_run() -> void:
 	RunManager.start_run()
@@ -45,17 +59,48 @@ func _on_stage_completed() -> void:
 		_open_shop()
 
 func _open_shop() -> void:
+	if _arena:
+		_arena.queue_free()
+		_arena = null
+
 	_state = State.SHOP
 	state_changed.emit(_state)
 
-func close_shop() -> void:
+	_shop = SHOP_SCENE.instantiate() as Shop
+	_ui_layer.add_child(_shop)
+	_shop.setup(_skill_instances)
+	_shop.continue_pressed.connect(_on_shop_continue, CONNECT_ONE_SHOT)
+	_shop.skill_purchased.connect(_on_skill_purchased)
+
+func _on_skill_purchased(si: SkillInstance) -> void:
+	add_skill_instance(si)
+
+func _on_shop_continue() -> void:
+	if _shop:
+		_shop.queue_free()
+		_shop = null
 	_advance_to_combat()
 
 func end_run(victory: bool) -> void:
+	if _arena:
+		_arena.queue_free()
+		_arena = null
+
 	_state = State.RUN_END
 	state_changed.emit(_state)
 	GameBus.run_ended.emit(victory)
 	run_completed.emit(victory)
+
+	_run_summary = RUN_SUMMARY_SCENE.instantiate() as RunSummary
+	_ui_layer.add_child(_run_summary)
+	_run_summary.setup(victory)
+	_run_summary.play_again_pressed.connect(_on_play_again, CONNECT_ONE_SHOT)
+
+func _on_play_again() -> void:
+	if _run_summary:
+		_run_summary.queue_free()
+		_run_summary = null
+	start_run()
 
 func get_skill_instances() -> Array[SkillInstance]:
 	return _skill_instances

@@ -16,3 +16,4 @@ shape = SubResource("CircleShape2D_body")
 [node name="Sprite2D" type="Sprite2D" parent="."]
 
 [node name="SkillCaster" type="Node2D" parent="."]
+script = preload("res://scripts/skills/skill_caster.gd")

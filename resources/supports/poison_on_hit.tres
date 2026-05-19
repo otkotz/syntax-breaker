@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "poison_on_hit"
+name = "Poison on Hit"
+required_tags = Array[String](["projectile", "melee"])
+excluded_tags = Array[String]([])
+stat_modifiers = {}
+added_tags = Array[String]([])
+behavior_key = "poison_on_hit"
+rarity = "common"
+description = "Applies poison damage over time on hit"
