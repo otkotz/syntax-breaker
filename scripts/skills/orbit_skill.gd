@@ -9,11 +9,12 @@ var pool_ref: ObjectPool
 var _angle_offset: float = 0.0
 var _parent_node: Node2D
 var _hit_cooldowns: Dictionary = {}
+var _color: Color = Color(0.4, 0.9, 1.0)
 
 const HIT_COOLDOWN := 0.5
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 10.0, Color(0.4, 0.9, 1.0))
+	draw_circle(Vector2.ZERO, 10.0, _color)
 
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
@@ -22,6 +23,8 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	orbit_speed = si.computed_stats.get("speed", 300.0) / 75.0
 	pool_ref = pool
 	_hit_cooldowns.clear()
+	_color = TagColors.get_color(si.get_all_tags())
+	queue_redraw()
 
 func set_orbit_parent(parent: Node2D) -> void:
 	_parent_node = parent
@@ -52,6 +55,10 @@ func _on_body_entered(body: Node2D) -> void:
 		body.take_damage(damage)
 		GameBus.enemy_hit.emit(body, damage, skill_instance.base if skill_instance else null)
 	if skill_instance:
+		var tags := skill_instance.get_all_tags()
+		if body.has_method("apply_dot") and tags.has("fire"):
+			body.apply_dot("burn", damage * 0.2, 2.0, 0.5)
+		TagInteractions.process_hit(body, damage, tags, self)
 		skill_instance.notify_hit(body, self)
 		if body.has_method("is_alive") and not body.is_alive():
 			skill_instance.notify_kill(body, self)

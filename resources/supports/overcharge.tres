@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "overcharge"
+name = "Overcharge"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {"damage_mult": 2.0, "cooldown_mult": 1.6}
+added_tags = Array[String]([])
+behavior_key = ""
+rarity = "rare"
+description = "100% more damage, 60% slower casting"

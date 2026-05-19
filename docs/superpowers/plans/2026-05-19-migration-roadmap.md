@@ -28,10 +28,10 @@ DO NOT: refactor to scenes/components, add unit tests for gameplay, create more 
 
 Goal: Make supports feel meaningfully different through tag interactions.
 
-- [ ] 2.1 Tag-driven visual differentiation (color tint by element)
-- [ ] 2.2 Tag interaction rules (fire+cold=shatter, etc.)
-- [ ] 2.3 Support stacking rules (additive/multiplicative/capped/exclusive)
-- [ ] 2.4 Negative/tradeoff supports
+- [x] 2.1 Tag-driven visual differentiation (TagColors — fire=orange, lightning=blue, poison=green)
+- [x] 2.2 Tag interaction rules (fire+poison=ignite burst, lightning=arc, poison+burn=toxic cloud)
+- [x] 2.3 Support stacking rules (additive multipliers with diminishing returns, stat caps)
+- [x] 2.4 Negative/tradeoff supports (Glass Cannon, Shotgun, Overcharge)
 
 DO NOT: build visual node graph, add >12 supports, create skills that bypass tags.
 

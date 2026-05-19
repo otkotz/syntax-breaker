@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "glass_cannon"
+name = "Glass Cannon"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {"damage_mult": 1.5, "speed_mult": 0.7}
+added_tags = Array[String]([])
+behavior_key = ""
+rarity = "uncommon"
+description = "50% more damage, 30% slower projectiles"

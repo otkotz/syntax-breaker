@@ -8,9 +8,10 @@ var pool_ref: ObjectPool
 var _lifetime: float = 0.3
 var _timer: float = 0.0
 var _has_hit: bool = false
+var _color: Color = Color(1.0, 0.9, 0.6, 0.35)
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 100.0, Color(1.0, 0.9, 0.6, 0.35))
+	draw_circle(Vector2.ZERO, 100.0, _color)
 
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
@@ -19,7 +20,9 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	pool_ref = pool
 	_timer = 0.0
 	_has_hit = false
+	_color = TagColors.get_color_faded(si.base.tags)
 	scale = Vector2.ONE * (area_radius / 100.0)
+	queue_redraw()
 
 func _physics_process(delta: float) -> void:
 	_timer += delta
@@ -32,11 +35,16 @@ func _physics_process(delta: float) -> void:
 func _hit_enemies() -> void:
 	var enemies := Targeting.find_enemies_in_range(global_position, area_radius, 50)
 	var kill_count := 0
+	var tags: Array = skill_instance.get_all_tags() if skill_instance else []
 	for enemy in enemies:
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(damage)
+			if enemy.has_method("apply_dot"):
+				if tags.has("fire"):
+					enemy.apply_dot("burn", damage * 0.2, 2.0, 0.5)
 			GameBus.enemy_hit.emit(enemy, damage, skill_instance.base if skill_instance else null)
 			if skill_instance:
+				TagInteractions.process_hit(enemy, damage, tags, self)
 				skill_instance.notify_hit(enemy, self)
 				if enemy.has_method("is_alive") and not enemy.is_alive():
 					skill_instance.notify_kill(enemy, self)
