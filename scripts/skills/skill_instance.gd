@@ -43,7 +43,7 @@ func _rebuild_behaviors() -> void:
 	behaviors.clear()
 	for support in linked_supports:
 		if not support.behavior_key.is_empty():
-			var behavior := BehaviorRegistry.get_behavior(support.behavior_key)
+			var behavior: BehaviorBase = BehaviorRegistry.get_behavior(support.behavior_key)
 			if behavior:
 				behaviors.append(behavior)
 

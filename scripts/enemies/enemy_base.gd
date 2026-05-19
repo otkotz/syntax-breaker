@@ -5,40 +5,70 @@ extends CharacterBody2D
 @export var move_speed: float = 80.0
 @export var contact_damage: float = 10.0
 @export var gold_value: int = 1
+@export var aggro_range: float = 200.0
 
 var current_hp: float
 var _target: Node2D
 var _dots: Dictionary = {}
+var _wander_dir: Vector2 = Vector2.ZERO
+var _wander_timer: float = 0.0
 
 signal died(enemy: EnemyBase)
 
 func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("enemies")
+	_pick_wander_dir()
 
 func initialize(target: Node2D) -> void:
 	_target = target
 	current_hp = max_hp
 	_dots.clear()
+	_pick_wander_dir()
 	show()
 	set_process(true)
 	set_physics_process(true)
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _target and is_instance_valid(_target):
-		var dir := global_position.direction_to(_target.global_position)
-		velocity = dir * move_speed
-		move_and_slide()
-		_check_contact_damage()
+		var dist := global_position.distance_to(_target.global_position)
+		if dist < aggro_range:
+			var dir := global_position.direction_to(_target.global_position)
+			velocity = dir * move_speed
+		else:
+			_wander_timer -= delta
+			if _wander_timer <= 0.0:
+				_pick_wander_dir()
+			velocity = _wander_dir * move_speed * 0.3
+	else:
+		velocity = _wander_dir * move_speed * 0.3
+
+	move_and_slide()
+	_check_contact_damage()
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, 12.0, Color(1.0, 0.27, 0.27))
+	_draw_health_bar()
+
+func _draw_health_bar() -> void:
+	var bar_width := 24.0
+	var bar_height := 3.0
+	var bar_y := -18.0
+	var bg_rect := Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height))
+	draw_rect(bg_rect, Color(0.2, 0.2, 0.2))
+	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
+	var hp_rect := Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height))
+	draw_rect(hp_rect, Color(0.1, 0.9, 0.1))
 
 func _check_contact_damage() -> void:
 	for i in get_slide_collision_count():
 		var collision := get_slide_collision(i)
 		if collision.get_collider() is Player:
 			collision.get_collider().take_damage(contact_damage)
+
+func _pick_wander_dir() -> void:
+	_wander_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
+	_wander_timer = randf_range(1.5, 3.0)
 
 func _process(delta: float) -> void:
 	var expired: Array = []
@@ -57,6 +87,7 @@ func _process(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	current_hp -= amount
 	_flash_hit()
+	queue_redraw()
 	if current_hp <= 0.0:
 		_die()
 

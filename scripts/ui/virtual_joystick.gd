@@ -43,7 +43,7 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 	var diff := event.position - _center
 	var dist := diff.length()
 	var direction := diff.normalized()
-	var clamped_dist := min(dist, clamp_zone)
+	var clamped_dist: float = minf(dist, clamp_zone)
 
 	knob.position = base.size * 0.5 - knob.size * 0.5 + direction * clamped_dist
 
