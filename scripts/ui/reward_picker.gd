@@ -3,10 +3,13 @@ extends Control
 
 signal reward_chosen(reward: Dictionary)
 
+var _skill_instances: Array[SkillInstance]
+
 @onready var title_label: Label = $MarginContainer/VBox/TitleLabel
 @onready var reward_container: VBoxContainer = $MarginContainer/VBox/ScrollContainer/RewardContainer
 
-func setup(stage_type: StageData.Type) -> void:
+func setup(stage_type: StageData.Type, skill_instances: Array[SkillInstance] = []) -> void:
+	_skill_instances = skill_instances
 	var is_elite := stage_type == StageData.Type.ELITE
 	var is_boss := stage_type == StageData.Type.BOSS
 	if title_label:
@@ -58,21 +61,28 @@ func _try_roll(rtype: String, high_quality: bool, existing: Array[Dictionary]) -
 	return {}
 
 func _roll_skill(existing: Array[Dictionary]) -> Dictionary:
+	var owned_ids: Dictionary = {}
+	for si: SkillInstance in _skill_instances:
+		owned_ids[si.base.id] = true
+
 	var all := _load_resources("res://resources/skills/")
 	all.shuffle()
 	for res: Resource in all:
-		if not res is SkillResource:
+		var skill_res := res as SkillResource
+		if not skill_res:
 			continue
-		if not MetaProgression.is_unlocked("skills", res.id):
+		if not MetaProgression.is_unlocked("skills", skill_res.id):
+			continue
+		if owned_ids.has(skill_res.id):
 			continue
 		var dupe := false
 		for e: Dictionary in existing:
-			if e.get("type") == "skill" and e.get("id") == res.id:
+			if e.get("type") == "skill" and e.get("id") == skill_res.id:
 				dupe = true
 				break
 		if dupe:
 			continue
-		return {"type": "skill", "id": res.id, "resource": res}
+		return {"type": "skill", "id": skill_res.id, "resource": skill_res}
 	return {}
 
 func _roll_support(existing: Array[Dictionary]) -> Dictionary:

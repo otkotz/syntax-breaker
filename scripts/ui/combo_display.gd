@@ -17,17 +17,21 @@ func _ready() -> void:
 	offset_top = 0
 	offset_bottom = 0
 
+	var vbox := VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(vbox)
+
 	_combo_label = Label.new()
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.add_theme_font_size_override("font_size", 56)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
-	add_child(_combo_label)
+	vbox.add_child(_combo_label)
 
 	_mult_label = Label.new()
 	_mult_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_mult_label.add_theme_font_size_override("font_size", 30)
 	_mult_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))
-	add_child(_mult_label)
+	vbox.add_child(_mult_label)
 
 func setup(tracker: ComboTracker) -> void:
 	tracker.combo_changed.connect(_on_combo_changed)

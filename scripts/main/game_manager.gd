@@ -132,7 +132,7 @@ func _show_reward_picker(stage_type: StageData.Type) -> void:
 
 	var picker := REWARD_PICKER_SCENE.instantiate() as RewardPicker
 	_ui_layer.add_child(picker)
-	picker.setup(stage_type)
+	picker.setup(stage_type, _skill_instances)
 	picker.reward_chosen.connect(func(reward: Dictionary):
 		picker.queue_free()
 		_apply_reward(reward)

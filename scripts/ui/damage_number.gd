@@ -3,6 +3,7 @@ extends Node2D
 
 var amount: float = 0.0
 var is_crit: bool = false
+var is_player_damage: bool = false
 
 func _ready() -> void:
 	var combo_scale := clampf(ComboTracker.current_multiplier, 1.0, 1.5)
@@ -23,7 +24,7 @@ func _draw() -> void:
 		text += "!"
 	var font := ThemeDB.fallback_font
 	var font_size := 48 if is_crit else 36
-	var color := Color.YELLOW if is_crit else Color.WHITE
+	var color := Color.RED if is_player_damage else (Color.YELLOW if is_crit else Color.WHITE)
 	if ComboTracker.current_multiplier > 1.2:
 		color = color.lerp(Color(1.0, 0.5, 0.1), clampf((ComboTracker.current_multiplier - 1.2) / 0.8, 0.0, 1.0))
 	var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)

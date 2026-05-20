@@ -111,12 +111,12 @@ func _on_enemy_died(enemy: EnemyBase) -> void:
 func _spawn_mini_boss() -> void:
 	_enemies_alive += 1
 	var boss := mini_boss_scene.instantiate() as EnemyBase
+	boss.died.connect(_on_enemy_died)
+	add_child(boss)
 	boss.global_position = _arena_rect.get_center()
 	boss._arena_rect = _arena_rect
 	boss.initialize(_player)
 	boss.apply_scaling(_hp_mult * 1.5, _speed_mult, _damage_mult * 1.3, _gold_mult * 3.0)
-	boss.died.connect(_on_enemy_died)
-	add_child(boss)
 
 func release_all() -> void:
 	for path: String in _pools:

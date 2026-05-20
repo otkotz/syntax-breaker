@@ -40,15 +40,14 @@ func _generate_offerings() -> void:
 	_offerings.clear()
 	var pool: Array[Dictionary] = []
 
+	var owned_skill_ids: Dictionary = {}
+	for si: SkillInstance in _skill_instances:
+		owned_skill_ids[si.base.id] = true
+
 	for res: Resource in _load_resources("res://resources/skills/"):
-		if res is SkillResource and MetaProgression.is_unlocked("skills", res.id):
-			var owned := false
-			for si: SkillInstance in _skill_instances:
-				if si.base.id == res.id:
-					owned = true
-					break
-			if not owned:
-				pool.append({"type": "skill", "resource": res, "cost": _get_cost("skill", res.rarity)})
+		var skill_res := res as SkillResource
+		if skill_res and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
+			pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", skill_res.rarity)})
 
 	for res: Resource in _load_resources("res://resources/supports/"):
 		if res is SupportResource and MetaProgression.is_unlocked("supports", res.id):
