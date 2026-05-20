@@ -18,6 +18,7 @@ var _shop: Shop
 var _run_summary: RunSummary
 var _ui_layer: CanvasLayer
 var _current_stage_data: StageData
+var _region: RegionResource
 
 signal state_changed(new_state: State)
 signal run_completed(victory: bool)
@@ -33,10 +34,19 @@ func _on_player_died() -> void:
 	if _state == State.COMBAT:
 		end_run(false)
 
-func start_run() -> void:
-	RunManager.start_run()
+func start_run(region_id: String = "") -> void:
+	_region = _load_region(region_id)
+	RunManager.start_run(region_id)
 	_skill_instances.clear()
 	_show_skill_picker()
+
+func _load_region(region_id: String) -> RegionResource:
+	if region_id.is_empty():
+		return null
+	var path := "res://resources/regions/%s.tres" % region_id
+	if ResourceLoader.exists(path):
+		return load(path) as RegionResource
+	return null
 
 func _show_skill_picker() -> void:
 	var picker := SKILL_PICKER_SCENE.instantiate() as SkillPicker
@@ -48,12 +58,13 @@ func _show_skill_picker() -> void:
 	, CONNECT_ONE_SHOT)
 
 func _show_stage_choice() -> void:
+	_auto_save()
 	var next_depth := RunManager.current_stage + 1
 	if next_depth > StageGenerator.MAX_DEPTH:
 		end_run(true)
 		return
 
-	var choices := StageGenerator.generate_choices(next_depth, RunManager.last_shop_depth)
+	var choices := StageGenerator.generate_choices(next_depth, RunManager.last_shop_depth, _region)
 
 	if choices.size() == 1:
 		_enter_stage(choices[0])
@@ -191,6 +202,8 @@ func _on_shop_continue() -> void:
 	_show_stage_choice()
 
 func end_run(victory: bool) -> void:
+	RunManager.clear_saved_run()
+
 	if _arena:
 		_arena.queue_free()
 		_arena = null
@@ -225,3 +238,53 @@ func add_skill_instance(si: SkillInstance) -> bool:
 		return false
 	_skill_instances.append(si)
 	return true
+
+func _serialize_skills() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for si: SkillInstance in _skill_instances:
+		var supports: Array[String] = []
+		for s: SupportResource in si.linked_supports:
+			supports.append(s.id)
+		var muts: Array[Dictionary] = []
+		for m: Dictionary in si.mutations:
+			muts.append(m)
+		result.append({"skill_id": si.base.id, "supports": supports, "mutations": muts})
+	return result
+
+func _deserialize_skills(skill_data: Array) -> void:
+	_skill_instances.clear()
+	for entry: Dictionary in skill_data:
+		var skill_id: String = entry.get("skill_id", "")
+		var path := "res://resources/skills/%s.tres" % skill_id
+		if not ResourceLoader.exists(path):
+			continue
+		var skill_res := load(path) as SkillResource
+		if not skill_res:
+			continue
+		var si := SkillInstance.new(skill_res)
+		for support_id: String in entry.get("supports", []):
+			var s_path := "res://resources/supports/%s.tres" % support_id
+			if ResourceLoader.exists(s_path):
+				var support_res := load(s_path) as SupportResource
+				if support_res:
+					si.link_support(support_res)
+		for mutation: Dictionary in entry.get("mutations", []):
+			si.mutations.append(mutation)
+		si.recompute(RunManager.owned_passives)
+		_skill_instances.append(si)
+
+func _auto_save() -> void:
+	RunManager.save_run(_serialize_skills())
+
+func has_saved_run() -> bool:
+	return RunManager.has_saved_run()
+
+func resume_run() -> void:
+	var data := RunManager.load_run()
+	if data.is_empty():
+		return
+	RunManager.restore_from_save(data)
+	_region = _load_region(RunManager.current_region)
+	_deserialize_skills(data.get("skills", []))
+	RunManager.clear_saved_run()
+	_show_stage_choice()

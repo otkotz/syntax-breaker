@@ -52,6 +52,20 @@ docs/superpowers/plans/2026-05-19-syntax-breaker-mvp.md — 19 tasks total.
 - [x] Task 18: Meta-progression — unlock checking
 - [x] Task 19: Main menu, run summary & full integration
 
+## Migration Roadmap
+
+docs/superpowers/plans/2026-05-19-migration-roadmap.md — Post-MVP phases.
+
+### Post-MVP Progress
+
+- [x] Phase 1: Prototype stabilization (pooling, health bars, balance, screen shake)
+- [x] Phase 2: Tag system expansion (visual colors, interactions, tradeoff supports)
+- [x] Phase 3: Stage structure & progression (stage map, modifiers, elites, rewards)
+- [x] Phase 4: Build identity (keystones, mutations, synergies, combos)
+- [x] Phase 5: Meta progression (ascension, regions, codex, save/resume, unlock tree)
+- [ ] Phase 6: Performance & mobile optimization
+- [ ] Phase 7: First public demo
+
 ## Design Spec
 
 docs/superpowers/specs/2026-05-19-syntax-breaker-mvp-design.md

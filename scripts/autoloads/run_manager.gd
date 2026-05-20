@@ -10,8 +10,10 @@ var support_quality: Dictionary = {}
 var run_stats: Dictionary = {}
 var last_shop_depth: int = 0
 var current_stage_data: StageData
+var current_region: String = ""
+var ascension_level: int = 0
 
-func start_run() -> void:
+func start_run(region: String = "", ascension: int = -1) -> void:
 	current_stage = 0
 	gold = 0
 	skill_slots_unlocked = 1
@@ -21,6 +23,8 @@ func start_run() -> void:
 	support_quality = {}
 	last_shop_depth = 0
 	current_stage_data = null
+	current_region = region
+	ascension_level = ascension if ascension >= 0 else MetaProgression.ascension_level
 	run_stats = {
 		"enemies_killed": 0,
 		"damage_by_tag": {},
@@ -34,6 +38,8 @@ func start_run() -> void:
 		"max_dot_spread_kill": 0,
 		"elites_cleared": 0,
 		"best_combo": 0,
+		"region": region,
+		"ascension_level": ascension_level,
 	}
 
 func add_gold(amount: int) -> void:
@@ -68,6 +74,75 @@ func upgrade_support_quality(support_id: String) -> bool:
 
 func is_support_max_quality(support_id: String) -> bool:
 	return get_support_quality(support_id) >= MAX_QUALITY_LEVEL
+
+const RUN_SAVE_PATH := "user://active_run.json"
+
+func has_saved_run() -> bool:
+	return FileAccess.file_exists(RUN_SAVE_PATH)
+
+func save_run(skill_data: Array[Dictionary]) -> void:
+	var supports_data: Array[Dictionary] = []
+	for s: Resource in owned_supports:
+		if s is SupportResource:
+			supports_data.append({"id": s.id})
+	var passives_data: Array[Dictionary] = []
+	for p: Resource in owned_passives:
+		if p is PassiveResource:
+			passives_data.append({"id": p.id})
+
+	var data := {
+		"current_stage": current_stage,
+		"gold": gold,
+		"skill_slots_unlocked": skill_slots_unlocked,
+		"support_quality": support_quality,
+		"run_stats": run_stats,
+		"last_shop_depth": last_shop_depth,
+		"current_region": current_region,
+		"ascension_level": ascension_level,
+		"skills": skill_data,
+		"supports": supports_data,
+		"passives": passives_data,
+	}
+	var file := FileAccess.open(RUN_SAVE_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(data))
+
+func load_run() -> Dictionary:
+	if not has_saved_run():
+		return {}
+	var file := FileAccess.open(RUN_SAVE_PATH, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	return json.data as Dictionary
+
+func clear_saved_run() -> void:
+	if FileAccess.file_exists(RUN_SAVE_PATH):
+		DirAccess.remove_absolute(RUN_SAVE_PATH)
+
+func restore_from_save(data: Dictionary) -> void:
+	current_stage = int(data.get("current_stage", 0))
+	gold = int(data.get("gold", 0))
+	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
+	support_quality = data.get("support_quality", {})
+	run_stats = data.get("run_stats", {})
+	last_shop_depth = int(data.get("last_shop_depth", 0))
+	current_region = data.get("current_region", "")
+	ascension_level = int(data.get("ascension_level", 0))
+
+	owned_supports.clear()
+	for s_data: Dictionary in data.get("supports", []):
+		var path := "res://resources/supports/%s.tres" % s_data["id"]
+		if ResourceLoader.exists(path):
+			owned_supports.append(load(path))
+
+	owned_passives.clear()
+	for p_data: Dictionary in data.get("passives", []):
+		var path := "res://resources/passives/%s.tres" % p_data["id"]
+		if ResourceLoader.exists(path):
+			owned_passives.append(load(path))
 
 func record_stat(stat_key: String, value: Variant) -> void:
 	match typeof(run_stats.get(stat_key)):

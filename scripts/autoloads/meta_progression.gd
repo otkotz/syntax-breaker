@@ -1,12 +1,16 @@
 extends Node
 
 const SAVE_PATH := "user://meta_progression.json"
+const MAX_ASCENSION := 20
 
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
 	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine"],
 	"passives": ["thick_skin"],
 }
+
+var ascension_level: int = 0
+var codex_entries: Dictionary = {}
 
 var _unlock_conditions: Array = []
 
@@ -40,6 +44,31 @@ func check_unlocks(run_stats: Dictionary) -> Array[String]:
 func is_unlocked(item_type: String, item_id: String) -> bool:
 	return unlocked_items.get(item_type, []).has(item_id)
 
+func set_ascension(level: int) -> void:
+	ascension_level = clampi(level, 0, MAX_ASCENSION)
+	save_progress()
+
+func get_ascension_scaling() -> Dictionary:
+	var a := float(ascension_level)
+	return {
+		"hp_mult": 1.0 + a * 0.15,
+		"damage_mult": 1.0 + a * 0.10,
+		"speed_mult": 1.0 + a * 0.03,
+		"gold_mult": maxf(1.0 - a * 0.02, 0.5),
+	}
+
+func discover_codex(category: String, entry_id: String) -> bool:
+	if not codex_entries.has(category):
+		codex_entries[category] = []
+	if entry_id in codex_entries[category]:
+		return false
+	codex_entries[category].append(entry_id)
+	save_progress()
+	return true
+
+func is_discovered(category: String, entry_id: String) -> bool:
+	return codex_entries.get(category, []).has(entry_id)
+
 func unlock_item(item_type: String, item_id: String) -> bool:
 	if is_unlocked(item_type, item_id):
 		return false
@@ -50,9 +79,14 @@ func unlock_item(item_type: String, item_id: String) -> bool:
 	return true
 
 func save_progress() -> void:
+	var data := {
+		"unlocked_items": unlocked_items,
+		"ascension_level": ascension_level,
+		"codex_entries": codex_entries,
+	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(unlocked_items))
+		file.store_string(JSON.stringify(data))
 
 func load_progress() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
@@ -61,4 +95,12 @@ func load_progress() -> void:
 	if file:
 		var json := JSON.new()
 		if json.parse(file.get_as_text()) == OK:
-			unlocked_items = json.data
+			var data: Dictionary = json.data
+			if data.has("unlocked_items"):
+				unlocked_items = data["unlocked_items"]
+			elif not data.has("ascension_level"):
+				unlocked_items = data
+			if data.has("ascension_level"):
+				ascension_level = int(data["ascension_level"])
+			if data.has("codex_entries"):
+				codex_entries = data["codex_entries"]

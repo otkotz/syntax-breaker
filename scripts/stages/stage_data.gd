@@ -6,6 +6,7 @@ enum Type { COMBAT, ELITE, SHOP, TREASURE, BOSS }
 var type: Type
 var depth: int
 var modifiers: Array[String] = []
+var region: RegionResource
 
 const TYPE_NAMES := {
 	Type.COMBAT: "Combat",
@@ -62,12 +63,18 @@ func get_enemy_hp_mult() -> float:
 		mult *= 2.5
 	if modifiers.has("tough"):
 		mult *= 1.5
+	if region:
+		mult *= region.hp_mult
+	var asc: Dictionary = MetaProgression.get_ascension_scaling()
+	mult *= asc.get("hp_mult", 1.0)
 	return mult
 
 func get_enemy_speed_mult() -> float:
 	var mult := 1.0
 	if modifiers.has("swift"):
 		mult *= 1.3
+	var asc: Dictionary = MetaProgression.get_ascension_scaling()
+	mult *= asc.get("speed_mult", 1.0)
 	return mult
 
 func get_enemy_damage_mult() -> float:
@@ -76,6 +83,10 @@ func get_enemy_damage_mult() -> float:
 		mult *= 1.5
 	if modifiers.has("deadly"):
 		mult *= 1.4
+	if region:
+		mult *= region.damage_mult
+	var asc: Dictionary = MetaProgression.get_ascension_scaling()
+	mult *= asc.get("damage_mult", 1.0)
 	return mult
 
 func get_enemy_count_mult() -> float:
@@ -92,6 +103,8 @@ func get_gold_mult() -> float:
 		mult *= 1.5
 	if modifiers.has("enriched"):
 		mult *= 2.0
+	var asc: Dictionary = MetaProgression.get_ascension_scaling()
+	mult *= asc.get("gold_mult", 1.0)
 	return mult
 
 func get_player_speed_mult() -> float:

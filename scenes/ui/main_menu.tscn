@@ -25,7 +25,7 @@ anchor_bottom = 1.0
 
 [node name="VBox" type="VBoxContainer" parent="CenterContainer"]
 layout_mode = 2
-theme_override_constants/separation = 40
+theme_override_constants/separation = 24
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/VBox"]
 layout_mode = 2
@@ -33,8 +33,85 @@ text = "SYNTAX BREAKER"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 72
 
+[node name="Spacer1" type="Control" parent="CenterContainer/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="AscensionBox" type="HBoxContainer" parent="CenterContainer/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="AscLabel" type="Label" parent="CenterContainer/VBox/AscensionBox"]
+layout_mode = 2
+text = "ASCENSION 0"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="AscDown" type="Button" parent="CenterContainer/VBox/AscensionBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 60)
+text = "-"
+theme_override_font_sizes/font_size = 32
+
+[node name="AscUp" type="Button" parent="CenterContainer/VBox/AscensionBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 60)
+text = "+"
+theme_override_font_sizes/font_size = 32
+
+[node name="AscDesc" type="Label" parent="CenterContainer/VBox"]
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="RegionBox" type="HBoxContainer" parent="CenterContainer/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="RegionLabel" type="Label" parent="CenterContainer/VBox/RegionBox"]
+layout_mode = 2
+text = "REGION: DEFAULT"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 28
+
+[node name="RegionPrev" type="Button" parent="CenterContainer/VBox/RegionBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 60)
+text = "<"
+theme_override_font_sizes/font_size = 28
+
+[node name="RegionNext" type="Button" parent="CenterContainer/VBox/RegionBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 60)
+text = ">"
+theme_override_font_sizes/font_size = 28
+
+[node name="Spacer2" type="Control" parent="CenterContainer/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
 [node name="StartButton" type="Button" parent="CenterContainer/VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(500, 120)
 text = "Start Run"
 theme_override_font_sizes/font_size = 40
+
+[node name="MenuButtons" type="HBoxContainer" parent="CenterContainer/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="UnlocksButton" type="Button" parent="CenterContainer/VBox/MenuButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(230, 80)
+text = "Unlocks"
+theme_override_font_sizes/font_size = 28
+
+[node name="CodexButton" type="Button" parent="CenterContainer/VBox/MenuButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(230, 80)
+text = "Codex"
+theme_override_font_sizes/font_size = 28

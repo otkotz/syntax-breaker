@@ -10,7 +10,7 @@ extends Node2D
 var _debug_menu: DebugMenu
 var _combo_tracker: ComboTracker
 
-@export var arena_size := Vector2(3200, 3200)
+@export var arena_size := Vector2(2560, 2560)
 @export var balance: GameBalance
 
 var _arena_rect: Rect2
@@ -71,18 +71,25 @@ func _process(_delta: float) -> void:
 		)
 
 func _draw() -> void:
-	draw_rect(_arena_rect, Color(0.12, 0.12, 0.18), true)
-	draw_rect(_arena_rect, Color(0.4, 0.4, 0.5), false, 2.0)
+	var bg := Color(0.12, 0.12, 0.18)
+	var grid_c := Color(0.18, 0.18, 0.25)
+	var border_c := Color(0.4, 0.4, 0.5)
+	if _stage_data and _stage_data.region:
+		bg = _stage_data.region.bg_color
+		grid_c = _stage_data.region.grid_color
+		border_c = _stage_data.region.border_color
+
+	draw_rect(_arena_rect, bg, true)
+	draw_rect(_arena_rect, border_c, false, 2.0)
 
 	var grid_spacing := 50.0
-	var grid_color := Color(0.18, 0.18, 0.25)
 	var x := _arena_rect.position.x + grid_spacing
 	while x < _arena_rect.end.x:
-		draw_line(Vector2(x, _arena_rect.position.y), Vector2(x, _arena_rect.end.y), grid_color)
+		draw_line(Vector2(x, _arena_rect.position.y), Vector2(x, _arena_rect.end.y), grid_c)
 		x += grid_spacing
 	var y := _arena_rect.position.y + grid_spacing
 	while y < _arena_rect.end.y:
-		draw_line(Vector2(_arena_rect.position.x, y), Vector2(_arena_rect.end.x, y), grid_color)
+		draw_line(Vector2(_arena_rect.position.x, y), Vector2(_arena_rect.end.x, y), grid_c)
 		y += grid_spacing
 
 func _on_enemy_hit(_enemy: Node2D, _damage: float, _skill: Resource) -> void:

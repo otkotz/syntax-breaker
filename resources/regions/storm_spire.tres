@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RegionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/region_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm_spire"
+name = "Storm Spire"
+description = "Lightning crackles through towering spires. Enemies move faster and strike with electric fury."
+bg_color = Color(0.06, 0.08, 0.18, 1)
+grid_color = Color(0.1, 0.14, 0.28, 1)
+border_color = Color(0.3, 0.5, 0.9, 1)
+enemy_tint = Color(0.8, 0.85, 1.0, 1)
+ambient_particle_color = Color(0.4, 0.6, 1.0, 0.12)
+stage_modifiers = Array[String](["swift"])
+hp_mult = 1.0
+damage_mult = 1.05

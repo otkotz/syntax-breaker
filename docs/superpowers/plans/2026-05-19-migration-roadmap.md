@@ -69,11 +69,11 @@ DO NOT: balance for PvP, prevent broken builds, add >5 keystones initially.
 
 Goal: Unlock possibilities, never raw power.
 
-- [ ] 5.1 Unlock tree visualization
-- [ ] 5.2 Region system (Burning Grounds, Storm Spire, Toxic Depths)
-- [ ] 5.3 Ascension system (endgame difficulty scaling)
-- [ ] 5.4 Persistent codex (collection tracking)
-- [ ] 5.5 Run save/resume for mobile
+- [x] 5.1 Unlock tree visualization
+- [x] 5.2 Region system (Burning Grounds, Storm Spire, Toxic Depths)
+- [x] 5.3 Ascension system (endgame difficulty scaling)
+- [x] 5.4 Persistent codex (collection tracking)
+- [x] 5.5 Run save/resume for mobile
 
 DO NOT: premium currency, >5 runs per unlock, gate core mechanics.
 
