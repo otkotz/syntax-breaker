@@ -29,9 +29,9 @@ func _process(_delta: float) -> void:
 func _build_ui() -> void:
 	_panel = PanelContainer.new()
 	_panel.offset_left = 10
-	_panel.offset_top = 50
-	_panel.offset_right = 350
-	_panel.offset_bottom = 600
+	_panel.offset_top = 80
+	_panel.offset_right = 520
+	_panel.offset_bottom = 900
 	add_child(_panel)
 
 	var scroll := ScrollContainer.new()
@@ -44,11 +44,11 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "DEBUG (F1)"
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", 28)
 	vbox.add_child(title)
 
 	_stats_label = Label.new()
-	_stats_label.add_theme_font_size_override("font_size", 16)
+	_stats_label.add_theme_font_size_override("font_size", 24)
 	vbox.add_child(_stats_label)
 
 	var sep := HSeparator.new()
@@ -147,4 +147,7 @@ func _update_stats() -> void:
 	text += "  Crits: %d\n" % RunManager.run_stats.get("crits_landed", 0)
 	text += "  Elites: %d\n" % RunManager.run_stats.get("elites_cleared", 0)
 	text += "  Projectiles: %d\n" % RunManager.run_stats.get("projectiles_fired", 0)
+	text += "  Best Combo: %d\n" % RunManager.run_stats.get("best_combo", 0)
+	text += "  Combo Mult: x%.1f\n" % ComboTracker.current_multiplier
+	text += "  Stage Mult: x%.2f\n" % (1.0 + RunManager.current_stage * 0.05)
 	_stats_label.text = text

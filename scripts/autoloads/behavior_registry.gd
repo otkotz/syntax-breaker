@@ -12,6 +12,8 @@ func _ready() -> void:
 	register("poison_on_hit", preload("res://scripts/behaviors/poison_on_hit_behavior.gd"))
 	register("elemental_proliferation", preload("res://scripts/behaviors/elemental_proliferation_behavior.gd"))
 	register("shotgun", preload("res://scripts/behaviors/shotgun_behavior.gd"))
+	register("cast_on_kill", preload("res://scripts/behaviors/cast_on_kill_behavior.gd"))
+	register("void_rift", preload("res://scripts/behaviors/void_rift_behavior.gd"))
 
 func register(key: String, behavior_script: GDScript) -> void:
 	_behaviors[key] = behavior_script

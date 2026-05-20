@@ -23,6 +23,9 @@ func setup(victory: bool, new_unlocks: Array[String] = []) -> void:
 	_add_stat("Elites Cleared", str(RunManager.run_stats.get("elites_cleared", 0)))
 	_add_stat("Gold Earned", str(RunManager.gold))
 	_add_stat("Crits Landed", str(RunManager.run_stats.get("crits_landed", 0)))
+	var best_combo: int = RunManager.run_stats.get("best_combo", 0)
+	if best_combo > 0:
+		_add_stat("Best Combo", str(best_combo))
 
 	if new_unlocks.is_empty():
 		unlocks_label.text = ""

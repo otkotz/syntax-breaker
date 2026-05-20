@@ -1,7 +1,7 @@
 class_name Minimap
 extends Control
 
-const MAP_SIZE := 120.0
+const MAP_SIZE := 240.0
 const PLAYER_COLOR := Color(0.27, 0.53, 1.0)
 const ENEMY_COLOR := Color(1.0, 0.27, 0.27)
 const BOSS_COLOR := Color(0.8, 0.13, 0.13)
@@ -27,14 +27,15 @@ func _draw() -> void:
 
 	if _player and is_instance_valid(_player):
 		var p := _world_to_minimap(_player.global_position)
-		draw_circle(p, 3.0, PLAYER_COLOR)
+		draw_circle(p, 5.0, PLAYER_COLOR)
 
 	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
 		if not enemy.visible:
 			continue
 		var pos := _world_to_minimap(enemy.global_position)
 		var is_boss := enemy is MiniBoss
-		draw_rect(Rect2(pos - Vector2(1.5, 1.5), Vector2(3, 3)), BOSS_COLOR if is_boss else ENEMY_COLOR)
+		var dot_size := 5.0 if is_boss else 3.0
+		draw_rect(Rect2(pos - Vector2(dot_size / 2, dot_size / 2), Vector2(dot_size, dot_size)), BOSS_COLOR if is_boss else ENEMY_COLOR)
 
 func _world_to_minimap(world_pos: Vector2) -> Vector2:
 	var ratio := (world_pos - _arena_rect.position) / _arena_rect.size

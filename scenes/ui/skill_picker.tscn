@@ -35,7 +35,7 @@ theme_override_constants/separation = 20
 layout_mode = 2
 text = "Choose Starting Skill"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 48
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBox"]
 layout_mode = 2

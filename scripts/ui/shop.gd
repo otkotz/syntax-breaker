@@ -106,7 +106,7 @@ func _refresh_ui() -> void:
 
 func _create_card(offering: Dictionary) -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size.y = 80.0
+	panel.custom_minimum_size.y = 130.0
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
 	panel.add_child(hbox)
@@ -130,7 +130,7 @@ func _create_card(offering: Dictionary) -> Control:
 			var bonus_desc := StatCalculator.get_max_quality_description(offering["resource"].id)
 			desc_text += "\nMAX BONUS: " + bonus_desc
 	desc.text = desc_text
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", 26)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	info.add_child(title)
 	info.add_child(desc)
@@ -138,7 +138,7 @@ func _create_card(offering: Dictionary) -> Control:
 
 	var buy_btn := Button.new()
 	buy_btn.text = "%dg" % offering["cost"]
-	buy_btn.custom_minimum_size.x = 70.0
+	buy_btn.custom_minimum_size.x = 120.0
 	buy_btn.pressed.connect(_on_buy.bind(offering))
 	hbox.add_child(buy_btn)
 

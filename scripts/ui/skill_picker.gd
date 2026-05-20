@@ -24,7 +24,7 @@ func _populate() -> void:
 
 func _add_skill_button(skill: SkillResource) -> void:
 	var btn := Button.new()
-	btn.custom_minimum_size.y = 80.0
+	btn.custom_minimum_size.y = 130.0
 	btn.text = "%s\n%s  [%s]" % [skill.name, skill.description, ", ".join(skill.tags)]
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 	btn.pressed.connect(func(): skill_chosen.emit(skill))

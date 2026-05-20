@@ -25,7 +25,7 @@ func _build_rewards(high_quality: bool) -> void:
 	var rewards := _roll_rewards(high_quality)
 	for reward: Dictionary in rewards:
 		var btn := Button.new()
-		btn.custom_minimum_size.y = 100.0
+		btn.custom_minimum_size.y = 150.0
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 		btn.text = _format_reward(reward)
 		btn.pressed.connect(func(): reward_chosen.emit(reward))

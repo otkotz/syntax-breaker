@@ -42,3 +42,6 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 					spread_count += 1
 			if spread_count > 0:
 				CombatLog.interaction("Toxic Cloud", target.name, "spread poison to %d nearby" % spread_count)
+
+	# Cross-element synergies
+	SynergyTracker.record_and_check(target, tags, damage)

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "void_rift"
+name = "Void Rift"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {}
+added_tags = Array[String]([])
+behavior_key = "void_rift"
+rarity = "rare"
+description = "Kills create an explosion dealing 40% damage to nearby enemies"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spell_echo"
+name = "Spell Echo"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {"echo_count": 1, "damage_mult": 0.7}
+added_tags = Array[String]([])
+behavior_key = ""
+rarity = "rare"
+description = "Skills cast twice — second cast at 70% damage"

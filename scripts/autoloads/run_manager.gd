@@ -33,6 +33,7 @@ func start_run() -> void:
 		"max_aoe_kill": 0,
 		"max_dot_spread_kill": 0,
 		"elites_cleared": 0,
+		"best_combo": 0,
 	}
 
 func add_gold(amount: int) -> void:

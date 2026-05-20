@@ -38,12 +38,12 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "SHOP"
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 48
 
 [node name="GoldLabel" type="Label" parent="MarginContainer/VBox/Header"]
 layout_mode = 2
 text = "Gold: 0"
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 36
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBox"]
 layout_mode = 2

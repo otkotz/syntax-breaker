@@ -26,7 +26,7 @@ func _build_buttons(choices: Array[StageData]) -> void:
 
 func _add_choice_button(stage: StageData) -> void:
 	var btn := Button.new()
-	btn.custom_minimum_size.y = 120.0
+	btn.custom_minimum_size.y = 180.0
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 
 	var text := stage.get_type_name()

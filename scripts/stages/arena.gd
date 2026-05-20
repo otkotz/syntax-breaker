@@ -8,6 +8,7 @@ extends Node2D
 @onready var camera: CameraShake = $Player/Camera2D
 @onready var minimap: Minimap = $CanvasLayer/Minimap
 var _debug_menu: DebugMenu
+var _combo_tracker: ComboTracker
 
 @export var arena_size := Vector2(3200, 3200)
 @export var balance: GameBalance
@@ -50,6 +51,16 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 	add_child(_debug_menu)
 	_debug_menu.setup(player)
 
+	_combo_tracker = ComboTracker.new()
+	add_child(_combo_tracker)
+	var combo_display := ComboDisplay.new()
+	combo_display.anchors_preset = Control.PRESET_CENTER_RIGHT
+	combo_display.offset_left = -150
+	combo_display.offset_right = -10
+	$CanvasLayer.add_child(combo_display)
+	combo_display.setup(_combo_tracker)
+
+	SynergyTracker.clear()
 	queue_redraw()
 
 func _process(_delta: float) -> void:

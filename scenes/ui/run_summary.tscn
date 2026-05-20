@@ -25,12 +25,12 @@ anchor_bottom = 1.0
 
 [node name="VBox" type="VBoxContainer" parent="CenterContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(400, 0)
+custom_minimum_size = Vector2(700, 0)
 theme_override_constants/separation = 30
 
 [node name="ResultLabel" type="Label" parent="CenterContainer/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 64
 horizontal_alignment = 1
 
 [node name="StatsContainer" type="VBoxContainer" parent="CenterContainer/VBox"]
@@ -40,10 +40,10 @@ theme_override_constants/separation = 8
 [node name="UnlocksLabel" type="Label" parent="CenterContainer/VBox"]
 layout_mode = 2
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 30
 
 [node name="PlayAgainButton" type="Button" parent="CenterContainer/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 80)
 text = "Return to Menu"
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 36

@@ -41,11 +41,11 @@ DO NOT: build visual node graph, add >12 supports, create skills that bypass tag
 
 Goal: Make each run feel like a journey with meaningful choices.
 
-- [ ] 3.1 Stage map (pick between 2-3 next stages: combat/elite/shop/treasure/boss)
-- [ ] 3.2 Stage modifiers (enemy buffs/debuffs per stage)
-- [ ] 3.3 Elite encounters (fewer but harder enemies with abilities)
-- [ ] 3.4 Reward variety (skill/support/passive/gold picks after clear)
-- [ ] 3.5 Difficulty scaling curve
+- [x] 3.1 Stage map (pick between 2-3 next stages: combat/elite/shop/treasure/boss)
+- [x] 3.2 Stage modifiers (enemy buffs/debuffs per stage)
+- [x] 3.3 Elite encounters (fewer but harder enemies with abilities)
+- [x] 3.4 Reward variety (skill/support/passive/gold picks after clear)
+- [x] 3.5 Difficulty scaling curve
 
 DO NOT: procedural generation, environmental hazards, more than 1 boss, minimap.
 
@@ -55,11 +55,11 @@ DO NOT: procedural generation, environmental hazards, more than 1 boss, minimap.
 
 Goal: Create viral clip moments through emergent synergies.
 
-- [ ] 4.1 Keystone supports (Spell Echo, Totems, Mines, Cast on Kill)
-- [ ] 4.2 Mutation system (permanent skill modifications after stage 5)
-- [ ] 4.3 Synergy triggers (cross-skill interactions)
-- [ ] 4.4 Escalation curve (increasingly unhinged power per stage)
-- [ ] 4.5 Kill combo counter, damage number scaling
+- [x] 4.1 Keystone supports (Spell Echo, Totems, Mines, Cast on Kill, Void Rift)
+- [x] 4.2 Mutation system (permanent skill modifications after boss stages)
+- [x] 4.3 Synergy triggers (Overload, Shatter, Frostblight cross-element combos)
+- [x] 4.4 Escalation curve (+5% damage/stage, combo multiplier up to 2x)
+- [x] 4.5 Kill combo counter, damage number scaling
 
 DO NOT: balance for PvP, prevent broken builds, add >5 keystones initially.
 

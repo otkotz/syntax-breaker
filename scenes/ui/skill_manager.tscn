@@ -25,13 +25,13 @@ layout_mode = 2
 [node name="SkillSlots" type="VBoxContainer" parent="Panel/HSplit"]
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(350, 0)
 theme_override_constants/separation = 15
 
 [node name="SupportPool" type="VBoxContainer" parent="Panel/HSplit"]
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(350, 0)
 
 [node name="CloseButton" type="Button" parent="Panel"]
 layout_mode = 2

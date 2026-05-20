@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "totem"
+name = "Totem"
+required_tags = Array[String](["projectile"])
+excluded_tags = Array[String](["melee"])
+stat_modifiers = {"is_totem": 1, "damage_mult": 0.8}
+added_tags = Array[String]([])
+behavior_key = ""
+rarity = "rare"
+description = "Place a totem that casts the skill for 10 seconds"

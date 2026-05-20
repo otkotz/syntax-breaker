@@ -40,12 +40,12 @@ func _build_skill_panels() -> void:
 
 		var name_label := Label.new()
 		name_label.text = si.base.name
-		name_label.add_theme_font_size_override("font_size", 18)
+		name_label.add_theme_font_size_override("font_size", 30)
 		panel.add_child(name_label)
 
 		var tag_label := Label.new()
 		tag_label.text = ", ".join(si.base.tags)
-		tag_label.add_theme_font_size_override("font_size", 13)
+		tag_label.add_theme_font_size_override("font_size", 22)
 		tag_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		panel.add_child(tag_label)
 
@@ -86,7 +86,7 @@ func _build_support_overview() -> void:
 	var header := Label.new()
 	header.text = "Tap a slot to manage"
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_font_size_override("font_size", 28)
 	header.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	support_pool.add_child(header)
 
@@ -108,12 +108,12 @@ func _build_support_overview() -> void:
 		var q: int = RunManager.get_support_quality(support.id)
 		var q_str := " Q%d" % q if q > 0 else ""
 		lbl.text = "  %s%s" % [support.name, q_str]
-		lbl.add_theme_font_size_override("font_size", 14)
+		lbl.add_theme_font_size_override("font_size", 24)
 		support_pool.add_child(lbl)
 		if RunManager.is_support_max_quality(support.id):
 			var bonus := Label.new()
 			bonus.text = "    MAX: " + StatCalculator.get_max_quality_description(support.id)
-			bonus.add_theme_font_size_override("font_size", 11)
+			bonus.add_theme_font_size_override("font_size", 20)
 			bonus.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 			bonus.autowrap_mode = TextServer.AUTOWRAP_WORD
 			support_pool.add_child(bonus)
@@ -127,7 +127,7 @@ func _build_slot_choices() -> void:
 	var header := Label.new()
 	header.text = "%s — Slot %d" % [si.base.name, index + 1]
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_font_size_override("font_size", 28)
 	support_pool.add_child(header)
 
 	if current_support:
@@ -135,12 +135,12 @@ func _build_slot_choices() -> void:
 		var q: int = RunManager.get_support_quality(current_support.id)
 		var q_str := " (Q%d)" % q if q > 0 else ""
 		current_label.text = "Current: %s%s" % [current_support.name, q_str]
-		current_label.add_theme_font_size_override("font_size", 14)
+		current_label.add_theme_font_size_override("font_size", 24)
 		support_pool.add_child(current_label)
 
 		var desc_label := Label.new()
 		desc_label.text = current_support.description
-		desc_label.add_theme_font_size_override("font_size", 12)
+		desc_label.add_theme_font_size_override("font_size", 20)
 		desc_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		support_pool.add_child(desc_label)
@@ -148,7 +148,7 @@ func _build_slot_choices() -> void:
 		if RunManager.is_support_max_quality(current_support.id):
 			var bonus_label := Label.new()
 			bonus_label.text = "MAX: " + StatCalculator.get_max_quality_description(current_support.id)
-			bonus_label.add_theme_font_size_override("font_size", 12)
+			bonus_label.add_theme_font_size_override("font_size", 20)
 			bonus_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 			bonus_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 			support_pool.add_child(bonus_label)
@@ -165,7 +165,7 @@ func _build_slot_choices() -> void:
 
 	var swap_label := Label.new()
 	swap_label.text = "Assign:" if not current_support else "Swap with:"
-	swap_label.add_theme_font_size_override("font_size", 14)
+	swap_label.add_theme_font_size_override("font_size", 24)
 	swap_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	support_pool.add_child(swap_label)
 
@@ -188,7 +188,7 @@ func _build_slot_choices() -> void:
 
 			var desc := Label.new()
 			desc.text = support.description
-			desc.add_theme_font_size_override("font_size", 11)
+			desc.add_theme_font_size_override("font_size", 20)
 			desc.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
 			desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 			entry.add_child(desc)
@@ -196,7 +196,7 @@ func _build_slot_choices() -> void:
 			if RunManager.is_support_max_quality(support.id):
 				var bonus := Label.new()
 				bonus.text = "MAX: " + StatCalculator.get_max_quality_description(support.id)
-				bonus.add_theme_font_size_override("font_size", 11)
+				bonus.add_theme_font_size_override("font_size", 20)
 				bonus.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 				bonus.autowrap_mode = TextServer.AUTOWRAP_WORD
 				entry.add_child(bonus)

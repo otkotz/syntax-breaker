@@ -4,7 +4,7 @@ const SAVE_PATH := "user://meta_progression.json"
 
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
-	"supports": ["pierce", "faster_casting", "poison_on_hit"],
+	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine"],
 	"passives": ["thick_skin"],
 }
 

@@ -34,6 +34,9 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 		"split_count": 0,
 		"crit_chance": 0.05,
 		"crit_mult": 1.5,
+		"echo_count": 0,
+		"is_totem": 0,
+		"is_mine": 0,
 	}
 
 	var mult_totals: Dictionary = {}

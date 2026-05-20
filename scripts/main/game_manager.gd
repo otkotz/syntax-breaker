@@ -9,6 +9,7 @@ const RUN_SUMMARY_SCENE := preload("res://scenes/ui/run_summary.tscn")
 const SKILL_PICKER_SCENE := preload("res://scenes/ui/skill_picker.tscn")
 const STAGE_CHOICE_SCENE := preload("res://scenes/ui/stage_choice.tscn")
 const REWARD_PICKER_SCENE := preload("res://scenes/ui/reward_picker.tscn")
+const MUTATION_PICKER_SCENE := preload("res://scenes/ui/mutation_picker.tscn")
 
 var _state: State = State.MENU
 var _arena: Arena
@@ -99,6 +100,8 @@ func _on_stage_completed() -> void:
 	if _current_stage_data and _current_stage_data.type == StageData.Type.ELITE:
 		RunManager.record_stat("elites_cleared", 1)
 
+	var was_boss := _current_stage_data and _current_stage_data.type == StageData.Type.BOSS
+
 	if _arena:
 		_arena.queue_free()
 		_arena = null
@@ -107,7 +110,21 @@ func _on_stage_completed() -> void:
 		end_run(true)
 	else:
 		var stage_type := _current_stage_data.type if _current_stage_data else StageData.Type.COMBAT
-		_show_reward_picker(stage_type)
+		if was_boss and _skill_instances.size() > 0:
+			_show_mutation_picker(stage_type)
+		else:
+			_show_reward_picker(stage_type)
+
+func _show_mutation_picker(then_stage_type: StageData.Type) -> void:
+	var picker := MUTATION_PICKER_SCENE.instantiate() as MutationPicker
+	_ui_layer.add_child(picker)
+	picker.setup(_skill_instances)
+	picker.mutation_chosen.connect(func(mutation: Dictionary, skill_idx: int):
+		picker.queue_free()
+		if skill_idx >= 0 and skill_idx < _skill_instances.size():
+			_skill_instances[skill_idx].add_mutation(mutation)
+		_show_reward_picker(then_stage_type)
+	, CONNECT_ONE_SHOT)
 
 func _show_reward_picker(stage_type: StageData.Type) -> void:
 	_state = State.REWARD
