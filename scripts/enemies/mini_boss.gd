@@ -291,6 +291,13 @@ func _cooldown(delta: float) -> void:
 		_phase = Phase.CHASE
 		modulate = Color.WHITE
 
+func reset() -> void:
+	super.reset()
+	_phase = Phase.CHASE
+	_phase_timer = 0.0
+	_ability_timer = 0.0
+	_charge_dir = Vector2.ZERO
+
 func _die() -> void:
 	RunManager.record_stat("mini_bosses_killed", 1)
 	super._die()

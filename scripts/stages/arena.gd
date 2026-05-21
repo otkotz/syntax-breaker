@@ -10,7 +10,7 @@ extends Node2D
 var _debug_menu: DebugMenu
 var _combo_tracker: ComboTracker
 
-@export var arena_size := Vector2(2560, 2560)
+@export var arena_size := Vector2(1000, 1750)
 @export var balance: GameBalance
 
 var _arena_rect: Rect2
@@ -40,6 +40,12 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 	spawner.setup(player, _arena_rect, stage_data)
 	spawner.all_waves_cleared.connect(_on_all_waves_cleared, CONNECT_ONE_SHOT)
 	spawner.start_next_wave()
+
+	if camera:
+		camera.limit_left = int(_arena_rect.position.x)
+		camera.limit_right = int(_arena_rect.end.x)
+		camera.limit_top = int(_arena_rect.position.y)
+		camera.limit_bottom = int(_arena_rect.end.y)
 
 	if hud and hud.has_method("setup"):
 		hud.setup(player)

@@ -111,3 +111,10 @@ func get_player_speed_mult() -> float:
 	if modifiers.has("cursed"):
 		return 0.8
 	return 1.0
+
+func get_run_phase() -> int:
+	if depth <= 3:
+		return 1
+	elif depth <= 7:
+		return 2
+	return 3
