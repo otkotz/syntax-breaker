@@ -57,14 +57,9 @@ func _physics_process(delta: float) -> void:
 		if dist < 30.0:
 			var away := _target.global_position.direction_to(global_position)
 			velocity = away * effective_speed * 0.5
-		elif dist < aggro_range:
+		else:
 			var dir := global_position.direction_to(_target.global_position)
 			velocity = dir * effective_speed
-		else:
-			_wander_timer -= delta
-			if _wander_timer <= 0.0:
-				_pick_wander_dir()
-			velocity = _wander_dir * effective_speed * 0.3
 	else:
 		velocity = _wander_dir * effective_speed * 0.3
 

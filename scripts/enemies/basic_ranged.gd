@@ -17,12 +17,7 @@ func _physics_process(delta: float) -> void:
 	var dist := global_position.distance_to(_target.global_position)
 	var dir := global_position.direction_to(_target.global_position)
 
-	if dist > aggro_range:
-		_wander_timer -= delta
-		if _wander_timer <= 0.0:
-			_pick_wander_dir()
-		velocity = _wander_dir * move_speed * 0.3
-	elif dist > preferred_distance + 30.0:
+	if dist > preferred_distance + 30.0:
 		velocity = dir * move_speed
 	elif dist < preferred_distance - 30.0:
 		velocity = -dir * move_speed
@@ -33,11 +28,10 @@ func _physics_process(delta: float) -> void:
 	_clamp_to_arena()
 	_check_contact_damage()
 
-	if dist < aggro_range:
-		_fire_timer += delta
-		if _fire_timer >= fire_rate:
-			_fire_projectile(dir)
-			_fire_timer = 0.0
+	_fire_timer += delta
+	if _fire_timer >= fire_rate:
+		_fire_projectile(dir)
+		_fire_timer = 0.0
 
 func _draw_body() -> void:
 	var f := 1.0 if _target and is_instance_valid(_target) and _target.global_position.x >= global_position.x else -1.0
