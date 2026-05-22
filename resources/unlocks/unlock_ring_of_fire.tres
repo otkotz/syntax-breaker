@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_ring_of_fire"
+item_type = "passives"
+item_id = "ring_of_fire"
+condition_type = "stat_threshold"
+condition_params = {"stat": "projectiles_fired", "threshold": 500}
+description = "Fire 500 projectiles in a single run"

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_glass_body"
+item_type = "passives"
+item_id = "glass_body"
+condition_type = "kill_count"
+condition_params = {"count": 50}
+description = "Kill 50 enemies in a single run"

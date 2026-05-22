@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_overflowing_power"
+item_type = "passives"
+item_id = "overflowing_power"
+condition_type = "stat_threshold"
+condition_params = {"stat": "crits_landed", "threshold": 30}
+description = "Land 30 critical hits in a single run"

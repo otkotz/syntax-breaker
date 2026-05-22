@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "glass_body"
+name = "Glass Body"
+affected_tags = Array[String]([])
+stat_modifiers = {"damage_mult": 1.5, "max_hp_mult": 0.7}
+rarity = "rare"
+description = "+50% damage, -30% HP"

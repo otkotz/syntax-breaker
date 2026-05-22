@@ -6,6 +6,7 @@ var skill_slots_unlocked: int = 1
 var equipped_skills: Array = []
 var owned_supports: Array = []
 var owned_passives: Array = []
+var owned_consumables: Array[Dictionary] = []
 var support_quality: Dictionary = {}
 var run_stats: Dictionary = {}
 var last_shop_depth: int = 0
@@ -20,6 +21,7 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	equipped_skills = []
 	owned_supports = []
 	owned_passives = []
+	owned_consumables = []
 	support_quality = {}
 	last_shop_depth = 0
 	current_stage_data = null
@@ -75,6 +77,19 @@ func upgrade_support_quality(support_id: String) -> bool:
 func is_support_max_quality(support_id: String) -> bool:
 	return get_support_quality(support_id) >= MAX_QUALITY_LEVEL
 
+func add_consumable(res: ConsumableResource) -> void:
+	for entry: Dictionary in owned_consumables:
+		if entry["id"] == res.id:
+			entry["charges"] += 1
+			return
+	owned_consumables.append({"id": res.id, "charges": 1, "resource": res})
+
+func get_consumable_data() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for entry: Dictionary in owned_consumables:
+		result.append(entry.duplicate())
+	return result
+
 const RUN_SAVE_PATH := "user://active_run.json"
 
 func has_saved_run() -> bool:
@@ -90,6 +105,10 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		if p is PassiveResource:
 			passives_data.append({"id": p.id})
 
+	var consumables_data: Array[Dictionary] = []
+	for entry: Dictionary in owned_consumables:
+		consumables_data.append({"id": entry["id"], "charges": entry["charges"]})
+
 	var data := {
 		"current_stage": current_stage,
 		"gold": gold,
@@ -102,6 +121,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"skills": skill_data,
 		"supports": supports_data,
 		"passives": passives_data,
+		"consumables": consumables_data,
 	}
 	var file := FileAccess.open(RUN_SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -143,6 +163,14 @@ func restore_from_save(data: Dictionary) -> void:
 		var path := "res://resources/passives/%s.tres" % p_data["id"]
 		if ResourceLoader.exists(path):
 			owned_passives.append(load(path))
+
+	owned_consumables.clear()
+	for c_data: Dictionary in data.get("consumables", []):
+		var path := "res://resources/consumables/%s.tres" % c_data["id"]
+		if ResourceLoader.exists(path):
+			var res := load(path) as ConsumableResource
+			if res:
+				owned_consumables.append({"id": c_data["id"], "charges": int(c_data["charges"]), "resource": res})
 
 func record_stat(stat_key: String, value: Variant) -> void:
 	match typeof(run_stats.get(stat_key)):

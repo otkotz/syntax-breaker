@@ -15,6 +15,7 @@ func set_skills(instances: Array[SkillInstance]) -> void:
 	_cooldown_timers.resize(instances.size())
 	_cooldown_timers.fill(0.0)
 	_setup_pools()
+	_bind_on_death_recast()
 
 func _setup_pools() -> void:
 	for si in skill_instances:
@@ -26,12 +27,23 @@ func _setup_pools() -> void:
 		if scene:
 			_pools[si.base.scene_path] = ObjectPool.new(scene, 10, self)
 
+var _consumable_manager: ConsumableManager
+
 func _physics_process(delta: float) -> void:
+	if not _consumable_manager:
+		_consumable_manager = _find_consumable_manager()
+	var cd_mult := _consumable_manager.get_cooldown_mult() if _consumable_manager else 1.0
 	for i in skill_instances.size():
 		_cooldown_timers[i] -= delta
 		if _cooldown_timers[i] <= 0.0:
 			if _try_cast(skill_instances[i]):
-				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0)
+				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult
+
+func _find_consumable_manager() -> ConsumableManager:
+	var nodes := get_tree().get_nodes_in_group("consumable_manager")
+	if nodes.size() > 0:
+		return nodes[0] as ConsumableManager
+	return null
 
 func _try_cast(si: SkillInstance) -> bool:
 	if si.computed_stats.get("is_totem", 0) > 0:
@@ -54,20 +66,30 @@ func _try_cast(si: SkillInstance) -> bool:
 	var target := Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
 	if target == null:
 		return false
+	if ProjectileBase.active_count >= QualitySettings.projectile_cap:
+		return false
 
-	var direction := global_position.direction_to(target.global_position)
 	var count: int = si.computed_stats.get("projectile_count", 1)
-	if count <= 1:
-		_spawn_skill(si, direction, target)
-	else:
-		var spread := deg_to_rad(15.0) * (count - 1)
+
+	if PassiveBehaviors.has_ring_of_fire() and si.base.has_tag("projectile"):
 		for i in count:
-			var angle_offset := -spread / 2.0 + spread / (count - 1) * i
-			var dir := direction.rotated(angle_offset)
-			_spawn_skill(si, dir, target)
+			var angle := TAU * i / count
+			_spawn_skill(si, Vector2.from_angle(angle), target)
+	else:
+		var direction := global_position.direction_to(target.global_position)
+		if count <= 1:
+			_spawn_skill(si, direction, target)
+		else:
+			var spread := deg_to_rad(15.0) * (count - 1)
+			for i in count:
+				var angle_offset := -spread / 2.0 + spread / (count - 1) * i
+				var dir := direction.rotated(angle_offset)
+				_spawn_skill(si, dir, target)
+
 	CombatLog.skill_cast(si.base.name, count)
 	RunManager.record_stat("projectiles_fired", count)
-	_schedule_echoes(si, direction, target)
+	var aim_dir := global_position.direction_to(target.global_position)
+	_schedule_echoes(si, aim_dir, target)
 	return true
 
 func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> void:
@@ -152,6 +174,21 @@ func _clean_totems() -> void:
 
 func _clean_mines() -> void:
 	_active_mines = _active_mines.filter(func(m: SkillMine): return is_instance_valid(m))
+
+func _bind_on_death_recast() -> void:
+	for si: SkillInstance in skill_instances:
+		si.trigger_on_death_recast = _on_death_recast
+
+func _on_death_recast(si: SkillInstance, dead_enemy: Node2D) -> void:
+	if si.base.scene_path.is_empty():
+		return
+	if ProjectileBase.active_count >= QualitySettings.projectile_cap:
+		return
+	var target := Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
+	if target == null:
+		return
+	var dir := global_position.direction_to(target.global_position)
+	_spawn_skill(si, dir, target)
 
 func _redistribute_orbit_offsets(pool: ObjectPool) -> void:
 	var active := pool.get_active()

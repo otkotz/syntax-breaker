@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "heavy_hitter"
+name = "Heavy Hitter"
+affected_tags = Array[String]([])
+stat_modifiers = {"damage_mult": 1.1}
+rarity = "common"
+description = "All skills deal 10% more damage"

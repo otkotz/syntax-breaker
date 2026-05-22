@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "chain_reaction"
+name = "Chain Reaction"
+affected_tags = Array[String](["projectile"])
+stat_modifiers = {"chain_count": 2, "pierce": 1}
+rarity = "rare"
+description = "+2 chains, +1 pierce"

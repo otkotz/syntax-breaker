@@ -6,7 +6,7 @@ const MAX_ASCENSION := 20
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
 	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine"],
-	"passives": ["thick_skin"],
+	"passives": ["thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact"],
 }
 
 var ascension_level: int = 0

@@ -4,17 +4,20 @@ extends Control
 signal continue_pressed
 signal skill_purchased(si: SkillInstance)
 
-const OFFERING_COUNT := 4
+const OFFERING_COUNT := 8
+const MAX_PURCHASES := 3
 const RARITY_COSTS := {
 	"skill": {"common": 15, "uncommon": 20, "rare": 25},
 	"support": {"common": 8, "uncommon": 12, "rare": 15},
-	"passive": {"common": 10, "uncommon": 15, "rare": 20},
+	"passive": {"common": 10, "uncommon": 15, "rare": 20, "legendary": 40},
+	"consumable": {"common": 8},
 }
 
 var _skill_instances: Array[SkillInstance]
 var _reroll_cost: int = 2
 var _offerings: Array[Dictionary] = []
 var _pending_support: SupportResource = null
+var _purchases_remaining: int = MAX_PURCHASES
 
 @onready var gold_label: Label = $MarginContainer/VBox/Header/GoldLabel
 @onready var item_list: VBoxContainer = $MarginContainer/VBox/ScrollContainer/ItemList
@@ -33,6 +36,7 @@ func _ready() -> void:
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
+	_purchases_remaining = MAX_PURCHASES
 	_generate_offerings()
 	_refresh_ui()
 
@@ -72,8 +76,25 @@ func _generate_offerings() -> void:
 			if not owned:
 				pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
 
+	for res: Resource in _load_resources("res://resources/consumables/"):
+		if res is ConsumableResource:
+			pool.append({"type": "consumable", "resource": res, "cost": res.cost})
+
+	var legendary_added := false
+	if randf() < 1.0 / 15.0:
+		var legendaries: Array[Dictionary] = []
+		for entry: Dictionary in pool:
+			if entry["type"] == "passive" and entry["resource"].rarity == "legendary":
+				legendaries.append(entry)
+		if legendaries.size() > 0:
+			legendaries.shuffle()
+			_offerings.append(legendaries[0])
+			pool.erase(legendaries[0])
+			legendary_added = true
+
 	pool.shuffle()
-	for i in mini(OFFERING_COUNT, pool.size()):
+	var count := mini(OFFERING_COUNT - (1 if legendary_added else 0), pool.size())
+	for i in count:
 		_offerings.append(pool[i])
 
 func _load_resources(dir_path: String) -> Array:
@@ -94,7 +115,7 @@ func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
 
 func _refresh_ui() -> void:
-	gold_label.text = "Gold: %d" % RunManager.gold
+	gold_label.text = "Gold: %d  |  Buys left: %d" % [RunManager.gold, _purchases_remaining]
 	reroll_button.text = "Reroll (%dg)" % _reroll_cost
 
 	for child: Node in item_list.get_children():
@@ -119,7 +140,11 @@ func _create_card(offering: Dictionary) -> Control:
 		type_label = "QUALITY %d/4" % q_level
 	else:
 		type_label = type_label.to_upper()
-	title.text = "[%s] %s" % [type_label, offering["resource"].name]
+	var rarity_prefix := ""
+	if "rarity" in offering["resource"]:
+		if offering["resource"].rarity == "legendary":
+			rarity_prefix = "★ "
+	title.text = "%s[%s] %s" % [rarity_prefix, type_label, offering["resource"].name]
 	var desc := Label.new()
 	var desc_text: String = offering["resource"].description
 	if offering["type"] == "support_upgrade":
@@ -144,8 +169,11 @@ func _create_card(offering: Dictionary) -> Control:
 	return panel
 
 func _on_buy(offering: Dictionary) -> void:
+	if _purchases_remaining <= 0:
+		return
 	if not RunManager.spend_gold(offering["cost"]):
 		return
+	_purchases_remaining -= 1
 
 	match offering["type"]:
 		"skill":
@@ -166,6 +194,8 @@ func _on_buy(offering: Dictionary) -> void:
 			RunManager.owned_passives.append(offering["resource"])
 			_recompute_all_skills()
 			GameBus.passive_acquired.emit(offering["resource"])
+		"consumable":
+			RunManager.add_consumable(offering["resource"] as ConsumableResource)
 
 	_offerings.erase(offering)
 	_refresh_ui()

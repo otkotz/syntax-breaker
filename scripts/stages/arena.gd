@@ -9,6 +9,7 @@ extends Node2D
 @onready var minimap: Minimap = $CanvasLayer/Minimap
 var _debug_menu: DebugMenu
 var _combo_tracker: ComboTracker
+var _consumable_manager: ConsumableManager
 
 @export var arena_size := Vector2(1000, 1750)
 @export var balance: GameBalance
@@ -27,6 +28,7 @@ func _ready() -> void:
 func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage_data: StageData = null) -> void:
 	_stage_data = stage_data
 	_arena_rect = Rect2(Vector2.ZERO, arena_size)
+	Targeting.setup()
 	player.global_position = Vector2(arena_size.x / 2, arena_size.y * 0.7)
 
 	if _stage_data:
@@ -65,6 +67,18 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 	combo_display.offset_right = -10
 	$CanvasLayer.add_child(combo_display)
 	combo_display.setup(_combo_tracker)
+
+	_consumable_manager = ConsumableManager.new()
+	add_child(_consumable_manager)
+	_consumable_manager.setup(RunManager.get_consumable_data())
+
+	if _consumable_manager.get_slot_count() > 0:
+		var consumable_hud := ConsumableHUD.new()
+		consumable_hud.anchors_preset = Control.PRESET_BOTTOM_WIDE
+		consumable_hud.offset_top = -100
+		consumable_hud.alignment = BoxContainer.ALIGNMENT_CENTER
+		$CanvasLayer.add_child(consumable_hud)
+		consumable_hud.setup(_consumable_manager)
 
 	SynergyTracker.clear()
 	queue_redraw()

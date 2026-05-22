@@ -83,10 +83,14 @@ func notify_hit(target: Node2D, projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.on_hit(self, target, projectile)
 
+var trigger_on_death_recast: Callable = Callable()
+
 func notify_kill(target: Node2D, projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.on_kill(self, target, projectile)
 	_process_mutation_kills(target)
+	if PassiveBehaviors.has_trigger_on_death() and trigger_on_death_recast.is_valid():
+		trigger_on_death_recast.call(self, target)
 
 func _process_mutation_kills(target: Node2D) -> void:
 	if has_mutation("vampiric"):

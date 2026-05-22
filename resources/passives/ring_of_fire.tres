@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ring_of_fire"
+name = "Ring of Fire"
+affected_tags = Array[String](["projectile"])
+stat_modifiers = {"projectile_count": 6}
+rarity = "legendary"
+behavior_key = "ring_of_fire"
+description = "Projectile skills fire in a ring around you"

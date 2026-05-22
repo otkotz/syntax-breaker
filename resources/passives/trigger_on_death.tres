@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trigger_on_death"
+name = "Echoing Demise"
+affected_tags = Array[String]([])
+stat_modifiers = {}
+rarity = "legendary"
+behavior_key = "trigger_on_death"
+description = "Skills trigger again on kill"

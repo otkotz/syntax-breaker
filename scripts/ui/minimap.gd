@@ -10,13 +10,18 @@ const BORDER_COLOR := Color(0.4, 0.4, 0.5, 0.8)
 
 var _arena_rect: Rect2
 var _player: Node2D
+var _frame_count: int = 0
 
 func setup(player: Node2D, arena_rect: Rect2) -> void:
 	_player = player
 	_arena_rect = arena_rect
 
 func _process(_delta: float) -> void:
-	queue_redraw()
+	if not QualitySettings.minimap_enabled:
+		return
+	_frame_count += 1
+	if _frame_count % QualitySettings.minimap_interval == 0:
+		queue_redraw()
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(MAP_SIZE, MAP_SIZE)), BG_COLOR)

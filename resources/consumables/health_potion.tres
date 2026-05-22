@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/consumable_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "health_potion"
+name = "Health Potion"
+effect_type = "heal"
+duration = 0.0
+magnitude = 0.4
+cost = 6
+description = "Instantly heal 40% HP"

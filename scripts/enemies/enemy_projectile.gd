@@ -7,30 +7,64 @@ var damage: float = 5.0
 var _distance_traveled: float = 0.0
 var max_range: float = 600.0
 
-func _draw() -> void:
+static var _orb_texture: ImageTexture
+static var _orb_offset: Vector2
+
+func _ready() -> void:
+	if not _orb_texture:
+		var data := _build_orb_texture()
+		_orb_texture = data["texture"]
+		_orb_offset = data["offset"]
+	var sprite := Sprite2D.new()
+	sprite.texture = _orb_texture
+	sprite.offset = _orb_offset
+	add_child(sprite)
+
+static func _build_orb_texture() -> Dictionary:
 	const ORB_MID := Color(0.753, 0.659, 1.0)
 	const ORB_GLOW := Color(0.478, 0.353, 0.8)
-	# Outer glow
-	draw_circle(Vector2.ZERO, 5.0, Color(0.478, 0.353, 0.8, 0.35))
-	# Cross arms
-	draw_rect(Rect2(Vector2(-3, 0), Vector2(1, 1)), ORB_GLOW)
-	draw_rect(Rect2(Vector2(3, 0), Vector2(1, 1)), ORB_GLOW)
-	draw_rect(Rect2(Vector2(0, -3), Vector2(1, 1)), ORB_GLOW)
-	draw_rect(Rect2(Vector2(0, 3), Vector2(1, 1)), ORB_GLOW)
-	draw_rect(Rect2(Vector2(-2, 0), Vector2(5, 1)), ORB_MID)
-	draw_rect(Rect2(Vector2(0, -2), Vector2(1, 5)), ORB_MID)
-	# Core
-	draw_rect(Rect2(Vector2(-1, -1), Vector2(3, 3)), ORB_MID)
-	draw_rect(Rect2(Vector2(0, 0), Vector2(1, 1)), Color.WHITE)
+
+	var r: Array = []
+	var c: Array = []
+	var _r := func(x: float, y: float, w: float, h: float, col: Color) -> void:
+		r.append({"rect": Rect2(x, y, w, h), "color": col})
+
+	c.append({"pos": Vector2.ZERO, "radius": 5.0, "color": Color(0.478, 0.353, 0.8, 0.35)})
+	_r.call(-3, 0, 1, 1, ORB_GLOW); _r.call(3, 0, 1, 1, ORB_GLOW)
+	_r.call(0, -3, 1, 1, ORB_GLOW); _r.call(0, 3, 1, 1, ORB_GLOW)
+	_r.call(-2, 0, 5, 1, ORB_MID); _r.call(0, -2, 1, 5, ORB_MID)
+	_r.call(-1, -1, 3, 3, ORB_MID); _r.call(0, 0, 1, 1, Color.WHITE)
+
+	return PixelSprite.build_texture(r, c)
+
+var _pool_ref: ObjectPool
+
+func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool) -> void:
+	direction = dir
+	speed = spd
+	damage = dmg
+	global_position = pos
+	_distance_traveled = 0.0
+	_pool_ref = pool
 
 func _physics_process(delta: float) -> void:
 	var move_dist := speed * delta
 	position += direction * move_dist
 	_distance_traveled += move_dist
 	if _distance_traveled >= max_range:
-		queue_free()
+		_return_to_pool()
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
-	queue_free()
+	_return_to_pool()
+
+func _return_to_pool() -> void:
+	if _pool_ref:
+		_pool_ref.release(self)
+	else:
+		queue_free()
+
+func reset() -> void:
+	_distance_traveled = 0.0
+	_pool_ref = null

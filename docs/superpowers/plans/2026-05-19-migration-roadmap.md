@@ -83,22 +83,18 @@ DO NOT: premium currency, >5 runs per unlock, gate core mechanics.
 
 Goal: 60fps during craziest builds on mid-range Android.
 
-- [ ] 6.1 Pool all frequently-created objects
-- [ ] 6.2 Replace `_draw()` with sprite atlas
-- [ ] 6.3 Spatial partitioning for targeting
-- [ ] 6.4 Hard cap active projectiles (50-80)
-- [ ] 6.5 Reduce physics bodies for stationary enemies
-- [ ] 6.6 VFX budget (pool damage numbers, shared hit shader)
-- [ ] 6.7 Low-end Android fallbacks (720p, reduced entities)
+- [x] 6.1 Pool all frequently-created objects
+- [x] 6.2 Replace `_draw()` with sprite atlas
+- [x] 6.3 Spatial partitioning for targeting
+- [x] 6.4 Hard cap active projectiles (50-80)
+- [x] 6.5 Reduce physics bodies for stationary enemies
+- [x] 6.6 VFX budget (pool damage numbers, shared hit shader)
+- [x] 6.7 Low-end Android fallbacks (720p, reduced entities)
 
 ---
 
-## PHASE 7 — First Public Demo (1-2 weeks)
 
-Goal: 50-100 real players testing the core loop.
 
-Minimum content: 3 skills, 5 supports, 3 passives, 8 stages/run, 1 boss, 1 region.
-Run length: 10-12 minutes.
 
 ---
 

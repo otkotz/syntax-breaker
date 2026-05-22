@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_no_crit_juggernaut"
+item_type = "passives"
+item_id = "no_crit_juggernaut"
+condition_type = "kill_mini_boss"
+condition_params = {}
+description = "Kill a mini-boss"

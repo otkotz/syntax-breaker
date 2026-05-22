@@ -25,6 +25,7 @@ InputManager="*res://scripts/autoloads/input_manager.gd"
 BehaviorRegistry="*res://scripts/autoloads/behavior_registry.gd"
 RunManager="*res://scripts/autoloads/run_manager.gd"
 MetaProgression="*res://scripts/autoloads/meta_progression.gd"
+QualitySettings="*res://scripts/autoloads/quality_settings.gd"
 
 [display]
 
@@ -46,3 +47,4 @@ pointing/emulate_touch_from_mouse=true
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true

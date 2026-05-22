@@ -63,8 +63,9 @@ docs/superpowers/plans/2026-05-19-migration-roadmap.md — Post-MVP phases.
 - [x] Phase 3: Stage structure & progression (stage map, modifiers, elites, rewards)
 - [x] Phase 4: Build identity (keystones, mutations, synergies, combos)
 - [x] Phase 5: Meta progression (ascension, regions, codex, save/resume, unlock tree)
-- [ ] Phase 6: Performance & mobile optimization
-- [ ] Phase 7: First public demo
+- [x] Phase 6: Performance & mobile optimization
+- [x] Phase 7: Content expansion (legendary tier, 13 passives, consumable system)
+- [ ] Phase 8: First public demo
 
 ## Design Spec
 

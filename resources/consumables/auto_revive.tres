@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/consumable_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "auto_revive"
+name = "Phoenix Tear"
+effect_type = "revive"
+duration = 0.0
+magnitude = 0.3
+cost = 20
+description = "On death, revive with 30% HP (consumed)"

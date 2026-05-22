@@ -10,11 +10,22 @@ var _angle_offset: float = 0.0
 var _parent_node: Node2D
 var _hit_cooldowns: Dictionary = {}
 var _color: Color = Color(0.4, 0.9, 1.0)
+var _sprite: Sprite2D
 
 const HIT_COOLDOWN := 0.5
 
-func _draw() -> void:
-	draw_circle(Vector2.ZERO, 10.0, _color)
+static var _circle_texture: ImageTexture
+static var _circle_offset: Vector2
+
+func _ready() -> void:
+	if not _circle_texture:
+		var data := PixelSprite.build_circle_texture(10.0, Color.WHITE)
+		_circle_texture = data["texture"]
+		_circle_offset = data["offset"]
+	_sprite = Sprite2D.new()
+	_sprite.texture = _circle_texture
+	_sprite.offset = _circle_offset
+	add_child(_sprite)
 
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
@@ -24,7 +35,8 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	pool_ref = pool
 	_hit_cooldowns.clear()
 	_color = TagColors.get_color(si.get_all_tags())
-	queue_redraw()
+	if _sprite:
+		_sprite.modulate = _color
 
 func set_orbit_parent(parent: Node2D) -> void:
 	_parent_node = parent

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "no_crit_juggernaut"
+name = "Juggernaut"
+affected_tags = Array[String]([])
+stat_modifiers = {"crit_chance_add": -1.0, "damage_mult": 3.0}
+rarity = "legendary"
+behavior_key = ""
+description = "Cannot crit. All hits deal 3x damage"

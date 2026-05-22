@@ -66,7 +66,7 @@ func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> v
 func _apply_stage_data(stage_data: StageData) -> void:
 	if not stage_data:
 		_phase = 1
-		_total_budget = 80
+		_total_budget = int(80 * QualitySettings.entity_mult)
 		_stage_duration = 55.0
 		_hp_mult = 1.0
 		_speed_mult = 1.0
@@ -94,6 +94,7 @@ func _apply_stage_data(stage_data: StageData) -> void:
 	if _is_boss_stage:
 		_total_budget = int(_total_budget * 0.5)
 
+	_total_budget = int(_total_budget * QualitySettings.entity_mult)
 	_configure_phase()
 
 func _configure_phase() -> void:

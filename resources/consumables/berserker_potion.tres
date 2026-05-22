@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/consumable_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "berserker_potion"
+name = "Berserker Potion"
+effect_type = "berserk"
+duration = 10.0
+magnitude = 3.0
+cost = 8
+description = "3x damage, 2x damage taken for 10s"

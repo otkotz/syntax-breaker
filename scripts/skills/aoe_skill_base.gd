@@ -9,9 +9,20 @@ var _lifetime: float = 0.3
 var _timer: float = 0.0
 var _has_hit: bool = false
 var _color: Color = Color(1.0, 0.9, 0.6, 0.35)
+var _sprite: Sprite2D
 
-func _draw() -> void:
-	draw_circle(Vector2.ZERO, 100.0, _color)
+static var _circle_texture: ImageTexture
+static var _circle_offset: Vector2
+
+func _ready() -> void:
+	if not _circle_texture:
+		var data := PixelSprite.build_circle_texture(100.0, Color.WHITE)
+		_circle_texture = data["texture"]
+		_circle_offset = data["offset"]
+	_sprite = Sprite2D.new()
+	_sprite.texture = _circle_texture
+	_sprite.offset = _circle_offset
+	add_child(_sprite)
 
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
@@ -22,7 +33,8 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	_has_hit = false
 	_color = TagColors.get_color_faded(si.base.tags)
 	scale = Vector2.ONE * (area_radius / 100.0)
-	queue_redraw()
+	if _sprite:
+		_sprite.modulate = _color
 
 func _physics_process(delta: float) -> void:
 	_timer += delta

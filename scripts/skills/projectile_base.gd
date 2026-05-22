@@ -11,6 +11,22 @@ var _distance_traveled: float = 0.0
 var _max_range: float = 400.0
 var _hit_targets: Array[Node2D] = []
 var _color: Color = Color(1.0, 0.8, 0.1)
+var _sprite: Sprite2D
+
+static var _circle_texture: ImageTexture
+static var _circle_offset: Vector2
+static var active_count: int = 0
+const MAX_PROJECTILES := 60
+
+func _ready() -> void:
+	if not _circle_texture:
+		var data := PixelSprite.build_circle_texture(8.0, Color.WHITE)
+		_circle_texture = data["texture"]
+		_circle_offset = data["offset"]
+	_sprite = Sprite2D.new()
+	_sprite.texture = _circle_texture
+	_sprite.offset = _circle_offset
+	add_child(_sprite)
 
 func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
 	var spawn_pos := global_position
@@ -27,10 +43,9 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
 	_hit_targets.clear()
 	rotation = direction.angle()
 	_color = TagColors.get_color(si.base.tags)
-	queue_redraw()
-
-func _draw() -> void:
-	draw_circle(Vector2.ZERO, 8.0, _color)
+	if _sprite:
+		_sprite.modulate = _color
+	active_count += 1
 
 func _physics_process(delta: float) -> void:
 	if get_meta("is_returning", false):
@@ -128,5 +143,6 @@ func reset() -> void:
 			remove_meta(key)
 
 func _return_to_pool() -> void:
+	active_count = maxi(0, active_count - 1)
 	if pool_ref:
 		pool_ref.release(self)

@@ -10,6 +10,7 @@ const SKILL_PICKER_SCENE := preload("res://scenes/ui/skill_picker.tscn")
 const STAGE_CHOICE_SCENE := preload("res://scenes/ui/stage_choice.tscn")
 const REWARD_PICKER_SCENE := preload("res://scenes/ui/reward_picker.tscn")
 const MUTATION_PICKER_SCENE := preload("res://scenes/ui/mutation_picker.tscn")
+const LEGENDARY_PICKER_SCENE := preload("res://scenes/ui/legendary_picker.tscn")
 
 var _state: State = State.MENU
 var _arena: Arena
@@ -134,8 +135,20 @@ func _show_mutation_picker(then_stage_type: StageData.Type) -> void:
 		picker.queue_free()
 		if skill_idx >= 0 and skill_idx < _skill_instances.size():
 			_skill_instances[skill_idx].add_mutation(mutation)
+		_show_legendary_picker(then_stage_type)
+	, CONNECT_ONE_SHOT)
+
+func _show_legendary_picker(then_stage_type: StageData.Type) -> void:
+	var picker := LEGENDARY_PICKER_SCENE.instantiate() as LegendaryPicker
+	_ui_layer.add_child(picker)
+	picker.legendary_chosen.connect(func(passive: PassiveResource):
+		picker.queue_free()
+		if passive:
+			for si: SkillInstance in _skill_instances:
+				si.recompute(RunManager.owned_passives)
 		_show_reward_picker(then_stage_type)
 	, CONNECT_ONE_SHOT)
+	picker.setup(_skill_instances)
 
 func _show_reward_picker(stage_type: StageData.Type) -> void:
 	_state = State.REWARD

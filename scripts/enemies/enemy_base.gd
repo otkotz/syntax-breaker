@@ -19,6 +19,11 @@ var _base_max_hp: float
 var _base_move_speed: float
 var _base_contact_damage: float
 var _base_gold_value: int
+var _sprite: Sprite2D
+var _facing_right: bool = true
+
+static var _oni_texture: ImageTexture
+static var _oni_offset: Vector2
 
 signal died(enemy: EnemyBase)
 
@@ -33,6 +38,78 @@ func _ready() -> void:
 	current_hp = max_hp
 	add_to_group("enemies")
 	_pick_wander_dir()
+	_setup_sprite()
+
+func _setup_sprite() -> void:
+	_sprite = Sprite2D.new()
+	var data := _get_body_texture_data()
+	_sprite.texture = data["texture"]
+	_sprite.offset = data["offset"]
+	add_child(_sprite)
+
+func _get_body_texture_data() -> Dictionary:
+	if not _oni_texture:
+		var data := _build_oni_texture()
+		_oni_texture = data["texture"]
+		_oni_offset = data["offset"]
+	return {"texture": _oni_texture, "offset": _oni_offset}
+
+static func _build_oni_texture() -> Dictionary:
+	const OUTLINE := Color(0.04, 0.01, 0.02)
+	const SKIN_D := Color(0.23, 0.04, 0.08)
+	const SKIN_M := Color(0.54, 0.12, 0.17)
+	const SKIN_L := Color(0.84, 0.23, 0.28)
+	const SKIN_H := Color(0.97, 0.54, 0.54)
+	const EYE := Color(1.0, 0.85, 0.3)
+	const FANG := Color(0.96, 0.91, 0.82)
+	const HORN_D := Color(0.23, 0.15, 0.09)
+	const HORN_L := Color(0.75, 0.63, 0.46)
+	const PANTS := Color(0.1, 0.04, 0.09)
+	const PANTS_L := Color(0.16, 0.08, 0.16)
+	const SASH := Color(0.48, 0.09, 0.13)
+	const SASH_L := Color(0.84, 0.23, 0.28)
+	const BLADE_D := Color(0.35, 0.38, 0.46)
+	const BLADE_L := Color(0.88, 0.91, 0.96)
+
+	var r: Array = []
+	var _r := func(x: float, y: float, w: float, h: float, c: Color) -> void:
+		r.append({"rect": Rect2(x, y, w, h), "color": c})
+
+	# Facing right (f=1): dx as-is
+	# legs
+	_r.call(-3, -11, 3, 11, PANTS); _r.call(1, -11, 3, 11, PANTS)
+	_r.call(-4, -2, 8, 1, PANTS_L); _r.call(-4, 0, 8, 1, OUTLINE)
+	# sash
+	_r.call(-4, -13, 8, 2, SASH); _r.call(-4, -13, 8, 1, SASH_L); _r.call(-5, -12, 2, 3, SASH)
+	# torso
+	_r.call(-4, -19, 7, 6, SKIN_M); _r.call(-4, -19, 8, 1, SKIN_M)
+	_r.call(-4, -18, 1, 5, SKIN_D); _r.call(3, -18, 1, 5, SKIN_D)
+	_r.call(-2, -18, 4, 2, SKIN_L); _r.call(-1, -18, 3, 1, SKIN_H); _r.call(0, -17, 1, 3, SKIN_D)
+	# head
+	_r.call(-3, -26, 7, 6, SKIN_M); _r.call(-3, -21, 7, 1, SKIN_D)
+	_r.call(-3, -26, 1, 6, SKIN_D); _r.call(3, -26, 1, 6, SKIN_D)
+	_r.call(-2, -26, 5, 1, SKIN_L); _r.call(-1, -26, 4, 1, SKIN_H)
+	# neck
+	_r.call(-2, -20, 3, 1, SKIN_D)
+	# eyes
+	_r.call(-2, -24, 2, 2, OUTLINE); _r.call(1, -24, 2, 2, OUTLINE)
+	_r.call(-2, -23, 2, 1, EYE); _r.call(1, -23, 2, 1, EYE)
+	# mouth + fangs
+	_r.call(-1, -22, 4, 1, OUTLINE); _r.call(-1, -22, 1, 1, FANG); _r.call(2, -22, 1, 1, FANG)
+	# horns
+	_r.call(-3, -28, 2, 2, HORN_L); _r.call(-4, -30, 2, 2, HORN_L); _r.call(-4, -31, 1, 1, FANG)
+	_r.call(-4, -28, 1, 2, HORN_D)
+	_r.call(2, -28, 2, 2, HORN_L); _r.call(3, -30, 2, 2, HORN_L); _r.call(4, -31, 1, 1, FANG)
+	_r.call(4, -28, 1, 2, HORN_D)
+	# sword arm
+	_r.call(4, -17, 2, 6, SKIN_M); _r.call(4, -17, 1, 6, SKIN_D); _r.call(5, -11, 2, 1, SKIN_D)
+	# sword
+	_r.call(6, -18, 1, 3, OUTLINE); _r.call(6, -21, 2, 1, SASH)
+	_r.call(6, -35, 1, 14, BLADE_L); _r.call(7, -34, 1, 12, BLADE_D)
+	# off arm
+	_r.call(-5, -17, 2, 5, SKIN_M); _r.call(-5, -17, 1, 5, SKIN_D); _r.call(-6, -12, 2, 1, SKIN_D)
+
+	return PixelSprite.build_texture(r)
 
 func initialize(target: Node2D) -> void:
 	_target = target
@@ -50,7 +127,7 @@ func _physics_process(delta: float) -> void:
 			_slow_factor = 1.0
 			modulate.b = 1.0
 
-	var effective_speed := move_speed * _slow_factor
+	var effective_speed := move_speed * _slow_factor * _get_consumable_slow()
 
 	if _target and is_instance_valid(_target):
 		var dist := global_position.distance_to(_target.global_position)
@@ -66,93 +143,19 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_clamp_to_arena()
 	_check_contact_damage()
+	_update_facing()
+	Targeting.update_position(self)
+
+func _update_facing() -> void:
+	if not _sprite:
+		return
+	var should_face_right := not _target or not is_instance_valid(_target) or _target.global_position.x >= global_position.x
+	if should_face_right != _facing_right:
+		_facing_right = should_face_right
+		_sprite.flip_h = not _facing_right
 
 func _draw() -> void:
-	_draw_body()
 	_draw_health_bar()
-
-func _draw_body() -> void:
-	var f := 1.0 if _target and is_instance_valid(_target) and _target.global_position.x >= global_position.x else -1.0
-	_draw_oni(f)
-
-func _draw_oni(f: float) -> void:
-	const OUTLINE := Color(0.04, 0.01, 0.02)
-	const SKIN_D := Color(0.23, 0.04, 0.08)
-	const SKIN_M := Color(0.54, 0.12, 0.17)
-	const SKIN_L := Color(0.84, 0.23, 0.28)
-	const SKIN_H := Color(0.97, 0.54, 0.54)
-	const EYE := Color(1.0, 0.85, 0.3)
-	const FANG := Color(0.96, 0.91, 0.82)
-	const HORN_D := Color(0.23, 0.15, 0.09)
-	const HORN_L := Color(0.75, 0.63, 0.46)
-	const PANTS := Color(0.1, 0.04, 0.09)
-	const PANTS_L := Color(0.16, 0.08, 0.16)
-	const SASH := Color(0.48, 0.09, 0.13)
-	const SASH_L := Color(0.84, 0.23, 0.28)
-	const BLADE_D := Color(0.35, 0.38, 0.46)
-	const BLADE_L := Color(0.88, 0.91, 0.96)
-
-	var fx := func(dx: float, w: float) -> float:
-		return (dx if f > 0 else -dx - w)
-
-	# feet y = 0, body goes upward
-	# legs -11 to 0
-	draw_rect(Rect2(Vector2(fx.call(-3, 3), -11), Vector2(3, 11)), PANTS)
-	draw_rect(Rect2(Vector2(fx.call(1, 3), -11), Vector2(3, 11)), PANTS)
-	draw_rect(Rect2(Vector2(fx.call(-4, 8), -2), Vector2(8, 1)), PANTS_L)
-	draw_rect(Rect2(Vector2(fx.call(-4, 8), 0), Vector2(8, 1)), OUTLINE)
-	# sash -13 to -11
-	draw_rect(Rect2(Vector2(fx.call(-4, 8), -13), Vector2(8, 2)), SASH)
-	draw_rect(Rect2(Vector2(fx.call(-4, 8), -13), Vector2(8, 1)), SASH_L)
-	draw_rect(Rect2(Vector2(fx.call(-5, 2), -12), Vector2(2, 3)), SASH)
-	# torso -19 to -13
-	draw_rect(Rect2(Vector2(fx.call(-4, 7), -19), Vector2(7, 6)), SKIN_M)
-	draw_rect(Rect2(Vector2(fx.call(-4, 8), -19), Vector2(8, 1)), SKIN_M)
-	draw_rect(Rect2(Vector2(fx.call(-4, 1), -18), Vector2(1, 5)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(3, 1), -18), Vector2(1, 5)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(-2, 4), -18), Vector2(4, 2)), SKIN_L)
-	draw_rect(Rect2(Vector2(fx.call(-1, 3), -18), Vector2(3, 1)), SKIN_H)
-	draw_rect(Rect2(Vector2(fx.call(0, 1), -17), Vector2(1, 3)), SKIN_D)
-	# head -26 to -20
-	draw_rect(Rect2(Vector2(fx.call(-3, 7), -26), Vector2(7, 6)), SKIN_M)
-	draw_rect(Rect2(Vector2(fx.call(-3, 7), -21), Vector2(7, 1)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(-3, 1), -26), Vector2(1, 6)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(3, 1), -26), Vector2(1, 6)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(-2, 5), -26), Vector2(5, 1)), SKIN_L)
-	draw_rect(Rect2(Vector2(fx.call(-1, 4), -26), Vector2(4, 1)), SKIN_H)
-	# neck
-	draw_rect(Rect2(Vector2(fx.call(-2, 3), -20), Vector2(3, 1)), SKIN_D)
-	# eyes
-	draw_rect(Rect2(Vector2(fx.call(-2, 2), -24), Vector2(2, 2)), OUTLINE)
-	draw_rect(Rect2(Vector2(fx.call(1, 2), -24), Vector2(2, 2)), OUTLINE)
-	draw_rect(Rect2(Vector2(fx.call(-2, 2), -23), Vector2(2, 1)), EYE)
-	draw_rect(Rect2(Vector2(fx.call(1, 2), -23), Vector2(2, 1)), EYE)
-	# mouth + fangs
-	draw_rect(Rect2(Vector2(fx.call(-1, 4), -22), Vector2(4, 1)), OUTLINE)
-	draw_rect(Rect2(Vector2(fx.call(-1, 1), -22), Vector2(1, 1)), FANG)
-	draw_rect(Rect2(Vector2(fx.call(2, 1), -22), Vector2(1, 1)), FANG)
-	# horns
-	draw_rect(Rect2(Vector2(fx.call(-3, 2), -28), Vector2(2, 2)), HORN_L)
-	draw_rect(Rect2(Vector2(fx.call(-4, 2), -30), Vector2(2, 2)), HORN_L)
-	draw_rect(Rect2(Vector2(fx.call(-4, 1), -31), Vector2(1, 1)), FANG)
-	draw_rect(Rect2(Vector2(fx.call(-4, 1), -28), Vector2(1, 2)), HORN_D)
-	draw_rect(Rect2(Vector2(fx.call(2, 2), -28), Vector2(2, 2)), HORN_L)
-	draw_rect(Rect2(Vector2(fx.call(3, 2), -30), Vector2(2, 2)), HORN_L)
-	draw_rect(Rect2(Vector2(fx.call(4, 1), -31), Vector2(1, 1)), FANG)
-	draw_rect(Rect2(Vector2(fx.call(4, 1), -28), Vector2(1, 2)), HORN_D)
-	# sword arm + blade
-	draw_rect(Rect2(Vector2(fx.call(4, 2), -17), Vector2(2, 6)), SKIN_M)
-	draw_rect(Rect2(Vector2(fx.call(4, 1), -17), Vector2(1, 6)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(5, 2), -11), Vector2(2, 1)), SKIN_D)
-	# sword
-	draw_rect(Rect2(Vector2(fx.call(6, 1), -18), Vector2(1, 3)), OUTLINE)
-	draw_rect(Rect2(Vector2(fx.call(6, 2), -21), Vector2(2, 1)), SASH)
-	draw_rect(Rect2(Vector2(fx.call(6, 1), -35), Vector2(1, 14)), BLADE_L)
-	draw_rect(Rect2(Vector2(fx.call(7, 1), -34), Vector2(1, 12)), BLADE_D)
-	# off arm
-	draw_rect(Rect2(Vector2(fx.call(-5, 2), -17), Vector2(2, 5)), SKIN_M)
-	draw_rect(Rect2(Vector2(fx.call(-5, 1), -17), Vector2(1, 5)), SKIN_D)
-	draw_rect(Rect2(Vector2(fx.call(-6, 2), -12), Vector2(2, 1)), SKIN_D)
 
 func _draw_health_bar() -> void:
 	var bar_width := 24.0
@@ -206,11 +209,7 @@ func take_damage(amount: float, crit: bool = false) -> void:
 		_die()
 
 func _spawn_damage_number(amount: float, crit: bool = false) -> void:
-	var dmg_num := DamageNumber.new()
-	dmg_num.amount = amount
-	dmg_num.is_crit = crit
-	dmg_num.global_position = global_position + Vector2(0, -36)
-	get_parent().add_child(dmg_num)
+	DamageNumber.spawn(get_parent(), global_position + Vector2(0, -36), amount, crit)
 
 func is_alive() -> bool:
 	return current_hp > 0.0
@@ -229,6 +228,7 @@ func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_i
 	}
 
 func _die() -> void:
+	Targeting.unregister(self)
 	RunManager.add_gold(gold_value)
 	RunManager.record_stat("enemies_killed", 1)
 	GameBus.enemy_killed.emit(self, null)
@@ -266,3 +266,21 @@ func reset() -> void:
 	_dots.clear()
 	_slow_factor = 1.0
 	_slow_timer = 0.0
+	_facing_right = true
+	if _sprite:
+		_sprite.flip_h = false
+
+static var _cached_consumable_slow: float = 1.0
+static var _consumable_slow_frame: int = -1
+
+func _get_consumable_slow() -> float:
+	var frame := Engine.get_process_frames()
+	if frame == _consumable_slow_frame:
+		return _cached_consumable_slow
+	_consumable_slow_frame = frame
+	var nodes := get_tree().get_nodes_in_group("consumable_manager")
+	if nodes.size() > 0:
+		_cached_consumable_slow = (nodes[0] as ConsumableManager).get_enemy_speed_mult()
+	else:
+		_cached_consumable_slow = 1.0
+	return _cached_consumable_slow

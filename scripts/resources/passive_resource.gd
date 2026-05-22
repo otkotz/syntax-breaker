@@ -6,6 +6,7 @@ extends Resource
 @export var affected_tags: Array[String] = []
 @export var stat_modifiers: Dictionary = {}
 @export var rarity: String = "common"
+@export var behavior_key: String = ""
 @export_multiline var description: String = ""
 
 func is_global() -> bool:
