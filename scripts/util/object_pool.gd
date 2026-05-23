@@ -19,9 +19,12 @@ func _init(scene: PackedScene, initial_size: int, parent: Node) -> void:
 
 func get_instance() -> Node:
 	var instance: Node
-	if _pool.size() > 0:
-		instance = _pool.pop_back()
-	else:
+	while _pool.size() > 0:
+		var candidate: Node = _pool.pop_back()
+		if is_instance_valid(candidate):
+			instance = candidate
+			break
+	if not instance:
 		instance = _scene.instantiate()
 		_parent.add_child(instance)
 	instance.set_process(true)
@@ -31,6 +34,9 @@ func get_instance() -> Node:
 	return instance
 
 func release(instance: Node) -> void:
+	if not is_instance_valid(instance):
+		_active.erase(instance)
+		return
 	if not _active.has(instance):
 		return
 	_active.erase(instance)

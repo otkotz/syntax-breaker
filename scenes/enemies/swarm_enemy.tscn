@@ -16,6 +16,7 @@ gold_value = 1
 aggro_range = 300.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -5)
 shape = SubResource("CircleShape2D_body")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]

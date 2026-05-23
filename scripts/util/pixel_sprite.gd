@@ -44,7 +44,7 @@ static func build_texture(rects: Array, circles: Array = [], padding: int = 2) -
 					img.set_pixel(x, y, c)
 
 	var tex := ImageTexture.create_from_image(img)
-	var sprite_offset := -(min_pos + max_pos) / 2.0
+	var sprite_offset := (min_pos + max_pos) / 2.0
 	return {"texture": tex, "offset": sprite_offset}
 
 static func build_circle_texture(radius: float, color: Color) -> Dictionary:

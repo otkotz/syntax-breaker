@@ -27,7 +27,6 @@ static func _build_tank_texture() -> Dictionary:
 	var _c := func(pos: Vector2, radius: float, col: Color) -> void:
 		c.append({"pos": pos, "radius": radius, "color": col})
 
-	_c.call(Vector2.ZERO, 18.0, Color(0, 0, 0, 0.3))
 	# Legs
 	_r.call(-6, -14, 5, 14, SKIN_M); _r.call(2, -14, 5, 14, SKIN_M)
 	_r.call(-6, 0, 5, 1, OUTLINE); _r.call(2, 0, 5, 1, OUTLINE)

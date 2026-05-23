@@ -47,9 +47,6 @@ static func _build_boss_texture() -> Dictionary:
 	var _r := func(x: float, y: float, w: float, h: float, col: Color) -> void:
 		r.append({"rect": Rect2(x, y, w, h), "color": col})
 
-	# Drop shadow
-	c.append({"pos": Vector2.ZERO, "radius": 32.0, "color": Color(0, 0, 0, 0.45)})
-
 	# --- LEGS + FEET ---
 	for side in [-1, 1]:
 		var lx: float = -16.0 if side == -1 else 8.0

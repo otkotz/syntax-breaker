@@ -5,6 +5,7 @@ var amount: float = 0.0
 var is_crit: bool = false
 var is_player_damage: bool = false
 var _tween: Tween
+var _anim_id: int = 0
 
 static var _pool: Array = []
 static var _active: Array = []
@@ -46,6 +47,7 @@ static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, pl
 	instance._animate()
 
 func _force_recycle() -> void:
+	_anim_id += 1
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	_tween = null
@@ -56,6 +58,8 @@ func _force_recycle() -> void:
 func _animate() -> void:
 	if _tween and _tween.is_valid():
 		_tween.kill()
+	_anim_id += 1
+	var expected_id := _anim_id
 	visible = true
 	queue_redraw()
 	var combo_scale := clampf(ComboTracker.current_multiplier, 1.0, 1.5)
@@ -68,9 +72,11 @@ func _animate() -> void:
 		_tween.tween_property(self, "scale", Vector2(0.7, 0.7) * combo_scale, 0.4).from(Vector2(1.3, 1.3) * combo_scale)
 	elif combo_scale > 1.05:
 		_tween.tween_property(self, "scale", Vector2.ONE * combo_scale, 0.3).from(Vector2(1.1, 1.1) * combo_scale)
-	_tween.chain().tween_callback(_on_animation_done)
+	_tween.chain().tween_callback(func() -> void: _on_animation_done(expected_id))
 
-func _on_animation_done() -> void:
+func _on_animation_done(id: int) -> void:
+	if id != _anim_id:
+		return
 	_tween = null
 	visible = false
 	_active.erase(self)

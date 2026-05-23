@@ -63,7 +63,7 @@ func _physics_process(delta: float) -> void:
 	if _parent_node and is_instance_valid(_parent_node):
 		global_position = _parent_node.global_position + Vector2(cos(angle), sin(angle)) * orbit_radius
 	if _use_knife and _sprite:
-		_sprite.rotation = angle + PI / 2.0
+		_sprite.rotation = angle + PI
 
 	var expired_keys: Array = []
 	for key: int in _hit_cooldowns:

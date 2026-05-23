@@ -5,24 +5,17 @@ var skill_instance: SkillInstance
 var damage: float = 10.0
 var area_radius: float = 100.0
 var pool_ref: ObjectPool
-var _lifetime: float = 0.3
+var _lifetime: float = 0.5
 var _timer: float = 0.0
 var _has_hit: bool = false
 var _color: Color = Color(1.0, 0.9, 0.6, 0.35)
-var _sprite: Sprite2D
+var _skill_id: String = ""
 
-static var _circle_texture: ImageTexture
-static var _circle_offset: Vector2
+var _arc_data: Array = []
+const ARC_COUNT := 6
 
 func _ready() -> void:
-	if not _circle_texture:
-		var data := PixelSprite.build_circle_texture(100.0, Color.WHITE)
-		_circle_texture = data["texture"]
-		_circle_offset = data["offset"]
-	_sprite = Sprite2D.new()
-	_sprite.texture = _circle_texture
-	_sprite.offset = _circle_offset
-	add_child(_sprite)
+	pass
 
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
@@ -31,23 +24,108 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	pool_ref = pool
 	_timer = 0.0
 	_has_hit = false
+	_skill_id = si.base.id
 	_color = TagColors.get_color_faded(si.base.tags)
-	scale = Vector2.ONE * (area_radius / 100.0)
-	if _sprite:
-		_sprite.modulate = _color
+	scale = Vector2.ONE
+
+	match _skill_id:
+		"flame_wave":
+			_lifetime = 0.8
+		"static_field":
+			_lifetime = 0.6
+			_generate_arcs()
+		_:
+			_lifetime = 0.5
+
+func _generate_arcs() -> void:
+	_arc_data.clear()
+	for i in ARC_COUNT:
+		var base_angle := (float(i) / ARC_COUNT) * TAU + randf() * 0.4
+		var segments: Array[Vector2] = []
+		for s in 9:
+			var f := float(s) / 8
+			var r := area_radius * f
+			var ang := base_angle + randf_range(-0.3, 0.3)
+			segments.append(Vector2(cos(ang) * r, sin(ang) * r))
+		_arc_data.append(segments)
 
 func _physics_process(delta: float) -> void:
 	_timer += delta
 	if not _has_hit:
 		_has_hit = true
 		_hit_enemies()
+	queue_redraw()
 	if _timer >= _lifetime:
 		_return_to_pool()
+
+func _draw() -> void:
+	match _skill_id:
+		"flame_wave":
+			_draw_flame_wave()
+		"static_field":
+			_draw_static_field()
+		_:
+			_draw_default()
+
+func _draw_flame_wave() -> void:
+	var t := _timer / _lifetime
+	var eased := 1.0 - (1.0 - t) * (1.0 - t)
+	var fade := 1.0 - t
+
+	var r_outer := eased * area_radius
+	if r_outer > 4.0:
+		draw_arc(Vector2.ZERO, r_outer, 0, TAU, 32, Color(1.0, 0.31, 0.13, fade * 0.7), 18.0)
+
+	var r_inner := eased * area_radius * 0.9
+	if r_inner > 4.0:
+		draw_arc(Vector2.ZERO, r_inner, 0, TAU, 32, Color(1.0, 0.88, 0.5, fade * 0.6), 8.0)
+
+	var flash_op := maxf(0.0, 1.0 - t * 3.0)
+	if flash_op > 0.0:
+		draw_circle(Vector2.ZERO, area_radius * 0.3 * eased, Color(1.0, 0.97, 0.75, flash_op * 0.6))
+
+func _draw_static_field() -> void:
+	var t := _timer / _lifetime
+	var fade := 1.0 - t
+	var pulse := 0.7 + 0.3 * sin(_timer * 10.0)
+
+	draw_circle(Vector2.ZERO, area_radius, Color(0.25, 0.5, 0.75, 0.15 * pulse * fade))
+	if area_radius > 4.0:
+		draw_arc(Vector2.ZERO, area_radius, 0, TAU, 32, Color(0.63, 0.85, 1.0, 0.5 * pulse * fade), 3.0)
+
+	var flicker: float = 0.6 + 0.4 * abs(sin(_timer * 18.0))
+	for arc: Array in _arc_data:
+		var strike := sin(_timer * 16.0 + _arc_data.find(arc) * 1.3) > 0.0
+		if not strike:
+			continue
+		for i in arc.size() - 1:
+			var from: Vector2 = arc[i]
+			var to: Vector2 = arc[i + 1]
+			draw_line(from, to, Color(0.63, 0.85, 1.0, 0.25 * flicker * fade), 6.0)
+			draw_line(from, to, Color(0.63, 0.85, 1.0, 0.8 * flicker * fade), 3.0)
+			draw_line(from, to, Color(1.0, 1.0, 1.0, flicker * fade), 1.0)
+
+	var flash_op := maxf(0.0, 1.0 - t * 4.0)
+	if flash_op > 0.0:
+		draw_circle(Vector2.ZERO, area_radius * 0.5 * (1.0 - (1.0 - t) * (1.0 - t)), Color(1.0, 1.0, 1.0, flash_op * 0.5))
+
+func _draw_default() -> void:
+	var t := _timer / _lifetime
+	var fade := 1.0 - t
+	draw_circle(Vector2.ZERO, area_radius, Color(_color, 0.3 * fade))
+	if area_radius > 4.0:
+		draw_arc(Vector2.ZERO, area_radius * 0.8, 0, TAU, 24, Color(_color, 0.5 * fade), 2.0)
 
 func _hit_enemies() -> void:
 	var enemies := Targeting.find_enemies_in_range(global_position, area_radius, 50)
 	var kill_count := 0
 	var tags: Array = skill_instance.get_all_tags() if skill_instance else []
+	var element := "fire"
+	if tags.has("lightning"):
+		element = "lightning"
+	elif tags.has("poison"):
+		element = "poison"
+
 	for enemy in enemies:
 		if enemy.has_method("take_damage"):
 			var hit_damage := damage
@@ -66,6 +144,7 @@ func _hit_enemies() -> void:
 					enemy.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
 					CombatLog.dot_applied("burn", enemy.name, hit_damage * 0.2, 2.0)
 			GameBus.enemy_hit.emit(enemy, hit_damage, skill_instance.base if skill_instance else null)
+			HitEffect.spawn(self, enemy.global_position - global_position + Vector2.ZERO, element, 50.0)
 			if skill_instance:
 				TagInteractions.process_hit(enemy, hit_damage, tags, self)
 				skill_instance.notify_hit(enemy, self)
@@ -73,6 +152,21 @@ func _hit_enemies() -> void:
 					CombatLog.kill(skill_name, enemy.name)
 					skill_instance.notify_kill(enemy, self)
 					kill_count += 1
+	var scene_root := get_tree().current_scene if get_tree() else null
+	if scene_root:
+		match _skill_id:
+			"flame_wave":
+				AftermathEffect.spawn(scene_root, global_position, "scorch", area_radius * 0.6, 3.0)
+				AftermathEffect.spawn(scene_root, global_position, "embers", area_radius * 0.5, 3.0)
+			"static_field":
+				AftermathEffect.spawn(scene_root, global_position, "static_crackle", area_radius * 0.7, 2.5)
+			_:
+				if element == "fire":
+					AftermathEffect.spawn(scene_root, global_position, "scorch", area_radius * 0.4, 2.0)
+				elif element == "poison":
+					AftermathEffect.spawn(scene_root, global_position, "poison_pool", area_radius * 0.4, 2.0)
+				elif element == "lightning":
+					AftermathEffect.spawn(scene_root, global_position, "static_crackle", area_radius * 0.5, 2.0)
 	if kill_count > RunManager.run_stats.get("max_aoe_kill", 0):
 		RunManager.run_stats["max_aoe_kill"] = kill_count
 
@@ -81,6 +175,8 @@ func reset() -> void:
 	pool_ref = null
 	_timer = 0.0
 	_has_hit = false
+	_skill_id = ""
+	_arc_data.clear()
 	scale = Vector2.ONE
 
 func _return_to_pool() -> void:
