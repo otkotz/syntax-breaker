@@ -20,10 +20,14 @@ func _init(scene: PackedScene, initial_size: int, parent: Node) -> void:
 func get_instance() -> Node:
 	var instance: Node
 	while _pool.size() > 0:
-		var candidate: Node = _pool.pop_back()
+		var candidate = _pool.pop_back()
 		if is_instance_valid(candidate):
 			instance = candidate
 			break
+	if not is_instance_valid(_parent):
+		_pool.clear()
+		_active.clear()
+		return null
 	if not instance:
 		instance = _scene.instantiate()
 		_parent.add_child(instance)

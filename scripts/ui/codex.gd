@@ -151,9 +151,7 @@ func _get_hint(item_type: String, item_id: String) -> String:
 	var key := "%s:%s" % [item_type, item_id]
 	if _unlock_hints.has(key):
 		return _unlock_hints[key]
-	if MetaProgression.is_unlocked(item_type, item_id):
-		return ""
-	return ""
+	return "Available from start"
 
 func _rarity_color(rarity: String) -> Color:
 	match rarity:

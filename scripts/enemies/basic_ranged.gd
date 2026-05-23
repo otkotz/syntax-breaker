@@ -129,7 +129,9 @@ func _physics_process(delta: float) -> void:
 		_fire_timer = 0.0
 
 func _fire_projectile(dir: Vector2) -> void:
-	if not _projectile_pool:
+	if not _projectile_pool or not is_instance_valid(_projectile_pool._parent):
 		_projectile_pool = ObjectPool.new(ENEMY_PROJECTILE_SCENE, 10, get_tree().current_scene)
 	var proj := _projectile_pool.get_instance() as EnemyProjectile
+	if not proj:
+		return
 	proj.initialize(dir, projectile_speed, projectile_damage, global_position, _projectile_pool)
