@@ -32,6 +32,12 @@ func _build_ui() -> void:
 	_panel.offset_top = 80
 	_panel.offset_right = 520
 	_panel.offset_bottom = 900
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.02, 0.012, 0.031, 0.95)
+	panel_style.border_color = UITheme.C_V_LINE
+	panel_style.set_border_width_all(1)
+	panel_style.set_content_margin_all(12)
+	_panel.add_theme_stylebox_override("panel", panel_style)
 	add_child(_panel)
 
 	var scroll := ScrollContainer.new()
@@ -45,10 +51,12 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "DEBUG (F1)"
 	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	vbox.add_child(title)
 
 	_stats_label = Label.new()
 	_stats_label.add_theme_font_size_override("font_size", 24)
+	_stats_label.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	vbox.add_child(_stats_label)
 
 	var sep := HSeparator.new()
@@ -115,6 +123,7 @@ func _build_ui() -> void:
 func _add_button(parent: Control, text: String, callback: Callable) -> void:
 	var btn := Button.new()
 	btn.text = text
+	UITheme.style_button(btn, 24)
 	btn.pressed.connect(callback)
 	parent.add_child(btn)
 

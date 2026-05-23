@@ -3,20 +3,20 @@ extends Control
 
 signal skill_chosen(skill: SkillResource)
 
-const C_BG := Color(0.06, 0.05, 0.04)
-const C_BRONZE := Color(0.56, 0.45, 0.28)
-const C_BRONZE_HI := Color(0.78, 0.68, 0.48)
-const C_BRONZE_LINE := Color(0.38, 0.30, 0.19)
-const C_INK := Color(0.92, 0.88, 0.80)
-const C_INK_MUTE := Color(0.72, 0.68, 0.58)
-const C_INK_LOW := Color(0.50, 0.46, 0.38)
-const C_INK_FAINT := Color(0.35, 0.32, 0.26)
-const C_GOLD := Color(0.94, 0.87, 0.65)
-const C_CARD_BG := Color(0.08, 0.06, 0.04, 0.75)
+const C_BG := UITheme.C_BG
+const C_BRONZE := UITheme.C_V_BRIGHT
+const C_BRONZE_HI := UITheme.C_V_BRIGHT
+const C_BRONZE_LINE := UITheme.C_V_LINE
+const C_INK := UITheme.C_INK
+const C_INK_MUTE := UITheme.C_INK_MUTE
+const C_INK_LOW := UITheme.C_INK_LOW
+const C_INK_FAINT := UITheme.C_INK_FAINT
+const C_GOLD := UITheme.C_SILVER
+const C_CARD_BG := UITheme.C_CARD_BG
 
-const C_STR := Color(0.75, 0.30, 0.18)
-const C_DEX := Color(0.40, 0.78, 0.40)
-const C_INT := Color(0.45, 0.55, 0.85)
+const C_STR := UITheme.C_STR
+const C_DEX := UITheme.C_DEX
+const C_INT := UITheme.C_INT
 
 var _skill_list: VBoxContainer
 
@@ -59,7 +59,7 @@ func _build_ui() -> void:
 func _build_header(parent: Control) -> void:
 	var header := PanelContainer.new()
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0.09, 0.07, 0.05)
+	hs.bg_color = UITheme.C_BG_1
 	hs.border_color = C_BRONZE_LINE
 	hs.border_width_bottom = 1
 	hs.set_content_margin_all(0)

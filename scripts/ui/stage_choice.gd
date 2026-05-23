@@ -36,5 +36,6 @@ func _add_choice_button(stage: StageData) -> void:
 		text += "\n[" + mod_text + "]"
 
 	btn.text = text
+	UITheme.style_button(btn, 26)
 	btn.pressed.connect(func(): stage_chosen.emit(stage))
 	choice_container.add_child(btn)

@@ -9,9 +9,9 @@ extends Control
 var _player: Player
 var _pause_btn: Button
 
-const C_BRONZE_LINE := Color(0.38, 0.30, 0.19)
-const C_BRONZE_HI := Color(0.78, 0.68, 0.48)
-const C_GOLD := Color(0.94, 0.87, 0.65)
+const C_BRONZE_LINE := UITheme.C_V_LINE
+const C_BRONZE_HI := UITheme.C_V_BRIGHT
+const C_GOLD := UITheme.C_SILVER
 
 func setup(player: Player) -> void:
 	_player = player
@@ -49,7 +49,7 @@ func _build_pause_button() -> void:
 	_pause_btn.add_theme_color_override("font_hover_color", C_GOLD)
 
 	var ns := StyleBoxFlat.new()
-	ns.bg_color = Color(0.10, 0.07, 0.05, 0.85)
+	ns.bg_color = Color(0.04, 0.02, 0.08, 0.85)
 	ns.border_color = C_BRONZE_LINE
 	ns.set_border_width_all(2)
 	ns.set_content_margin_all(8)
@@ -58,14 +58,14 @@ func _build_pause_button() -> void:
 	_pause_btn.add_theme_stylebox_override("normal", ns)
 
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0.14, 0.10, 0.07, 0.9)
-	hs.border_color = Color(0.56, 0.45, 0.28)
+	hs.bg_color = Color(0.06, 0.03, 0.14, 0.9)
+	hs.border_color = UITheme.C_V_BRIGHT
 	hs.set_border_width_all(2)
 	hs.set_content_margin_all(8)
 	_pause_btn.add_theme_stylebox_override("hover", hs)
 
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.07, 0.05, 0.03, 0.9)
+	ps.bg_color = Color(0.03, 0.01, 0.06, 0.9)
 	ps.border_color = C_BRONZE_LINE
 	ps.set_border_width_all(2)
 	ps.set_content_margin_all(8)

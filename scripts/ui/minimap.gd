@@ -5,8 +5,8 @@ const MAP_SIZE := 240.0
 const PLAYER_COLOR := Color(0.27, 0.53, 1.0)
 const ENEMY_COLOR := Color(1.0, 0.27, 0.27)
 const BOSS_COLOR := Color(0.8, 0.13, 0.13)
-const BG_COLOR := Color(0.1, 0.1, 0.15, 0.7)
-const BORDER_COLOR := Color(0.4, 0.4, 0.5, 0.8)
+const BG_COLOR := Color(0.03, 0.02, 0.06, 0.7)
+const BORDER_COLOR := Color(0.231, 0.106, 0.439, 0.8)
 
 var _arena_rect: Rect2
 var _player: Node2D

@@ -19,11 +19,12 @@ var _current_category: String = "skills"
 
 func _ready() -> void:
 	back_button.pressed.connect(func(): queue_free())
+	UITheme.style_button(back_button, 28)
 	for cat: String in CATEGORIES:
 		var btn := Button.new()
 		btn.text = CATEGORY_LABELS[cat]
 		btn.custom_minimum_size = Vector2(160, 60)
-		btn.add_theme_font_size_override("font_size", 24)
+		UITheme.style_button(btn, 24)
 		btn.pressed.connect(_select_category.bind(cat))
 		tab_bar.add_child(btn)
 	_select_category("skills")
@@ -98,6 +99,7 @@ func _get_entries(category: String) -> Array[Dictionary]:
 func _create_entry_card(entry: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 100.0
+	UITheme.style_panel(panel)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
 	panel.add_child(vbox)
@@ -108,7 +110,7 @@ func _create_entry_card(entry: Dictionary) -> PanelContainer:
 		title.add_theme_color_override("font_color", _rarity_color(entry["rarity"]))
 	else:
 		title.text = "???"
-		title.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
+		title.add_theme_color_override("font_color", UITheme.C_INK_FAINT)
 	title.add_theme_font_size_override("font_size", 30)
 	vbox.add_child(title)
 
@@ -120,7 +122,7 @@ func _create_entry_card(entry: Dictionary) -> PanelContainer:
 	else:
 		desc.text = "Not yet discovered"
 	desc.add_theme_font_size_override("font_size", 22)
-	desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(desc)
 

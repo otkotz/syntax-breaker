@@ -31,6 +31,7 @@ func _build_rewards(high_quality: bool) -> void:
 		btn.custom_minimum_size.y = 150.0
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 		btn.text = _format_reward(reward)
+		UITheme.style_button(btn, 26)
 		btn.pressed.connect(func(): reward_chosen.emit(reward))
 		reward_container.add_child(btn)
 

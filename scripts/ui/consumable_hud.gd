@@ -23,7 +23,7 @@ func _refresh() -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(120, 80)
 		btn.text = "%s\nx%d" % [res.name, info["charges"]]
-		btn.add_theme_font_size_override("font_size", 22)
+		UITheme.style_button(btn, 22)
 		var idx := i
 		btn.pressed.connect(func(): _manager.use_consumable(idx))
 		add_child(btn)

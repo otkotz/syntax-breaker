@@ -24,13 +24,13 @@ func _ready() -> void:
 	_combo_label = Label.new()
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.add_theme_font_size_override("font_size", 56)
-	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+	_combo_label.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	vbox.add_child(_combo_label)
 
 	_mult_label = Label.new()
 	_mult_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_mult_label.add_theme_font_size_override("font_size", 30)
-	_mult_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))
+	_mult_label.add_theme_color_override("font_color", UITheme.C_SILVER)
 	vbox.add_child(_mult_label)
 
 func setup(tracker: ComboTracker) -> void:

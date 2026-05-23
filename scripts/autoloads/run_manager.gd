@@ -16,7 +16,7 @@ var ascension_level: int = 0
 
 func start_run(region: String = "", ascension: int = -1) -> void:
 	current_stage = 0
-	gold = 0
+	gold = 30
 	skill_slots_unlocked = 1
 	equipped_skills = []
 	owned_supports = []

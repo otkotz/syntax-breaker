@@ -102,7 +102,11 @@ func _get_cost(item_type: String, rarity: String) -> int:
 
 func _refresh_ui() -> void:
 	gold_label.text = "Gold: %d" % RunManager.gold
+	gold_label.add_theme_color_override("font_color", UITheme.C_SILVER)
 	reroll_button.text = "Reroll (%dg)" % _reroll_cost
+	UITheme.style_button(reroll_button, 28)
+	UITheme.style_button(manage_button, 28)
+	UITheme.style_button(continue_button, 28)
 
 	for child: Node in item_list.get_children():
 		child.queue_free()
@@ -113,6 +117,7 @@ func _refresh_ui() -> void:
 func _create_card(offering: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 130.0
+	UITheme.style_panel(panel)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
 	panel.add_child(hbox)
@@ -131,6 +136,8 @@ func _create_card(offering: Dictionary) -> Control:
 		if offering["resource"].rarity == "legendary":
 			rarity_prefix = "★ "
 	title.text = "%s[%s] %s" % [rarity_prefix, type_label, offering["resource"].name]
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", UITheme.C_SILVER)
 	var desc := Label.new()
 	var desc_text: String = offering["resource"].description
 	if offering["type"] == "support_upgrade":
@@ -141,6 +148,7 @@ func _create_card(offering: Dictionary) -> Control:
 			desc_text += "\nMAX BONUS: " + bonus_desc
 	desc.text = desc_text
 	desc.add_theme_font_size_override("font_size", 26)
+	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	info.add_child(title)
 	info.add_child(desc)
@@ -149,6 +157,7 @@ func _create_card(offering: Dictionary) -> Control:
 	var buy_btn := Button.new()
 	buy_btn.text = "%dg" % offering["cost"]
 	buy_btn.custom_minimum_size.x = 120.0
+	UITheme.style_button(buy_btn, 26)
 	buy_btn.pressed.connect(_on_buy.bind(offering))
 	hbox.add_child(buy_btn)
 
@@ -191,6 +200,8 @@ func _show_link_panel() -> void:
 
 	var header := Label.new()
 	header.text = "Link '%s' to:" % _pending_support.name
+	header.add_theme_font_size_override("font_size", 30)
+	header.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	link_container.add_child(header)
 
 	for i in _skill_instances.size():
@@ -201,11 +212,13 @@ func _show_link_panel() -> void:
 			continue
 		var btn := Button.new()
 		btn.text = si.base.name
+		UITheme.style_button(btn, 28)
 		btn.pressed.connect(_on_link_skill.bind(i))
 		link_container.add_child(btn)
 
 	var skip := Button.new()
 	skip.text = "Skip"
+	UITheme.style_button(skip, 28)
 	skip.pressed.connect(func():
 		link_panel.visible = false
 		_pending_support = null

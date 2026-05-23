@@ -10,10 +10,12 @@ signal play_again_pressed
 
 func _ready() -> void:
 	play_again_button.pressed.connect(func(): play_again_pressed.emit())
+	UITheme.style_button(play_again_button, 36)
+	unlocks_label.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 
 func setup(victory: bool, new_unlocks: Array[String] = []) -> void:
 	result_label.text = "VICTORY!" if victory else "DEFEAT"
-	result_label.modulate = Color.GOLD if victory else Color.RED
+	result_label.modulate = UITheme.C_V_BRIGHT if victory else Color(0.9, 0.25, 0.25)
 
 	for child: Node in stats_container.get_children():
 		child.queue_free()
@@ -37,9 +39,13 @@ func _add_stat(stat_name: String, value: String) -> void:
 	var lbl := Label.new()
 	lbl.text = stat_name
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.add_theme_font_size_override("font_size", 28)
+	lbl.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	var val := Label.new()
 	val.text = value
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	val.add_theme_font_size_override("font_size", 28)
+	val.add_theme_color_override("font_color", UITheme.C_SILVER)
 	hbox.add_child(lbl)
 	hbox.add_child(val)
 	stats_container.add_child(hbox)

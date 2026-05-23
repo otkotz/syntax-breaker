@@ -17,6 +17,7 @@ var _unlock_conditions: Dictionary = {}
 
 func _ready() -> void:
 	back_button.pressed.connect(func(): queue_free())
+	UITheme.style_button(back_button, 28)
 	_load_unlock_conditions()
 	_build_tree()
 
@@ -35,7 +36,7 @@ func _build_tree() -> void:
 		var header := Label.new()
 		header.text = SECTION_LABELS[section]
 		header.add_theme_font_size_override("font_size", 36)
-		header.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+		header.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 		content.add_child(header)
 
 		var sep := HSeparator.new()
@@ -84,6 +85,7 @@ func _create_card(item: Dictionary, section: String, is_unlocked: bool) -> Panel
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(480, 100)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.style_panel(panel)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 2)
@@ -98,13 +100,13 @@ func _create_card(item: Dictionary, section: String, is_unlocked: bool) -> Panel
 		var desc := Label.new()
 		desc.text = item["description"]
 		desc.add_theme_font_size_override("font_size", 20)
-		desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 		vbox.add_child(title)
 		vbox.add_child(desc)
 	else:
 		title.text = "LOCKED"
-		title.add_theme_color_override("font_color", Color(0.5, 0.3, 0.3))
+		title.add_theme_color_override("font_color", UITheme.C_INK_LOW)
 		vbox.add_child(title)
 
 		var cond_key := "%s:%s" % [section, item["id"]]
@@ -113,14 +115,14 @@ func _create_card(item: Dictionary, section: String, is_unlocked: bool) -> Panel
 			var cond_label := Label.new()
 			cond_label.text = cond.description
 			cond_label.add_theme_font_size_override("font_size", 20)
-			cond_label.add_theme_color_override("font_color", Color(0.8, 0.5, 0.3))
+			cond_label.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 			cond_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 			vbox.add_child(cond_label)
 		else:
 			var hint := Label.new()
 			hint.text = "Unlock condition unknown"
 			hint.add_theme_font_size_override("font_size", 20)
-			hint.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
+			hint.add_theme_color_override("font_color", UITheme.C_INK_FAINT)
 			vbox.add_child(hint)
 
 	return panel

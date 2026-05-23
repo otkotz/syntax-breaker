@@ -55,11 +55,11 @@ func _show_resume_prompt() -> void:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(600, 0)
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.10, 0.07, 0.05)
-	ps.border_color = Color(0.38, 0.30, 0.19)
+	ps.bg_color = UITheme.C_BG_1
+	ps.border_color = UITheme.C_V_LINE
 	ps.set_border_width_all(2)
 	ps.set_content_margin_all(40)
-	ps.shadow_color = Color(0, 0, 0, 0.6)
+	ps.shadow_color = UITheme.C_V_GLOW
 	ps.shadow_size = 24
 	panel.add_theme_stylebox_override("panel", ps)
 	center.add_child(panel)
@@ -72,7 +72,7 @@ func _show_resume_prompt() -> void:
 	header.text = "— A PATH AWAITS —"
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", Color(0.56, 0.45, 0.28))
+	header.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	header.uppercase = true
 	vbox.add_child(header)
 
@@ -84,7 +84,7 @@ func _show_resume_prompt() -> void:
 	title.text = "SAVED RUN\nFOUND"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 56)
-	title.add_theme_color_override("font_color", Color(0.94, 0.87, 0.65))
+	title.add_theme_color_override("font_color", UITheme.C_SILVER)
 	vbox.add_child(title)
 
 	var spacer2 := Control.new()
@@ -95,7 +95,7 @@ func _show_resume_prompt() -> void:
 	desc.text = "Resume where you left off, or abandon\nthe old path and begin anew."
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.add_theme_font_size_override("font_size", 22)
-	desc.add_theme_color_override("font_color", Color(0.72, 0.68, 0.58))
+	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	vbox.add_child(desc)
 
 	var spacer3 := Control.new()
@@ -104,8 +104,6 @@ func _show_resume_prompt() -> void:
 
 	var divider := DividerLine.new()
 	divider.custom_minimum_size = Vector2(0, 20)
-	divider.line_color = Color(0.38, 0.30, 0.19)
-	divider.diamond_color = Color(0.56, 0.45, 0.28)
 	vbox.add_child(divider)
 
 	var spacer4 := Control.new()
@@ -116,30 +114,30 @@ func _show_resume_prompt() -> void:
 	resume_btn.text = "RESUME RUN"
 	resume_btn.custom_minimum_size = Vector2(0, 100)
 	resume_btn.add_theme_font_size_override("font_size", 36)
-	resume_btn.add_theme_color_override("font_color", Color(0.97, 0.92, 0.80))
-	resume_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.85))
+	resume_btn.add_theme_color_override("font_color", UITheme.C_SILVER)
+	resume_btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	var cta_normal := StyleBoxFlat.new()
-	cta_normal.bg_color = Color(0.35, 0.15, 0.06)
-	cta_normal.border_color = Color(0.60, 0.30, 0.12)
+	cta_normal.bg_color = UITheme.C_V_BASE
+	cta_normal.border_color = Color(0.45, 0.30, 0.85)
 	cta_normal.set_border_width_all(2)
 	cta_normal.set_content_margin_all(16)
-	cta_normal.shadow_color = Color(0.78, 0.38, 0.15, 0.35)
+	cta_normal.shadow_color = UITheme.C_V_GLOW
 	cta_normal.shadow_size = 20
 	resume_btn.add_theme_stylebox_override("normal", cta_normal)
 	var cta_hover := StyleBoxFlat.new()
-	cta_hover.bg_color = Color(0.42, 0.20, 0.08)
-	cta_hover.border_color = Color(0.65, 0.35, 0.15)
+	cta_hover.bg_color = UITheme.C_V_MID
+	cta_hover.border_color = Color(0.55, 0.40, 0.90)
 	cta_hover.set_border_width_all(2)
 	cta_hover.set_content_margin_all(16)
-	cta_hover.shadow_color = Color(0.78, 0.38, 0.15, 0.35)
+	cta_hover.shadow_color = UITheme.C_V_GLOW
 	cta_hover.shadow_size = 28
 	resume_btn.add_theme_stylebox_override("hover", cta_hover)
 	var cta_pressed := StyleBoxFlat.new()
-	cta_pressed.bg_color = Color(0.30, 0.12, 0.05)
-	cta_pressed.border_color = Color(0.55, 0.28, 0.10)
+	cta_pressed.bg_color = UITheme.C_V_DEEP
+	cta_pressed.border_color = UITheme.C_V_LINE
 	cta_pressed.set_border_width_all(2)
 	cta_pressed.set_content_margin_all(16)
-	cta_pressed.shadow_color = Color(0.78, 0.38, 0.15, 0.35)
+	cta_pressed.shadow_color = UITheme.C_V_GLOW
 	cta_pressed.shadow_size = 12
 	resume_btn.add_theme_stylebox_override("pressed", cta_pressed)
 	resume_btn.pressed.connect(func() -> void:
@@ -157,25 +155,23 @@ func _show_resume_prompt() -> void:
 	new_btn.text = "ABANDON & START NEW"
 	new_btn.custom_minimum_size = Vector2(0, 80)
 	new_btn.add_theme_font_size_override("font_size", 28)
-	new_btn.add_theme_color_override("font_color", Color(0.92, 0.88, 0.80))
-	new_btn.add_theme_color_override("font_hover_color", Color(0.78, 0.68, 0.48))
-	var ghost_bg := Color(0.12, 0.09, 0.06)
-	var ghost_border := Color(0.38, 0.30, 0.19)
+	new_btn.add_theme_color_override("font_color", UITheme.C_SILVER_D)
+	new_btn.add_theme_color_override("font_hover_color", UITheme.C_V_BRIGHT)
 	var ghost_normal := StyleBoxFlat.new()
-	ghost_normal.bg_color = ghost_bg
-	ghost_normal.border_color = ghost_border
+	ghost_normal.bg_color = Color(0.05, 0.03, 0.10, 0.7)
+	ghost_normal.border_color = UITheme.C_V_LINE
 	ghost_normal.set_border_width_all(2)
 	ghost_normal.set_content_margin_all(12)
 	new_btn.add_theme_stylebox_override("normal", ghost_normal)
 	var ghost_hover := StyleBoxFlat.new()
-	ghost_hover.bg_color = ghost_bg.lightened(0.08)
-	ghost_hover.border_color = Color(0.56, 0.45, 0.28)
+	ghost_hover.bg_color = Color(0.08, 0.04, 0.16, 0.8)
+	ghost_hover.border_color = UITheme.C_V_BRIGHT
 	ghost_hover.set_border_width_all(2)
 	ghost_hover.set_content_margin_all(12)
 	new_btn.add_theme_stylebox_override("hover", ghost_hover)
 	var ghost_pressed := StyleBoxFlat.new()
-	ghost_pressed.bg_color = ghost_bg.darkened(0.03)
-	ghost_pressed.border_color = ghost_border
+	ghost_pressed.bg_color = Color(0.03, 0.02, 0.07, 0.8)
+	ghost_pressed.border_color = UITheme.C_V_LINE
 	ghost_pressed.set_border_width_all(2)
 	ghost_pressed.set_content_margin_all(12)
 	new_btn.add_theme_stylebox_override("pressed", ghost_pressed)

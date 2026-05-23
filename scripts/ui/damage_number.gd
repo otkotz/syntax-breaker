@@ -6,8 +6,8 @@ var is_crit: bool = false
 var is_player_damage: bool = false
 var _tween: Tween
 
-static var _pool: Array[DamageNumber] = []
-static var _active: Array[DamageNumber] = []
+static var _pool: Array = []
+static var _active: Array = []
 const MAX_ACTIVE := 30
 
 static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, player_dmg: bool = false) -> void:
@@ -18,7 +18,7 @@ static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, pl
 			instance = candidate
 			break
 	if not instance:
-		_active = _active.filter(func(n: DamageNumber) -> bool: return is_instance_valid(n))
+		_active = _active.filter(func(n) -> bool: return is_instance_valid(n))
 		if _active.size() >= MAX_ACTIVE:
 			var oldest := _active[0]
 			oldest._force_recycle()

@@ -3,25 +3,25 @@ extends Control
 
 signal closed
 
-const C_BG := Color(0.06, 0.05, 0.04)
-const C_PANEL := Color(0.10, 0.07, 0.05)
-const C_BRONZE := Color(0.56, 0.45, 0.28)
-const C_BRONZE_HI := Color(0.78, 0.68, 0.48)
-const C_BRONZE_LINE := Color(0.38, 0.30, 0.19)
-const C_BRONZE_DARK := Color(0.30, 0.24, 0.15)
-const C_EMBER := Color(0.78, 0.38, 0.15)
-const C_EMBER_GLOW := Color(0.78, 0.38, 0.15, 0.35)
-const C_INK := Color(0.92, 0.88, 0.80)
-const C_INK_MUTE := Color(0.72, 0.68, 0.58)
-const C_INK_LOW := Color(0.50, 0.46, 0.38)
-const C_INK_FAINT := Color(0.35, 0.32, 0.26)
-const C_GOLD := Color(0.94, 0.87, 0.65)
-const C_CARD_BG := Color(0.08, 0.06, 0.04, 0.75)
-const C_STAT_BG := Color(0.0, 0.0, 0.0, 0.3)
+const C_BG := UITheme.C_BG
+const C_PANEL := UITheme.C_BG_1
+const C_BRONZE := UITheme.C_V_BRIGHT
+const C_BRONZE_HI := UITheme.C_V_BRIGHT
+const C_BRONZE_LINE := UITheme.C_V_LINE
+const C_BRONZE_DARK := UITheme.C_V_LINE_D
+const C_EMBER := UITheme.C_V_MID
+const C_EMBER_GLOW := UITheme.C_V_GLOW
+const C_INK := UITheme.C_INK
+const C_INK_MUTE := UITheme.C_INK_MUTE
+const C_INK_LOW := UITheme.C_INK_LOW
+const C_INK_FAINT := UITheme.C_INK_FAINT
+const C_GOLD := UITheme.C_SILVER
+const C_CARD_BG := UITheme.C_CARD_BG
+const C_STAT_BG := UITheme.C_STAT_BG
 
-const C_STR := Color(0.75, 0.30, 0.18)
-const C_DEX := Color(0.40, 0.78, 0.40)
-const C_INT := Color(0.45, 0.55, 0.85)
+const C_STR := UITheme.C_STR
+const C_DEX := UITheme.C_DEX
+const C_INT := UITheme.C_INT
 
 var _skill_instances: Array[SkillInstance] = []
 var _available_supports: Array[SupportResource] = []
@@ -87,7 +87,7 @@ func _build_ui() -> void:
 func _build_header(parent: Control) -> void:
 	var header := PanelContainer.new()
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0.09, 0.07, 0.05)
+	hs.bg_color = Color(0.03, 0.02, 0.06)
 	hs.border_color = C_BRONZE_LINE
 	hs.border_width_bottom = 1
 	hs.set_content_margin_all(0)
@@ -133,7 +133,7 @@ func _build_header(parent: Control) -> void:
 func _build_footer(parent: Control) -> void:
 	var footer := PanelContainer.new()
 	var fs := StyleBoxFlat.new()
-	fs.bg_color = Color(0.07, 0.06, 0.04)
+	fs.bg_color = Color(0.03, 0.02, 0.05)
 	fs.border_color = C_BRONZE_LINE
 	fs.border_width_top = 1
 	fs.set_content_margin_all(0)
@@ -185,7 +185,7 @@ func _build_drawer() -> void:
 	_drawer.anchor_top = 0.35
 	_drawer.visible = false
 	var ds := StyleBoxFlat.new()
-	ds.bg_color = Color(0.09, 0.07, 0.05)
+	ds.bg_color = Color(0.03, 0.02, 0.06)
 	ds.border_color = C_BRONZE_LINE
 	ds.border_width_top = 1
 	ds.set_content_margin_all(0)
@@ -249,6 +249,8 @@ func _rebuild_ui() -> void:
 		_build_skill_card(_scroll_vbox, si)
 	_build_section_label(_scroll_vbox, "UNLINKED SUPPORTS", str(_available_supports.size()))
 	_build_inventory(_scroll_vbox)
+	_build_passives_section(_scroll_vbox)
+	_build_mutations_section(_scroll_vbox)
 	_update_footer()
 
 func _update_footer() -> void:
@@ -507,6 +509,109 @@ func _build_inv_item(support: SupportResource) -> Button:
 	)
 	return btn
 
+func _build_passives_section(parent: Control) -> void:
+	var passives: Array = RunManager.owned_passives
+	_build_section_label(parent, "PASSIVES", str(passives.size()))
+	if passives.is_empty():
+		var empty := Label.new()
+		empty.text = "No passives acquired yet."
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.add_theme_font_size_override("font_size", 20)
+		empty.add_theme_color_override("font_color", C_INK_FAINT)
+		parent.add_child(empty)
+		return
+
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 6)
+	parent.add_child(list)
+	for p: Resource in passives:
+		if not p is PassiveResource:
+			continue
+		var passive := p as PassiveResource
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(0, 56)
+		var ps := StyleBoxFlat.new()
+		ps.bg_color = Color(0, 0, 0, 0.35)
+		ps.border_color = C_BRONZE_LINE
+		ps.set_border_width_all(1)
+		ps.border_width_left = 3
+		ps.set_content_margin_all(10)
+		ps.content_margin_left = 14
+		card.add_theme_stylebox_override("panel", ps)
+		list.add_child(card)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 2)
+		card.add_child(vbox)
+
+		var name_lbl := Label.new()
+		var rarity_prefix := "★ " if passive.rarity == "legendary" else ""
+		name_lbl.text = rarity_prefix + passive.name
+		name_lbl.add_theme_font_size_override("font_size", 22)
+		name_lbl.add_theme_color_override("font_color", _passive_rarity_color(passive.rarity))
+		vbox.add_child(name_lbl)
+
+		var desc_lbl := Label.new()
+		desc_lbl.text = passive.description
+		desc_lbl.add_theme_font_size_override("font_size", 18)
+		desc_lbl.add_theme_color_override("font_color", C_INK_MUTE)
+		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		vbox.add_child(desc_lbl)
+
+func _build_mutations_section(parent: Control) -> void:
+	var total_mutations := 0
+	for si in _skill_instances:
+		total_mutations += si.mutations.size()
+	_build_section_label(parent, "MUTATIONS", str(total_mutations))
+	if total_mutations == 0:
+		var empty := Label.new()
+		empty.text = "No mutations applied yet."
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.add_theme_font_size_override("font_size", 20)
+		empty.add_theme_color_override("font_color", C_INK_FAINT)
+		parent.add_child(empty)
+		return
+
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 6)
+	parent.add_child(list)
+	for si in _skill_instances:
+		for mutation: Dictionary in si.mutations:
+			var card := PanelContainer.new()
+			card.custom_minimum_size = Vector2(0, 56)
+			var ms := StyleBoxFlat.new()
+			ms.bg_color = Color(0, 0, 0, 0.35)
+			ms.border_color = C_EMBER
+			ms.set_border_width_all(1)
+			ms.border_width_left = 3
+			ms.set_content_margin_all(10)
+			ms.content_margin_left = 14
+			card.add_theme_stylebox_override("panel", ms)
+			list.add_child(card)
+
+			var vbox := VBoxContainer.new()
+			vbox.add_theme_constant_override("separation", 2)
+			card.add_child(vbox)
+
+			var name_lbl := Label.new()
+			name_lbl.text = "%s  →  %s" % [mutation.get("name", ""), si.base.name]
+			name_lbl.add_theme_font_size_override("font_size", 22)
+			name_lbl.add_theme_color_override("font_color", C_EMBER)
+			vbox.add_child(name_lbl)
+
+			var desc_lbl := Label.new()
+			desc_lbl.text = mutation.get("desc", "")
+			desc_lbl.add_theme_font_size_override("font_size", 18)
+			desc_lbl.add_theme_color_override("font_color", C_INK_MUTE)
+			vbox.add_child(desc_lbl)
+
+func _passive_rarity_color(rarity: String) -> Color:
+	match rarity:
+		"uncommon": return Color(0.3, 0.8, 0.3)
+		"rare": return Color(0.4, 0.5, 1.0)
+		"legendary": return Color(0.9, 0.7, 0.2)
+		_: return C_INK
+
 func _on_slot_clicked(si: SkillInstance, index: int) -> void:
 	_active_slot = {"skill": si, "index": index}
 	_show_drawer()
@@ -723,19 +828,19 @@ func _make_icon_btn(text: String) -> Button:
 	b.add_theme_color_override("font_color", C_BRONZE_HI)
 	b.add_theme_color_override("font_hover_color", C_GOLD)
 	var ns := StyleBoxFlat.new()
-	ns.bg_color = Color(0.14, 0.11, 0.08)
+	ns.bg_color = Color(0.06, 0.03, 0.12)
 	ns.border_color = C_BRONZE_LINE
 	ns.set_border_width_all(1)
 	ns.set_content_margin_all(4)
 	b.add_theme_stylebox_override("normal", ns)
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0.18, 0.14, 0.10)
+	hs.bg_color = Color(0.08, 0.05, 0.16)
 	hs.border_color = C_BRONZE
 	hs.set_border_width_all(1)
 	hs.set_content_margin_all(4)
 	b.add_theme_stylebox_override("hover", hs)
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.10, 0.08, 0.06)
+	ps.bg_color = Color(0.04, 0.02, 0.08)
 	ps.border_color = C_BRONZE_LINE
 	ps.set_border_width_all(1)
 	ps.set_content_margin_all(4)
@@ -746,27 +851,27 @@ func _make_cta(text: String, font_size: int) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.add_theme_font_size_override("font_size", font_size)
-	b.add_theme_color_override("font_color", Color(0.97, 0.92, 0.80))
-	b.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.85))
+	b.add_theme_color_override("font_color", C_INK)
+	b.add_theme_color_override("font_hover_color", Color.WHITE)
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.35, 0.15, 0.06)
-	normal.border_color = Color(0.60, 0.30, 0.12)
+	normal.bg_color = UITheme.C_V_BASE
+	normal.border_color = Color(0.45, 0.30, 0.85)
 	normal.set_border_width_all(2)
 	normal.set_content_margin_all(12)
 	normal.shadow_color = C_EMBER_GLOW
 	normal.shadow_size = 20
 	b.add_theme_stylebox_override("normal", normal)
 	var hover := StyleBoxFlat.new()
-	hover.bg_color = Color(0.42, 0.20, 0.08)
-	hover.border_color = Color(0.65, 0.35, 0.15)
+	hover.bg_color = UITheme.C_V_MID
+	hover.border_color = Color(0.55, 0.40, 0.90)
 	hover.set_border_width_all(2)
 	hover.set_content_margin_all(12)
 	hover.shadow_color = C_EMBER_GLOW
 	hover.shadow_size = 28
 	b.add_theme_stylebox_override("hover", hover)
 	var pressed := StyleBoxFlat.new()
-	pressed.bg_color = Color(0.30, 0.12, 0.05)
-	pressed.border_color = Color(0.55, 0.28, 0.10)
+	pressed.bg_color = UITheme.C_V_DEEP
+	pressed.border_color = UITheme.C_V_LINE
 	pressed.set_border_width_all(2)
 	pressed.set_content_margin_all(12)
 	pressed.shadow_color = C_EMBER_GLOW
@@ -783,13 +888,13 @@ func _make_drawer_btn(text: String, is_danger: bool) -> Button:
 	b.add_theme_color_override("font_color", Color(0.80, 0.30, 0.18) if is_danger else C_INK)
 	b.add_theme_color_override("font_hover_color", Color(0.90, 0.40, 0.25) if is_danger else C_BRONZE_HI)
 	var ns := StyleBoxFlat.new()
-	ns.bg_color = Color(0.12, 0.09, 0.06)
+	ns.bg_color = Color(0.05, 0.03, 0.10)
 	ns.border_color = C_BRONZE_LINE
 	ns.set_border_width_all(1)
 	ns.set_content_margin_all(8)
 	b.add_theme_stylebox_override("normal", ns)
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0.16, 0.12, 0.08)
+	hs.bg_color = Color(0.08, 0.05, 0.16)
 	hs.border_color = C_BRONZE
 	hs.set_border_width_all(1)
 	hs.set_content_margin_all(8)

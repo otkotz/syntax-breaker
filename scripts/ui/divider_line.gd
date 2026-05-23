@@ -1,8 +1,8 @@
 class_name DividerLine
 extends Control
 
-var line_color := Color(0.38, 0.30, 0.19)
-var diamond_color := Color(0.56, 0.45, 0.28)
+var line_color := UITheme.C_V_LINE
+var diamond_color := UITheme.C_V_BRIGHT
 
 func _draw() -> void:
 	var cx := size.x / 2.0

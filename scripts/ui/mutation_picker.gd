@@ -26,6 +26,7 @@ func _show_mutations() -> void:
 	var header := Label.new()
 	header.text = "Choose a mutation for one of your skills:"
 	header.add_theme_font_size_override("font_size", 30)
+	header.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	header.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content.add_child(header)
 
@@ -34,6 +35,7 @@ func _show_mutations() -> void:
 		btn.custom_minimum_size.y = 120.0
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 		btn.text = "%s\n%s" % [mutation["name"], mutation["desc"]]
+		UITheme.style_button(btn, 26)
 		btn.pressed.connect(func(): _on_mutation_selected(mutation))
 		content.add_child(btn)
 
@@ -51,6 +53,7 @@ func _show_skill_picker() -> void:
 	var header := Label.new()
 	header.text = "Apply '%s' to which skill?" % _selected_mutation["name"]
 	header.add_theme_font_size_override("font_size", 30)
+	header.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	header.autowrap_mode = TextServer.AUTOWRAP_WORD
 	content.add_child(header)
 
@@ -59,6 +62,7 @@ func _show_skill_picker() -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size.y = 100.0
 		btn.text = si.base.name
+		UITheme.style_button(btn, 28)
 		var idx := i
 		btn.pressed.connect(func(): mutation_chosen.emit(_selected_mutation, idx))
 		content.add_child(btn)

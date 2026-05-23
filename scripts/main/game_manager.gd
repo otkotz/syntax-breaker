@@ -85,7 +85,8 @@ func _show_stage_choice() -> void:
 func _enter_stage(stage_data: StageData) -> void:
 	_current_stage_data = stage_data
 	RunManager.current_stage_data = stage_data
-	RunManager.advance_stage()
+	if stage_data.type != StageData.Type.TREASURE:
+		RunManager.advance_stage()
 
 	match stage_data.type:
 		StageData.Type.COMBAT, StageData.Type.ELITE, StageData.Type.BOSS:
