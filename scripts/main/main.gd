@@ -15,11 +15,27 @@ func _ready() -> void:
 	_main_menu.start_pressed.connect(_on_start_run)
 	_main_menu.unlocks_pressed.connect(_on_unlocks)
 	_main_menu.codex_pressed.connect(_on_codex)
+	_main_menu.hide()
 
 	game_manager.return_to_menu_requested.connect(_on_return_to_menu)
 
-	if game_manager.has_saved_run():
-		_show_resume_prompt()
+	var splash_layer := CanvasLayer.new()
+	splash_layer.layer = 100
+	add_child(splash_layer)
+	var splash := SplashScreen.new()
+	splash_layer.add_child(splash)
+	splash.finished.connect(func() -> void:
+		_slide_in_menu()
+		splash_layer.queue_free()
+		if game_manager.has_saved_run():
+			_show_resume_prompt()
+	)
+
+func _slide_in_menu() -> void:
+	_main_menu.show()
+	_main_menu.position.y = 1920.0
+	var tw := create_tween()
+	tw.tween_property(_main_menu, "position:y", 0.0, 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 
 func _on_start_run() -> void:
 	_main_menu.hide()
