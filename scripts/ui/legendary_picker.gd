@@ -19,26 +19,18 @@ func setup(skill_instances: Array[SkillInstance]) -> void:
 
 func _get_available_legendaries() -> Array[PassiveResource]:
 	var result: Array[PassiveResource] = []
-	var dir := DirAccess.open("res://resources/passives/")
-	if not dir:
-		return result
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var res := load("res://resources/passives/" + file_name)
-			if res is PassiveResource and res.rarity == "legendary":
-				if not MetaProgression.is_unlocked("passives", res.id):
-					file_name = dir.get_next()
-					continue
-				var owned := false
-				for p: Resource in RunManager.owned_passives:
-					if p is PassiveResource and p.id == res.id:
-						owned = true
-						break
-				if not owned:
-					result.append(res)
-		file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files("res://resources/passives/"):
+		var res := load("res://resources/passives/" + file_name)
+		if res is PassiveResource and res.rarity == "legendary":
+			if not MetaProgression.is_unlocked("passives", res.id):
+				continue
+			var owned := false
+			for p: Resource in RunManager.owned_passives:
+				if p is PassiveResource and p.id == res.id:
+					owned = true
+					break
+			if not owned:
+				result.append(res)
 	return result
 
 func _build_ui(choices: Array[PassiveResource]) -> void:

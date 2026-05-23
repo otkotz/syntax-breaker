@@ -123,7 +123,7 @@ func _build_header(parent: Control) -> void:
 	row.add_child(help_btn)
 
 	var sub := Label.new()
-	sub.text = "— TAP A SOCKET TO MANAGE —"
+	sub.text = "— TAP A SLOT TO LINK OR SWAP —"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 16)
 	sub.add_theme_color_override("font_color", C_INK_LOW)
@@ -361,26 +361,23 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 	vbox.add_child(_gap(14))
 
 	var socket_label := Label.new()
-	socket_label.text = "— LINKED SUPPORTS · %d/%d —" % [si.linked_supports.size(), si.base.max_supports]
+	socket_label.text = "— SUPPORTS · %d/%d —" % [si.linked_supports.size(), si.base.max_supports]
 	socket_label.add_theme_font_size_override("font_size", 16)
 	socket_label.add_theme_color_override("font_color", C_INK_LOW)
 	socket_label.uppercase = true
 	vbox.add_child(socket_label)
-	vbox.add_child(_gap(10))
+	vbox.add_child(_gap(8))
 
-	var socket_row := HBoxContainer.new()
-	socket_row.add_theme_constant_override("separation", 0)
-	vbox.add_child(socket_row)
+	var socket_list := VBoxContainer.new()
+	socket_list.add_theme_constant_override("separation", 6)
+	vbox.add_child(socket_list)
 
 	for i in si.base.max_supports:
-		if i > 0:
-			var link := _build_link(i < si.linked_supports.size() or (i - 1) < si.linked_supports.size())
-			socket_row.add_child(link)
 		var filled: bool = i < si.linked_supports.size()
 		var support: SupportResource = si.linked_supports[i] if filled else null
-		var socket_btn := _build_socket(filled, support, card_color)
-		socket_btn.pressed.connect(_on_slot_clicked.bind(si, i))
-		socket_row.add_child(socket_btn)
+		var slot_btn := _build_slot_row(filled, support, card_color)
+		slot_btn.pressed.connect(_on_slot_clicked.bind(si, i))
+		socket_list.add_child(slot_btn)
 
 func _build_gem_main(color: Color) -> PanelContainer:
 	var container := PanelContainer.new()
@@ -395,170 +392,120 @@ func _build_gem_main(color: Color) -> PanelContainer:
 	container.add_theme_stylebox_override("panel", ps)
 	return container
 
-func _build_socket(filled: bool, support: SupportResource, skill_color: Color) -> Button:
+func _build_slot_row(filled: bool, support: SupportResource, _skill_color: Color) -> Button:
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(48, 48)
-	btn.add_theme_font_size_override("font_size", 20)
+	btn.custom_minimum_size = Vector2(0, 56)
+	btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+	var color := _get_support_color(support) if filled else C_BRONZE_DARK
+	var border := color if filled else C_BRONZE_DARK
 
 	var ns := StyleBoxFlat.new()
-	ns.bg_color = Color(0.06, 0.05, 0.04)
-	ns.border_color = C_BRONZE_DARK if not filled else _get_support_color(support)
-	ns.set_border_width_all(2)
-	ns.set_content_margin_all(4)
+	ns.bg_color = Color(0.05, 0.04, 0.03)
+	ns.border_color = border
+	ns.set_border_width_all(1)
+	ns.border_width_left = 3
+	ns.set_content_margin_all(10)
+	ns.content_margin_left = 14
 	btn.add_theme_stylebox_override("normal", ns)
 
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0.10, 0.08, 0.06)
-	hs.border_color = C_BRONZE_HI if not filled else _get_support_color(support).lightened(0.2)
-	hs.set_border_width_all(2)
-	hs.set_content_margin_all(4)
+	hs.bg_color = Color(0.08, 0.06, 0.05)
+	hs.border_color = border.lightened(0.2)
+	hs.set_border_width_all(1)
+	hs.border_width_left = 3
+	hs.set_content_margin_all(10)
+	hs.content_margin_left = 14
 	btn.add_theme_stylebox_override("hover", hs)
 
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.04, 0.03, 0.02)
-	ps.border_color = ns.border_color
-	ps.set_border_width_all(2)
-	ps.set_content_margin_all(4)
+	ps.bg_color = Color(0.03, 0.02, 0.02)
+	ps.border_color = border
+	ps.set_border_width_all(1)
+	ps.border_width_left = 3
+	ps.set_content_margin_all(10)
+	ps.content_margin_left = 14
 	btn.add_theme_stylebox_override("pressed", ps)
 
 	if filled:
 		var q: int = RunManager.get_support_quality(support.id)
-		var q_str := " Q%d" % q if q > 0 else ""
-		btn.text = support.name.left(2).to_upper()
-		btn.tooltip_text = support.name + q_str
-		btn.add_theme_color_override("font_color", _get_support_color(support))
-		btn.add_theme_color_override("font_hover_color", _get_support_color(support).lightened(0.2))
+		var q_str := "  Q%d" % q if q > 0 else ""
+		btn.text = support.name + q_str
+		btn.add_theme_font_size_override("font_size", 20)
+		btn.add_theme_color_override("font_color", color)
+		btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
 	else:
-		btn.text = "+"
-		btn.add_theme_color_override("font_color", C_BRONZE_DARK)
-		btn.add_theme_color_override("font_hover_color", C_BRONZE_HI)
+		btn.text = "+ Empty Socket"
+		btn.add_theme_font_size_override("font_size", 18)
+		btn.add_theme_color_override("font_color", C_INK_FAINT)
+		btn.add_theme_color_override("font_hover_color", C_BRONZE)
 
 	return btn
-
-func _build_link(bright: bool) -> Control:
-	var container := Control.new()
-	container.custom_minimum_size = Vector2(14, 48)
-
-	var line := ColorRect.new()
-	line.custom_minimum_size = Vector2(14, 2)
-	line.position = Vector2(0, 23)
-	line.color = C_BRONZE if bright else C_BRONZE_DARK
-	line.modulate.a = 1.0 if bright else 0.5
-	container.add_child(line)
-
-	var diamond := ColorRect.new()
-	diamond.custom_minimum_size = Vector2(5, 5)
-	diamond.position = Vector2(4.5, 21.5)
-	diamond.color = C_BRONZE_HI if bright else C_BRONZE_DARK
-	diamond.rotation = deg_to_rad(45)
-	container.add_child(diamond)
-
-	return container
 
 func _build_inventory(parent: Control) -> void:
 	if _available_supports.is_empty():
 		var empty := Label.new()
-		empty.text = "No supports remain. Find more on your descent."
+		empty.text = "No unlinked supports yet."
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty.add_theme_font_size_override("font_size", 20)
 		empty.add_theme_color_override("font_color", C_INK_FAINT)
 		parent.add_child(empty)
 		return
 
-	var inv_panel := PanelContainer.new()
-	var is_ := StyleBoxFlat.new()
-	is_.bg_color = Color(0.05, 0.04, 0.03, 0.6)
-	is_.border_color = C_BRONZE_LINE
-	is_.set_border_width_all(1)
-	is_.set_content_margin_all(14)
-	inv_panel.add_theme_stylebox_override("panel", is_)
-	parent.add_child(inv_panel)
-
-	var inv_vbox := VBoxContainer.new()
-	inv_vbox.add_theme_constant_override("separation", 10)
-	inv_panel.add_child(inv_vbox)
-
-	var hint := Label.new()
-	hint.text = "Tap a gem to view, or drop into an open socket above."
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 18)
-	hint.add_theme_color_override("font_color", C_INK_FAINT)
-	inv_vbox.add_child(hint)
-
-	var grid := GridContainer.new()
-	grid.columns = 5
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	inv_vbox.add_child(grid)
+	var inv_list := VBoxContainer.new()
+	inv_list.add_theme_constant_override("separation", 6)
+	parent.add_child(inv_list)
 
 	for support in _available_supports:
-		var cell := _build_inv_cell(support)
-		grid.add_child(cell)
+		var item := _build_inv_item(support)
+		inv_list.add_child(item)
 
-	var remaining := 5 - (_available_supports.size() % 5)
-	if remaining < 5:
-		for i in remaining:
-			var empty_cell := _build_empty_cell()
-			grid.add_child(empty_cell)
-
-func _build_inv_cell(support: SupportResource) -> Button:
+func _build_inv_item(support: SupportResource) -> Button:
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(0, 80)
+	btn.custom_minimum_size = Vector2(0, 64)
 	btn.size_flags_horizontal = SIZE_EXPAND_FILL
-	btn.add_theme_font_size_override("font_size", 18)
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	var color := _get_support_color(support)
 	var q: int = RunManager.get_support_quality(support.id)
-	btn.text = support.name.left(3).to_upper()
-	btn.tooltip_text = support.name + (" Q%d" % q if q > 0 else "")
+	var q_str := "  Q%d" % q if q > 0 else ""
+	btn.text = support.name + q_str + "\n" + support.description
+	btn.add_theme_font_size_override("font_size", 18)
 	btn.add_theme_color_override("font_color", color)
 	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
 
 	var ns := StyleBoxFlat.new()
-	ns.bg_color = Color(0, 0, 0, 0.45)
+	ns.bg_color = Color(0, 0, 0, 0.35)
 	ns.border_color = C_BRONZE_LINE
 	ns.set_border_width_all(1)
-	ns.set_content_margin_all(4)
+	ns.border_width_left = 3
+	ns.set_content_margin_all(10)
+	ns.content_margin_left = 14
 	btn.add_theme_stylebox_override("normal", ns)
 
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0, 0, 0, 0.55)
+	hs.bg_color = Color(0, 0, 0, 0.5)
 	hs.border_color = C_BRONZE_HI
 	hs.set_border_width_all(1)
-	hs.set_content_margin_all(4)
+	hs.border_width_left = 3
+	hs.set_content_margin_all(10)
+	hs.content_margin_left = 14
 	btn.add_theme_stylebox_override("hover", hs)
 
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0, 0, 0, 0.6)
+	ps.bg_color = Color(0, 0, 0, 0.5)
 	ps.border_color = color
 	ps.set_border_width_all(1)
-	ps.set_content_margin_all(4)
+	ps.border_width_left = 3
+	ps.set_content_margin_all(10)
+	ps.content_margin_left = 14
 	btn.add_theme_stylebox_override("pressed", ps)
 
 	btn.pressed.connect(func() -> void:
 		_show_support_info_drawer(support)
 	)
 	return btn
-
-func _build_empty_cell() -> PanelContainer:
-	var cell := PanelContainer.new()
-	cell.custom_minimum_size = Vector2(0, 80)
-	cell.size_flags_horizontal = SIZE_EXPAND_FILL
-	var es := StyleBoxFlat.new()
-	es.bg_color = Color(0, 0, 0, 0.25)
-	es.border_color = C_BRONZE_LINE.darkened(0.3)
-	es.set_border_width_all(1)
-	es.set_content_margin_all(4)
-	cell.add_theme_stylebox_override("panel", es)
-
-	var dot := Label.new()
-	dot.text = "·"
-	dot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	dot.add_theme_font_size_override("font_size", 24)
-	dot.add_theme_color_override("font_color", C_INK_FAINT)
-	cell.add_child(dot)
-	return cell
 
 func _on_slot_clicked(si: SkillInstance, index: int) -> void:
 	_active_slot = {"skill": si, "index": index}
@@ -658,18 +605,16 @@ func _show_support_info_drawer(support: SupportResource) -> void:
 
 func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(0, 60)
+	btn.custom_minimum_size = Vector2(0, 70)
 	btn.size_flags_horizontal = SIZE_EXPAND_FILL
 
 	var color := _get_support_color(support)
 	var q: int = RunManager.get_support_quality(support.id)
-	var q_str := " (Q%d)" % q if q > 0 else ""
-	var name_text := support.name + q_str
-	if is_current:
-		name_text += " ·"
-	btn.text = name_text
+	var q_str := "  Q%d" % q if q > 0 else ""
+	var current_marker := "  [current]" if is_current else ""
+	btn.text = support.name + q_str + current_marker + "\n" + support.description
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	btn.add_theme_font_size_override("font_size", 22)
+	btn.add_theme_font_size_override("font_size", 20)
 	btn.add_theme_color_override("font_color", color)
 	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
 
@@ -679,7 +624,7 @@ func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	ns.set_border_width_all(1)
 	ns.border_width_left = 3
 	ns.set_content_margin_all(10)
-	ns.content_margin_left = 12
+	ns.content_margin_left = 14
 	btn.add_theme_stylebox_override("normal", ns)
 
 	var hs := StyleBoxFlat.new()
@@ -688,7 +633,7 @@ func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	hs.set_border_width_all(1)
 	hs.border_width_left = 3
 	hs.set_content_margin_all(10)
-	hs.content_margin_left = 12
+	hs.content_margin_left = 14
 	btn.add_theme_stylebox_override("hover", hs)
 
 	var ps := StyleBoxFlat.new()
@@ -697,7 +642,7 @@ func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	ps.set_border_width_all(1)
 	ps.border_width_left = 3
 	ps.set_content_margin_all(10)
-	ps.content_margin_left = 12
+	ps.content_margin_left = 14
 	btn.add_theme_stylebox_override("pressed", ps)
 
 	return btn

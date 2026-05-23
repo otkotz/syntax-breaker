@@ -134,14 +134,8 @@ func _rarity_color(rarity: String) -> Color:
 
 func _load_resources(dir_path: String) -> Array:
 	var resources: Array = []
-	var dir := DirAccess.open(dir_path)
-	if dir:
-		dir.list_dir_begin()
-		var file_name := dir.get_next()
-		while file_name != "":
-			if file_name.ends_with(".tres"):
-				var res := load(dir_path + file_name)
-				if res:
-					resources.append(res)
-			file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files(dir_path):
+		var res := load(dir_path + file_name)
+		if res:
+			resources.append(res)
 	return resources

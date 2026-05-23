@@ -99,9 +99,7 @@ func _build_ui() -> void:
 		, CONNECT_ONE_SHOT)
 	)
 	_add_button(vbox, "Add All Supports (Max Q)", func():
-		var support_files := DirAccess.get_files_at("res://resources/supports")
-		for file_name in support_files:
-			if file_name.ends_with(".tres"):
+		for file_name in ResourceListing.get_resource_files("res://resources/supports/"):
 				var support := load("res://resources/supports/" + file_name) as SupportResource
 				if support:
 					var already_owned := false

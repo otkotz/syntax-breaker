@@ -16,14 +16,23 @@ var _consumable_manager: ConsumableManager
 
 var _arena_rect: Rect2
 var _stage_data: StageData
+var _consumable_pool: Array[ConsumableResource] = []
+const CONSUMABLE_DROP_CHANCE := 0.03
 
 signal stage_completed
 
 func _ready() -> void:
 	if not balance:
 		balance = preload("res://resources/config/game_balance.tres")
+	_load_consumable_pool()
 	GameBus.enemy_killed.connect(_on_enemy_killed)
 	GameBus.enemy_hit.connect(_on_enemy_hit)
+
+func _load_consumable_pool() -> void:
+	for file_name in ResourceListing.get_resource_files("res://resources/consumables/"):
+		var res := load("res://resources/consumables/" + file_name)
+		if res is ConsumableResource:
+			_consumable_pool.append(res)
 
 func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage_data: StageData = null) -> void:
 	_stage_data = stage_data
@@ -119,6 +128,9 @@ func _on_enemy_hit(_enemy: Node2D, _damage: float, _skill: Resource) -> void:
 func _on_enemy_killed(_enemy: Node2D, _killer_skill: Resource) -> void:
 	if camera and balance:
 		camera.shake(balance.screen_shake_on_kill, balance.screen_shake_duration)
+	if _consumable_pool.size() > 0 and randf() < CONSUMABLE_DROP_CHANCE:
+		var drop := _consumable_pool[randi() % _consumable_pool.size()]
+		RunManager.add_consumable(drop)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:

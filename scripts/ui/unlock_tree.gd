@@ -21,18 +21,11 @@ func _ready() -> void:
 	_build_tree()
 
 func _load_unlock_conditions() -> void:
-	var dir := DirAccess.open("res://resources/unlocks/")
-	if not dir:
-		return
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var res := load("res://resources/unlocks/" + file_name)
-			if res is UnlockConditionResource:
-				var key := "%s:%s" % [res.item_type, res.item_id]
-				_unlock_conditions[key] = res
-		file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files("res://resources/unlocks/"):
+		var res := load("res://resources/unlocks/" + file_name)
+		if res is UnlockConditionResource:
+			var key := "%s:%s" % [res.item_type, res.item_id]
+			_unlock_conditions[key] = res
 
 func _build_tree() -> void:
 	var total := 0
@@ -72,26 +65,19 @@ func _build_tree() -> void:
 func _get_all_items(section: String) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	var dir_path := "res://resources/%s/" % section
-	var dir := DirAccess.open(dir_path)
-	if not dir:
-		return items
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var res := load(dir_path + file_name)
-			match section:
-				"skills":
-					if res is SkillResource:
-						items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity})
-				"supports":
-					if res is SupportResource:
-						items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity})
-				"passives":
-					if res is PassiveResource:
-						var passive := res as PassiveResource
-						items.append({"id": passive.id, "name": passive.name, "description": passive.description, "rarity": passive.rarity})
-		file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files(dir_path):
+		var res := load(dir_path + file_name)
+		match section:
+			"skills":
+				if res is SkillResource:
+					items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity})
+			"supports":
+				if res is SupportResource:
+					items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity})
+			"passives":
+				if res is PassiveResource:
+					var passive := res as PassiveResource
+					items.append({"id": passive.id, "name": passive.name, "description": passive.description, "rarity": passive.rarity})
 	return items
 
 func _create_card(item: Dictionary, section: String, is_unlocked: bool) -> PanelContainer:

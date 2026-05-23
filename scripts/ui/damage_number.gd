@@ -13,7 +13,7 @@ const MAX_ACTIVE := 30
 static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, player_dmg: bool = false) -> void:
 	var instance: DamageNumber
 	while _pool.size() > 0:
-		var candidate: DamageNumber = _pool.pop_back()
+		var candidate = _pool.pop_back()
 		if is_instance_valid(candidate):
 			instance = candidate
 			break
@@ -23,7 +23,7 @@ static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, pl
 			var oldest := _active[0]
 			oldest._force_recycle()
 			while _pool.size() > 0:
-				var candidate2: DamageNumber = _pool.pop_back()
+				var candidate2 = _pool.pop_back()
 				if is_instance_valid(candidate2):
 					instance = candidate2
 					break

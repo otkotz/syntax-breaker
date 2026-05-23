@@ -99,17 +99,10 @@ func _build_header(parent: Control) -> void:
 	vbox.add_child(sub)
 
 func _populate() -> void:
-	var dir := DirAccess.open("res://resources/skills/")
-	if not dir:
-		return
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var res := load("res://resources/skills/" + file_name)
-			if res is SkillResource:
-				_add_skill_card(res as SkillResource)
-		file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files("res://resources/skills/"):
+		var res := load("res://resources/skills/" + file_name)
+		if res is SkillResource:
+			_add_skill_card(res as SkillResource)
 
 func _add_skill_card(skill: SkillResource) -> void:
 	var color := _get_skill_color(skill)

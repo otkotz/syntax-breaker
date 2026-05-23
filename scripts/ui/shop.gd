@@ -5,19 +5,16 @@ signal continue_pressed
 signal skill_purchased(si: SkillInstance)
 
 const OFFERING_COUNT := 8
-const MAX_PURCHASES := 3
 const RARITY_COSTS := {
 	"skill": {"common": 15, "uncommon": 20, "rare": 25},
 	"support": {"common": 8, "uncommon": 12, "rare": 15},
 	"passive": {"common": 10, "uncommon": 15, "rare": 20, "legendary": 40},
-	"consumable": {"common": 8},
 }
 
 var _skill_instances: Array[SkillInstance]
 var _reroll_cost: int = 2
 var _offerings: Array[Dictionary] = []
 var _pending_support: SupportResource = null
-var _purchases_remaining: int = MAX_PURCHASES
 
 @onready var gold_label: Label = $MarginContainer/VBox/Header/GoldLabel
 @onready var item_list: VBoxContainer = $MarginContainer/VBox/ScrollContainer/ItemList
@@ -36,7 +33,6 @@ func _ready() -> void:
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
-	_purchases_remaining = MAX_PURCHASES
 	_generate_offerings()
 	_refresh_ui()
 
@@ -76,10 +72,6 @@ func _generate_offerings() -> void:
 			if not owned:
 				pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
 
-	for res: Resource in _load_resources("res://resources/consumables/"):
-		if res is ConsumableResource:
-			pool.append({"type": "consumable", "resource": res, "cost": res.cost})
-
 	var legendary_added := false
 	if randf() < 1.0 / 15.0:
 		var legendaries: Array[Dictionary] = []
@@ -99,23 +91,17 @@ func _generate_offerings() -> void:
 
 func _load_resources(dir_path: String) -> Array:
 	var resources: Array = []
-	var dir := DirAccess.open(dir_path)
-	if dir:
-		dir.list_dir_begin()
-		var file_name := dir.get_next()
-		while file_name != "":
-			if file_name.ends_with(".tres"):
-				var res := load(dir_path + file_name)
-				if res:
-					resources.append(res)
-			file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files(dir_path):
+		var res := load(dir_path + file_name)
+		if res:
+			resources.append(res)
 	return resources
 
 func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
 
 func _refresh_ui() -> void:
-	gold_label.text = "Gold: %d  |  Buys left: %d" % [RunManager.gold, _purchases_remaining]
+	gold_label.text = "Gold: %d" % RunManager.gold
 	reroll_button.text = "Reroll (%dg)" % _reroll_cost
 
 	for child: Node in item_list.get_children():
@@ -169,11 +155,8 @@ func _create_card(offering: Dictionary) -> Control:
 	return panel
 
 func _on_buy(offering: Dictionary) -> void:
-	if _purchases_remaining <= 0:
-		return
 	if not RunManager.spend_gold(offering["cost"]):
 		return
-	_purchases_remaining -= 1
 
 	match offering["type"]:
 		"skill":
@@ -194,8 +177,6 @@ func _on_buy(offering: Dictionary) -> void:
 			RunManager.owned_passives.append(offering["resource"])
 			_recompute_all_skills()
 			GameBus.passive_acquired.emit(offering["resource"])
-		"consumable":
-			RunManager.add_consumable(offering["resource"] as ConsumableResource)
 
 	_offerings.erase(offering)
 	_refresh_ui()

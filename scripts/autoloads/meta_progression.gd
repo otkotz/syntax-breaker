@@ -19,17 +19,10 @@ func _ready() -> void:
 	_load_unlock_conditions()
 
 func _load_unlock_conditions() -> void:
-	var dir := DirAccess.open("res://resources/unlocks/")
-	if not dir:
-		return
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var res := load("res://resources/unlocks/" + file_name)
-			if res is UnlockConditionResource:
-				_unlock_conditions.append(res)
-		file_name = dir.get_next()
+	for file_name in ResourceListing.get_resource_files("res://resources/unlocks/"):
+		var res := load("res://resources/unlocks/" + file_name)
+		if res is UnlockConditionResource:
+			_unlock_conditions.append(res)
 
 func check_unlocks(run_stats: Dictionary) -> Array[String]:
 	var newly_unlocked: Array[String] = []
