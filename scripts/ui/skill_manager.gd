@@ -40,10 +40,17 @@ var _footer_linked_lbl: Label
 
 func open(skill_instances: Array[SkillInstance], supports: Array) -> void:
 	_skill_instances = skill_instances
+	var linked_ids: Dictionary = {}
+	for si in skill_instances:
+		for ls: SupportResource in si.linked_supports:
+			linked_ids[ls.id] = linked_ids.get(ls.id, 0) + 1
 	_available_supports = []
 	for s in supports:
 		if s is SupportResource:
-			_available_supports.append(s)
+			if linked_ids.get(s.id, 0) > 0:
+				linked_ids[s.id] -= 1
+			else:
+				_available_supports.append(s)
 	_active_slot = {}
 	_rebuild_ui()
 	show()

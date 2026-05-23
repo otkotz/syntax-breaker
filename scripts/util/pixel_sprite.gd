@@ -49,3 +49,18 @@ static func build_texture(rects: Array, circles: Array = [], padding: int = 2) -
 
 static func build_circle_texture(radius: float, color: Color) -> Dictionary:
 	return build_texture([], [{"pos": Vector2.ZERO, "radius": radius, "color": color}])
+
+static func build_knife_texture(color: Color) -> Dictionary:
+	var blade := color
+	var edge := color.lightened(0.4)
+	var handle := Color(0.35, 0.25, 0.18)
+	var rects: Array = [
+		{"rect": Rect2(-1, -10, 3, 12), "color": blade},
+		{"rect": Rect2(0, -10, 1, 12), "color": edge},
+		{"rect": Rect2(-1, -12, 3, 2), "color": blade.lightened(0.2)},
+		{"rect": Rect2(0, -12, 1, 1), "color": Color.WHITE},
+		{"rect": Rect2(-2, 2, 5, 2), "color": Color(0.5, 0.5, 0.55)},
+		{"rect": Rect2(-1, 4, 3, 6), "color": handle},
+		{"rect": Rect2(0, 4, 1, 6), "color": handle.lightened(0.15)},
+	]
+	return build_texture(rects)

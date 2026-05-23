@@ -40,14 +40,14 @@ static func style_button(btn: Button, font_size: int = 28) -> void:
 	btn.add_theme_stylebox_override("normal", ns)
 
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(C_V_BASE.r, C_V_BASE.g, C_V_BASE.b, 0.5)
+	hs.bg_color = Color(0.357, 0.129, 0.714, 0.5)
 	hs.border_color = C_V_BRIGHT
 	hs.set_border_width_all(2)
 	hs.set_content_margin_all(12)
 	btn.add_theme_stylebox_override("hover", hs)
 
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(C_V_DEEP.r, C_V_DEEP.g, C_V_DEEP.b, 0.8)
+	ps.bg_color = Color(0.118, 0.051, 0.251, 0.8)
 	ps.border_color = C_V_LINE
 	ps.set_border_width_all(2)
 	ps.set_content_margin_all(12)

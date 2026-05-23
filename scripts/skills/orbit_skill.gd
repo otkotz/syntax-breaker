@@ -11,17 +11,24 @@ var _parent_node: Node2D
 var _hit_cooldowns: Dictionary = {}
 var _color: Color = Color(0.4, 0.9, 1.0)
 var _sprite: Sprite2D
+var _use_knife := false
 
 const HIT_COOLDOWN := 0.5
 
 static var _circle_texture: ImageTexture
 static var _circle_offset: Vector2
+static var _knife_texture: ImageTexture
+static var _knife_offset: Vector2
 
 func _ready() -> void:
 	if not _circle_texture:
 		var data := PixelSprite.build_circle_texture(10.0, Color.WHITE)
 		_circle_texture = data["texture"]
 		_circle_offset = data["offset"]
+	if not _knife_texture:
+		var data := PixelSprite.build_knife_texture(Color.WHITE)
+		_knife_texture = data["texture"]
+		_knife_offset = data["offset"]
 	_sprite = Sprite2D.new()
 	_sprite.texture = _circle_texture
 	_sprite.offset = _circle_offset
@@ -37,7 +44,14 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	_hit_cooldowns.clear()
 	_color = TagColors.get_color(si.get_all_tags())
 	scale = Vector2.ONE * area_mult
+	_use_knife = si.base.id == "blade_spin"
 	if _sprite:
+		if _use_knife:
+			_sprite.texture = _knife_texture
+			_sprite.offset = _knife_offset
+		else:
+			_sprite.texture = _circle_texture
+			_sprite.offset = _circle_offset
 		_sprite.modulate = _color
 
 func set_orbit_parent(parent: Node2D) -> void:
@@ -48,6 +62,8 @@ func _physics_process(delta: float) -> void:
 	var angle := base_angle + _angle_offset
 	if _parent_node and is_instance_valid(_parent_node):
 		global_position = _parent_node.global_position + Vector2(cos(angle), sin(angle)) * orbit_radius
+	if _use_knife and _sprite:
+		_sprite.rotation = angle + PI / 2.0
 
 	var expired_keys: Array = []
 	for key: int in _hit_cooldowns:
@@ -99,4 +115,7 @@ func reset() -> void:
 	_hit_cooldowns.clear()
 	_angle_offset = 0.0
 	_parent_node = null
+	_use_knife = false
 	scale = Vector2.ONE
+	if _sprite:
+		_sprite.rotation = 0.0

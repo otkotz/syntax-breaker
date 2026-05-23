@@ -20,7 +20,7 @@ static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, pl
 	if not instance:
 		_active = _active.filter(func(n) -> bool: return is_instance_valid(n))
 		if _active.size() >= MAX_ACTIVE:
-			var oldest := _active[0]
+			var oldest = _active[0]
 			oldest._force_recycle()
 			while _pool.size() > 0:
 				var candidate2 = _pool.pop_back()
