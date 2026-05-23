@@ -30,11 +30,13 @@ func _ready() -> void:
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
 	skill_instance = si
 	damage = si.computed_stats.get("damage", 8.0)
-	orbit_radius = si.computed_stats.get("range", 60.0) * si.computed_stats.get("area_mult", 1.0)
+	var area_mult: float = si.computed_stats.get("area_mult", 1.0)
+	orbit_radius = si.computed_stats.get("range", 60.0) * area_mult
 	orbit_speed = si.computed_stats.get("speed", 300.0) / 75.0
 	pool_ref = pool
 	_hit_cooldowns.clear()
 	_color = TagColors.get_color(si.get_all_tags())
+	scale = Vector2.ONE * area_mult
 	if _sprite:
 		_sprite.modulate = _color
 
@@ -97,3 +99,4 @@ func reset() -> void:
 	_hit_cooldowns.clear()
 	_angle_offset = 0.0
 	_parent_node = null
+	scale = Vector2.ONE

@@ -205,6 +205,7 @@ func _chase(delta: float) -> void:
 	else:
 		var dir := global_position.direction_to(_target.global_position)
 		velocity = dir * move_speed
+	velocity += _get_separation_force() * move_speed
 	move_and_slide()
 	_clamp_to_arena()
 	_check_contact_damage()

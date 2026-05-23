@@ -42,6 +42,8 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
 	_distance_traveled = 0.0
 	_hit_targets.clear()
 	rotation = direction.angle()
+	var area_mult: float = si.computed_stats.get("area_mult", 1.0)
+	scale = Vector2.ONE * area_mult
 	_color = TagColors.get_color(si.base.tags)
 	if _sprite:
 		_sprite.modulate = _color
@@ -138,6 +140,7 @@ func reset() -> void:
 	pool_ref = null
 	_hit_targets.clear()
 	_distance_traveled = 0.0
+	scale = Vector2.ONE
 	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target"]:
 		if has_meta(key):
 			remove_meta(key)

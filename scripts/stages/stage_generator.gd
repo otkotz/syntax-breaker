@@ -81,9 +81,10 @@ static func _apply_modifiers(stage: StageData) -> void:
 		stage.modifiers.append(pool[i])
 
 static func get_depth_scaling(depth: int) -> Dictionary:
+	var dmg_mult := 0.5 if depth == 1 else 1.0 + 0.10 * (depth - 1)
 	return {
 		"hp_mult": 1.0 + 0.15 * (depth - 1),
-		"damage_mult": 1.0 + 0.10 * (depth - 1),
+		"damage_mult": dmg_mult,
 		"count_add": 5 * (depth - 1),
 	}
 

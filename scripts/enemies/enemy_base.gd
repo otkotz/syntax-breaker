@@ -140,6 +140,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity = _wander_dir * effective_speed * 0.3
 
+	velocity += _get_separation_force() * effective_speed
+
 	move_and_slide()
 	_clamp_to_arena()
 	_check_contact_damage()
@@ -172,6 +174,25 @@ func _check_contact_damage() -> void:
 		var collision := get_slide_collision(i)
 		if collision.get_collider() is Player:
 			collision.get_collider().take_damage(contact_damage)
+
+const SEPARATION_RADIUS := 40.0
+const SEPARATION_STRENGTH := 0.6
+
+func _get_separation_force() -> Vector2:
+	var force := Vector2.ZERO
+	var nearby := Targeting.find_enemies_in_range(global_position, SEPARATION_RADIUS, 6)
+	for other: Node2D in nearby:
+		if other == self:
+			continue
+		var away := other.global_position.direction_to(global_position)
+		var dist := global_position.distance_to(other.global_position)
+		if dist < 1.0:
+			away = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
+			dist = 1.0
+		force += away * (1.0 - dist / SEPARATION_RADIUS)
+	if force.length_squared() > 0.0:
+		force = force.normalized() * SEPARATION_STRENGTH
+	return force
 
 func _clamp_to_arena() -> void:
 	if _arena_rect.size != Vector2.ZERO:

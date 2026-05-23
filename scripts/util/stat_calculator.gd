@@ -3,7 +3,7 @@ extends RefCounted
 
 const STAT_MINS := {
 	"damage": 1.0,
-	"cooldown": 0.1,
+	"cooldown": 0.05,
 	"speed": 50.0,
 	"range": 50.0,
 	"pierce": 0,
@@ -80,8 +80,8 @@ static var _max_quality_bonuses := {
 	"chain": {"chain_count": 2},
 	"split": {"split_count": 1},
 	"shotgun": {"projectile_count": 2},
-	"increased_area": {"area_mult": 1.25},
-	"faster_casting": {"cooldown_mult": 0.85},
+	"increased_area": {"area_mult": 1.5},
+	"faster_casting": {"cooldown_mult": 0.5},
 	"crit_explosion": {"crit_chance_add": 0.1, "area_mult": 1.3},
 	"poison_on_hit": {"damage_mult": 1.15},
 	"elemental_proliferation": {"area_mult": 1.4},

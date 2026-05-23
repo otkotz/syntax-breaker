@@ -42,12 +42,12 @@ var _power_pulse_interval: int = 5
 const PULSE_INTERVAL := 4.5
 
 const ROLE_SCALING := {
-	"trash": {"hp": 0.3, "speed": 1.0, "damage": 0.5, "gold": 0.5},
+	"trash": {"hp": 0.3, "speed": 1.0, "damage": 0.3, "gold": 0.5},
 	"medium": {"hp": 1.0, "speed": 1.0, "damage": 1.0, "gold": 1.0},
 	"tank": {"hp": 1.0, "speed": 1.0, "damage": 1.0, "gold": 1.0},
 	"swarm": {"hp": 1.0, "speed": 1.0, "damage": 1.0, "gold": 1.0},
 	"ranged": {"hp": 0.5, "speed": 0.8, "damage": 0.8, "gold": 1.0},
-	"elite": {"hp": 3.0, "speed": 1.0, "damage": 1.5, "gold": 5.0},
+	"elite": {"hp": 2.0, "speed": 1.0, "damage": 1.3, "gold": 5.0},
 }
 
 func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> void:
@@ -277,7 +277,7 @@ func _spawn_mini_boss() -> void:
 	boss.global_position = SpawnFormation.random_edge_position(_arena_rect, _player.global_position)
 	boss._arena_rect = _arena_rect
 	boss.initialize(_player)
-	boss.apply_scaling(_hp_mult * 2.0, _speed_mult, _damage_mult * 1.5, _gold_mult * 5.0)
+	boss.apply_scaling(_hp_mult * 1.5, _speed_mult, _damage_mult * 1.2, _gold_mult * 5.0)
 	_enemies_alive += 1
 
 func _spawn_boss() -> void:
@@ -287,7 +287,7 @@ func _spawn_boss() -> void:
 	boss.global_position = _arena_rect.get_center()
 	boss._arena_rect = _arena_rect
 	boss.initialize(_player)
-	boss.apply_scaling(_hp_mult * 5.0, _speed_mult * 0.8, _damage_mult * 2.0, _gold_mult * 10.0)
+	boss.apply_scaling(_hp_mult * 3.0, _speed_mult * 0.8, _damage_mult * 1.5, _gold_mult * 10.0)
 	_enemies_alive += 1
 
 func _complete_stage() -> void:

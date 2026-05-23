@@ -12,14 +12,22 @@ const MAX_ACTIVE := 30
 
 static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, player_dmg: bool = false) -> void:
 	var instance: DamageNumber
-	if _pool.size() > 0:
-		instance = _pool.pop_back()
-	else:
+	while _pool.size() > 0:
+		var candidate: DamageNumber = _pool.pop_back()
+		if is_instance_valid(candidate):
+			instance = candidate
+			break
+	if not instance:
+		_active = _active.filter(func(n: DamageNumber) -> bool: return is_instance_valid(n))
 		if _active.size() >= MAX_ACTIVE:
 			var oldest := _active[0]
 			oldest._force_recycle()
-			instance = _pool.pop_back()
-		else:
+			while _pool.size() > 0:
+				var candidate2: DamageNumber = _pool.pop_back()
+				if is_instance_valid(candidate2):
+					instance = candidate2
+					break
+		if not instance:
 			instance = DamageNumber.new()
 
 	instance.amount = dmg
@@ -33,6 +41,8 @@ static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, pl
 
 	if not instance.is_inside_tree():
 		parent.add_child(instance)
+	elif instance.get_parent() != parent:
+		instance.reparent(parent, false)
 	instance._animate()
 
 func _force_recycle() -> void:

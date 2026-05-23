@@ -32,6 +32,15 @@ func _ready() -> void:
 	sprite.offset = _player_offset
 	add_child(sprite)
 
+func _draw() -> void:
+	var bar_width := 32.0
+	var bar_height := 4.0
+	var bar_y := -24.0
+	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height)), Color(0.15, 0.15, 0.15))
+	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
+	var bar_color := Color(0.1, 0.85, 0.2) if hp_ratio > 0.3 else Color(0.9, 0.15, 0.1)
+	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height)), bar_color)
+
 func _process(delta: float) -> void:
 	_damage_cooldown = max(_damage_cooldown - delta, 0.0)
 
@@ -48,6 +57,7 @@ func take_damage(amount: float) -> void:
 	var final_amount := amount * _get_damage_taken_mult()
 	current_hp = max(current_hp - final_amount, 0.0)
 	hp_changed.emit(current_hp, max_hp)
+	queue_redraw()
 	_spawn_damage_number(final_amount)
 	modulate = Color(10, 10, 10)
 	var tween := create_tween()
@@ -80,11 +90,13 @@ func _spawn_damage_number(amount: float) -> void:
 func heal(amount: float) -> void:
 	current_hp = min(current_hp + amount, max_hp)
 	hp_changed.emit(current_hp, max_hp)
+	queue_redraw()
 
 func set_max_hp(value: float) -> void:
 	max_hp = value
 	current_hp = min(current_hp, max_hp)
 	hp_changed.emit(current_hp, max_hp)
+	queue_redraw()
 
 func set_speed_mult(mult: float) -> void:
 	_speed_mult = mult
