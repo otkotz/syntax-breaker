@@ -11,31 +11,25 @@ var _speed_mult: float = 1.0
 
 const IFRAME_DURATION := 0.5
 
-static var _player_texture: ImageTexture
+var _anim_sprite: AnimatedSprite2D
+var _cast_timer: float = 0.0
+const CAST_ANIM_DURATION := 0.3
 
 signal hp_changed(current: float, maximum: float)
 signal died
-
-static var _player_offset: Vector2
 
 func _ready() -> void:
 	_base_move_speed = move_speed
 	current_hp = max_hp
 	hp_changed.emit(current_hp, max_hp)
 	add_to_group("player")
-	if not _player_texture:
-		var data := PixelSprite.build_circle_texture(16.0, Color(0.27, 0.53, 1.0))
-		_player_texture = data["texture"]
-		_player_offset = data["offset"]
-	var sprite := Sprite2D.new()
-	sprite.texture = _player_texture
-	sprite.offset = _player_offset
-	add_child(sprite)
+	_setup_animated_sprite()
+	_connect_caster()
 
 func _draw() -> void:
-	var bar_width := 32.0
+	var bar_width := 40.0
 	var bar_height := 4.0
-	var bar_y := -24.0
+	var bar_y := -36.0
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height)), Color(0.15, 0.15, 0.15))
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
 	var bar_color := Color(0.1, 0.85, 0.2) if hp_ratio > 0.3 else Color(0.9, 0.15, 0.1)
@@ -43,10 +37,74 @@ func _draw() -> void:
 
 func _process(delta: float) -> void:
 	_damage_cooldown = max(_damage_cooldown - delta, 0.0)
+	if _cast_timer > 0.0:
+		_cast_timer -= delta
 
 func _physics_process(_delta: float) -> void:
 	velocity = InputManager.movement_vector * move_speed
 	move_and_slide()
+	_update_animation()
+
+func _setup_animated_sprite() -> void:
+	_anim_sprite = AnimatedSprite2D.new()
+	_anim_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var frames := SpriteFrames.new()
+
+	var idle_sheet: Texture2D = load("res://assets/sprites/player_idle.png")
+	var walk_sheet: Texture2D = load("res://assets/sprites/player_walk.png")
+	var cast_sheet: Texture2D = load("res://assets/sprites/player_cast.png")
+
+	frames.add_animation(&"idle")
+	frames.set_animation_speed(&"idle", 4.0)
+	frames.set_animation_loop(&"idle", true)
+	for i in 4:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = idle_sheet
+		atlas.region = Rect2(i * 64, 0, 64, 64)
+		frames.add_frame(&"idle", atlas)
+
+	frames.add_animation(&"walk")
+	frames.set_animation_speed(&"walk", 8.0)
+	frames.set_animation_loop(&"walk", true)
+	for i in 4:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = walk_sheet
+		atlas.region = Rect2(i * 64, 0, 64, 64)
+		frames.add_frame(&"walk", atlas)
+
+	frames.add_animation(&"cast")
+	frames.set_animation_speed(&"cast", 6.0)
+	frames.set_animation_loop(&"cast", true)
+	for i in 4:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = cast_sheet
+		atlas.region = Rect2(i * 64, 0, 64, 64)
+		frames.add_frame(&"cast", atlas)
+
+	frames.remove_animation(&"default")
+	_anim_sprite.sprite_frames = frames
+	_anim_sprite.animation = &"idle"
+	_anim_sprite.play()
+	add_child(_anim_sprite)
+
+func _update_animation() -> void:
+	var target_anim: StringName
+	if _cast_timer > 0.0:
+		target_anim = &"cast"
+	elif velocity.length_squared() > 10.0:
+		target_anim = &"walk"
+	else:
+		target_anim = &"idle"
+	if _anim_sprite.animation != target_anim:
+		_anim_sprite.play(target_anim)
+
+func _connect_caster() -> void:
+	var caster := get_node_or_null("SkillCaster") as SkillCaster
+	if caster:
+		caster.spell_cast.connect(_on_spell_cast)
+
+func _on_spell_cast() -> void:
+	_cast_timer = CAST_ANIM_DURATION
 
 func take_damage(amount: float) -> void:
 	if _damage_cooldown > 0.0:

@@ -1,6 +1,8 @@
 class_name SkillCaster
 extends Node2D
 
+signal spell_cast
+
 var skill_instances: Array[SkillInstance] = []
 var _cooldown_timers: Array[float] = []
 var _pools: Dictionary = {}
@@ -38,6 +40,7 @@ func _physics_process(delta: float) -> void:
 		if _cooldown_timers[i] <= 0.0:
 			if _try_cast(skill_instances[i]):
 				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult
+				spell_cast.emit()
 
 func _find_consumable_manager() -> ConsumableManager:
 	var nodes := get_tree().get_nodes_in_group("consumable_manager")
