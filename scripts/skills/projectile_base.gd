@@ -178,6 +178,8 @@ func _on_body_entered(body: Node2D) -> void:
 		_apply_elemental_effects(body)
 		TagInteractions.process_hit(body, hit_damage, skill_instance.get_all_tags(), self)
 		skill_instance.notify_hit(body, self)
+		if is_crit:
+			skill_instance.notify_crit(body, self)
 		if body.has_method("is_alive") and not body.is_alive():
 			CombatLog.kill(skill_name, body.name)
 			skill_instance.notify_kill(body, self)
@@ -222,8 +224,10 @@ func _apply_elemental_effects(body: Node2D) -> void:
 	if tags.has("fire"):
 		body.apply_dot("burn", damage * 0.2, 2.0, 0.5)
 		CombatLog.dot_applied("burn", body.name, damage * 0.2, 2.0)
+		skill_instance.notify_status_apply(body, "burn")
 	if tags.has("poison") and randf() <= 0.5:
 		body.apply_dot("poison", damage * 0.3, 3.0, 0.5)
+		skill_instance.notify_status_apply(body, "poison")
 		CombatLog.dot_applied("poison", body.name, damage * 0.3, 3.0)
 
 func set_pierce_count(count: int) -> void:
@@ -257,7 +261,7 @@ func reset() -> void:
 	_bolt_segments.clear()
 	_skill_id = ""
 	scale = Vector2.ONE
-	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected"]:
+	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:
 		if has_meta(key):
 			remove_meta(key)
 

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "toxic_burst"
+name = "Toxic Burst"
+required_tags = Array[String](["poison"])
+excluded_tags = Array[String]([])
+stat_modifiers = {"damage_mult": 0.9}
+added_tags = Array[String]([])
+behavior_key = "toxic_burst"
+rarity = "uncommon"
+description = "Applying poison deals a burst of instant damage"

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "blast_radius"
+name = "Blast Radius"
+affected_tags = Array[String]([])
+stat_modifiers = {"area_mult": 1.25, "speed_mult": 0.85}
+rarity = "uncommon"
+description = "+25% area, -15% projectile speed"

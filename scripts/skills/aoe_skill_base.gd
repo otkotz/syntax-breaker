@@ -11,6 +11,7 @@ var _has_hit: bool = false
 var _color: Color = Color(1.0, 0.9, 0.6, 0.35)
 var _skill_id: String = ""
 var _kill_count: int = 0
+var _detonation_mult: float = 1.0
 
 var _arc_data: Array = []
 var _wave_hit_set: Array = []
@@ -130,6 +131,7 @@ func _hit_wave() -> void:
 	var eased := 1.0 - (1.0 - t) * (1.0 - t)
 	var current_radius := eased * area_radius
 	var enemies := Targeting.find_enemies_in_range(global_position, current_radius, 50)
+	_detonation_mult = EngineTracker.get_detonation_mult(_wave_hit_set.size() + enemies.size())
 	for enemy in enemies:
 		if enemy in _wave_hit_set:
 			continue
@@ -140,6 +142,7 @@ func _hit_wave() -> void:
 
 func _hit_enemies_in_radius(radius: float) -> void:
 	var enemies := Targeting.find_enemies_in_range(global_position, radius, 50)
+	_detonation_mult = EngineTracker.get_detonation_mult(enemies.size())
 	for enemy in enemies:
 		_damage_enemy(enemy)
 
@@ -161,6 +164,7 @@ func _damage_enemy(enemy: Node2D) -> void:
 		is_crit = roll["is_crit"]
 		if is_crit:
 			RunManager.record_stat("crits_landed", 1)
+	hit_damage *= _detonation_mult
 	var skill_name := skill_instance.base.name if skill_instance else "unknown"
 	enemy.take_damage(hit_damage, is_crit)
 	CombatLog.hit(skill_name, enemy.name, hit_damage, is_crit)
@@ -173,6 +177,10 @@ func _damage_enemy(enemy: Node2D) -> void:
 	if skill_instance:
 		TagInteractions.process_hit(enemy, hit_damage, tags, self)
 		skill_instance.notify_hit(enemy, self)
+		if is_crit:
+			skill_instance.notify_crit(enemy, self)
+		if enemy.has_method("apply_dot") and tags.has("fire"):
+			skill_instance.notify_status_apply(enemy, "burn")
 		if enemy.has_method("is_alive") and not enemy.is_alive():
 			CombatLog.kill(skill_name, enemy.name)
 			skill_instance.notify_kill(enemy, self)
@@ -210,6 +218,7 @@ func reset() -> void:
 	_has_hit = false
 	_skill_id = ""
 	_kill_count = 0
+	_detonation_mult = 1.0
 	_arc_data.clear()
 	_wave_hit_set.clear()
 	scale = Vector2.ONE

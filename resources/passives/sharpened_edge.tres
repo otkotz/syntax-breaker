@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sharpened_edge"
+name = "Sharpened Edge"
+affected_tags = Array[String]([])
+stat_modifiers = {"crit_chance_add": 0.05}
+rarity = "uncommon"
+description = "Crits grant stacking crit chance for 3s (up to +15%)"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "echo_trigger"
+name = "Echo Trigger"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {"damage_mult": 0.85}
+added_tags = Array[String]([])
+behavior_key = "echo_trigger"
+rarity = "rare"
+description = "30% chance on kill to deal damage to a nearby enemy"

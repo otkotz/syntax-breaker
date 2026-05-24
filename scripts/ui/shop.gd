@@ -3,6 +3,7 @@ extends Control
 
 signal continue_pressed
 signal skill_purchased(si: SkillInstance)
+signal skill_swapped(old_si: SkillInstance, new_si: SkillInstance)
 
 const OFFERING_COUNT := 8
 const RARITY_COSTS := {
@@ -15,6 +16,7 @@ var _skill_instances: Array[SkillInstance]
 var _reroll_cost: int = 2
 var _offerings: Array[Dictionary] = []
 var _pending_support: SupportResource = null
+var _pending_skill_instance: SkillInstance = null
 
 @onready var gold_label: Label = $MarginContainer/VBox/Header/GoldLabel
 @onready var item_list: VBoxContainer = $MarginContainer/VBox/ScrollContainer/ItemList
@@ -44,10 +46,9 @@ func _generate_offerings() -> void:
 	for si: SkillInstance in _skill_instances:
 		owned_skill_ids[si.base.id] = true
 
-	var has_skill_slot := _skill_instances.size() < RunManager.skill_slots_unlocked
 	for res: Resource in _load_resources("res://resources/skills/"):
 		var skill_res := res as SkillResource
-		if skill_res and has_skill_slot and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
+		if skill_res and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
 			pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", skill_res.rarity)})
 
 	for res: Resource in _load_resources("res://resources/supports/"):
@@ -183,13 +184,14 @@ func _on_buy(offering: Dictionary) -> void:
 
 	match offering["type"]:
 		"skill":
-			if _skill_instances.size() >= RunManager.skill_slots_unlocked:
-				RunManager.add_gold(offering["cost"])
-				return
 			var si := SkillInstance.new(offering["resource"] as SkillResource)
 			si.recompute(RunManager.owned_passives)
-			skill_purchased.emit(si)
-			GameBus.skill_acquired.emit(offering["resource"])
+			if _skill_instances.size() >= RunManager.skill_slots_unlocked:
+				_pending_skill_instance = si
+				_show_swap_panel()
+			else:
+				skill_purchased.emit(si)
+				GameBus.skill_acquired.emit(offering["resource"])
 		"support":
 			_pending_support = offering["resource"] as SupportResource
 			RunManager.owned_supports.append(offering["resource"])
@@ -203,8 +205,6 @@ func _on_buy(offering: Dictionary) -> void:
 			RunManager.owned_passives.append(offering["resource"])
 			_recompute_all_skills()
 			GameBus.passive_acquired.emit(offering["resource"])
-	if _skill_instances.size() >= RunManager.skill_slots_unlocked:
-		_offerings = _offerings.filter(func(o: Dictionary) -> bool: return o["type"] != "skill")
 	_refresh_ui()
 
 func _show_link_panel() -> void:
@@ -248,6 +248,84 @@ func _on_link_skill(index: int) -> void:
 		_skill_instances[index].recompute(RunManager.owned_passives)
 	_pending_support = null
 	link_panel.visible = false
+
+func _show_swap_panel() -> void:
+	if not _pending_skill_instance:
+		return
+	link_panel.visible = true
+
+	for child: Node in link_container.get_children():
+		child.queue_free()
+
+	var header := Label.new()
+	header.text = "Replace which skill?"
+	header.add_theme_font_size_override("font_size", 30)
+	header.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
+	link_container.add_child(header)
+
+	var new_label := Label.new()
+	new_label.text = "New: %s" % _pending_skill_instance.base.name
+	new_label.add_theme_font_size_override("font_size", 26)
+	new_label.add_theme_color_override("font_color", UITheme.C_SILVER)
+	link_container.add_child(new_label)
+
+	for i in _skill_instances.size():
+		var si := _skill_instances[i]
+		var incompatible := _count_incompatible_supports(si, _pending_skill_instance.base)
+		var btn := Button.new()
+		btn.text = si.base.name
+		if incompatible > 0:
+			btn.text += "  (%d support%s unlinked)" % [incompatible, "" if incompatible == 1 else "s"]
+		UITheme.style_button(btn, 28)
+		btn.pressed.connect(_on_swap_skill.bind(i))
+		link_container.add_child(btn)
+
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	UITheme.style_button(cancel, 28)
+	cancel.pressed.connect(func():
+		link_panel.visible = false
+		if _pending_skill_instance:
+			_offerings.append({"type": "skill", "resource": _pending_skill_instance.base, "cost": _get_cost("skill", _pending_skill_instance.base.rarity)})
+			RunManager.add_gold(_get_cost("skill", _pending_skill_instance.base.rarity))
+		_pending_skill_instance = null
+		_refresh_ui()
+	)
+	link_container.add_child(cancel)
+
+func _on_swap_skill(index: int) -> void:
+	if not _pending_skill_instance or index >= _skill_instances.size():
+		_pending_skill_instance = null
+		link_panel.visible = false
+		return
+
+	var old_si := _skill_instances[index]
+	var new_si := _pending_skill_instance
+	var new_skill := new_si.base
+
+	var kept: Array[SupportResource] = []
+	for support: SupportResource in old_si.linked_supports:
+		if TagMatcher.can_link_support(new_skill, support):
+			kept.append(support)
+
+	for support in kept:
+		new_si.link_support(support)
+	new_si.recompute(RunManager.owned_passives)
+
+	_skill_instances[index] = new_si
+	skill_swapped.emit(old_si, new_si)
+	GameBus.skill_acquired.emit(new_skill)
+
+	_pending_skill_instance = null
+	link_panel.visible = false
+	_refresh_ui()
+
+func _count_incompatible_supports(old_si: SkillInstance, new_skill: SkillResource) -> int:
+	var count := 0
+	for support: SupportResource in old_si.linked_supports:
+		if not TagMatcher.can_link_support(new_skill, support):
+			count += 1
+	return count
 
 func _on_manage() -> void:
 	if not _skill_manager:

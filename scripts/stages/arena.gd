@@ -90,9 +90,15 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 		consumable_hud.setup(_consumable_manager)
 
 	SynergyTracker.clear()
+	TriggerGuard.clear()
+	CorpseBloomBehavior.reset_clouds()
+	EngineTracker.clear()
+	CritCascadeBehavior.clear()
 	queue_redraw()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	EngineTracker.tick(delta)
+	CritCascadeBehavior.tick(delta)
 	if player:
 		player.global_position = player.global_position.clamp(
 			_arena_rect.position + Vector2(16, 16),

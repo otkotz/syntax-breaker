@@ -83,6 +83,15 @@ func notify_hit(target: Node2D, projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.on_hit(self, target, projectile)
 
+func notify_crit(target: Node2D, projectile: Node2D) -> void:
+	EngineTracker.on_crit()
+	for behavior in behaviors:
+		behavior.on_crit(self, target, projectile)
+
+func notify_status_apply(target: Node2D, status_type: String) -> void:
+	for behavior in behaviors:
+		behavior.on_status_apply(self, target, status_type)
+
 var trigger_on_death_recast: Callable = Callable()
 
 func notify_kill(target: Node2D, projectile: Node2D) -> void:

@@ -39,7 +39,9 @@ func _physics_process(delta: float) -> void:
 		_cooldown_timers[i] -= delta
 		if _cooldown_timers[i] <= 0.0:
 			if _try_cast(skill_instances[i]):
-				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult
+				var tempo_mult := EngineTracker.get_tempo_cooldown_mult()
+				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult * tempo_mult
+				EngineTracker.on_cast(skill_instances[i].base.id)
 				spell_cast.emit()
 
 func _find_consumable_manager() -> ConsumableManager:

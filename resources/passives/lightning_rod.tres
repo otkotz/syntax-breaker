@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "lightning_rod"
+name = "Lightning Rod"
+affected_tags = Array[String](["lightning"])
+stat_modifiers = {"chain_count": 3, "damage_mult": 0.85}
+rarity = "rare"
+description = "+3 chains, -15% damage. Rewards chain builds"

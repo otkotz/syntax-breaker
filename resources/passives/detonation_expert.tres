@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "detonation_expert"
+name = "Detonation Expert"
+affected_tags = Array[String](["aoe"])
+stat_modifiers = {"area_mult": 1.1}
+rarity = "uncommon"
+description = "AoE hits on 3+ enemies deal 20% bonus damage"

@@ -92,6 +92,13 @@ static var _max_quality_bonuses := {
 	"void_rift": {"damage_mult": 1.2},
 	"totem": {"cooldown_mult": 0.8},
 	"mine": {"damage_mult": 1.25},
+	"corpse_bloom": {"damage_mult": 1.15},
+	"toxic_burst": {"damage_mult": 1.1},
+	"arc_burst": {"crit_chance_add": 0.05},
+	"echo_trigger": {"damage_mult": 1.15},
+	"plague_carrier": {"damage_mult": 1.1},
+	"ricochet_amplifier": {"chain_count": 1, "damage_mult": 1.1},
+	"crit_cascade": {"crit_chance_add": 0.05},
 }
 
 static var _max_quality_descriptions := {
@@ -111,6 +118,13 @@ static var _max_quality_descriptions := {
 	"void_rift": "+20% damage, +50% explosion radius",
 	"totem": "Totem casts 20% faster",
 	"mine": "+25% damage",
+	"corpse_bloom": "+15% damage, larger poison clouds",
+	"toxic_burst": "+10% damage, stronger burst (60% skill damage)",
+	"arc_burst": "+5% crit chance, arcs to 3 targets",
+	"echo_trigger": "+15% damage, 40% trigger chance",
+	"plague_carrier": "+10% damage, spreads to 3 targets",
+	"ricochet_amplifier": "+1 chain, +10% damage, 7% per bounce",
+	"crit_cascade": "+5% crit chance, 30% bonus for 1.5s",
 }
 
 static func get_max_quality_description(support_id: String) -> String:

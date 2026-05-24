@@ -14,3 +14,9 @@ func on_hit(_skill_instance, _target: Node2D, _projectile: Node2D) -> void:
 
 func on_kill(_skill_instance, _target: Node2D, _projectile: Node2D) -> void:
 	pass
+
+func on_crit(_skill_instance, _target: Node2D, _projectile: Node2D) -> void:
+	pass
+
+func on_status_apply(_skill_instance, _target: Node2D, _status_type: String) -> void:
+	pass

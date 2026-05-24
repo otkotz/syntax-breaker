@@ -100,8 +100,11 @@ func _on_body_entered(body: Node2D) -> void:
 		if body.has_method("apply_dot") and tags.has("fire"):
 			body.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
 			CombatLog.dot_applied("burn", body.name, hit_damage * 0.2, 2.0)
+			skill_instance.notify_status_apply(body, "burn")
 		TagInteractions.process_hit(body, hit_damage, tags, self)
 		skill_instance.notify_hit(body, self)
+		if is_crit:
+			skill_instance.notify_crit(body, self)
 		if body.has_method("is_alive") and not body.is_alive():
 			CombatLog.kill(skill_name, body.name)
 			skill_instance.notify_kill(body, self)

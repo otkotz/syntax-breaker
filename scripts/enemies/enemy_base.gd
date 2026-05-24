@@ -213,7 +213,10 @@ func _process(delta: float) -> void:
 		dot["remaining"] -= delta
 		if dot["timer"] >= dot["interval"]:
 			dot["timer"] -= dot["interval"]
-			take_damage(dot["damage"])
+			var tick_dmg: float = dot["damage"]
+			if dot_type == "poison":
+				tick_dmg *= EngineTracker.get_virulence_mult(self)
+			take_damage(tick_dmg)
 		if dot["remaining"] <= 0.0:
 			expired.append(dot_type)
 	for key: String in expired:

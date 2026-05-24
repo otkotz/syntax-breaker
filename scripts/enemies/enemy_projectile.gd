@@ -21,19 +21,22 @@ func _ready() -> void:
 	add_child(sprite)
 
 static func _build_orb_texture() -> Dictionary:
-	const ORB_MID := Color(0.753, 0.659, 1.0)
-	const ORB_GLOW := Color(0.478, 0.353, 0.8)
+	const CORE := Color(1.0, 0.85, 0.7)
+	const MID := Color(1.0, 0.3, 0.15)
+	const EDGE := Color(0.85, 0.15, 0.1)
+	const GLOW := Color(1.0, 0.2, 0.1, 0.3)
 
 	var r: Array = []
 	var c: Array = []
 	var _r := func(x: float, y: float, w: float, h: float, col: Color) -> void:
 		r.append({"rect": Rect2(x, y, w, h), "color": col})
 
-	c.append({"pos": Vector2.ZERO, "radius": 5.0, "color": Color(0.478, 0.353, 0.8, 0.35)})
-	_r.call(-3, 0, 1, 1, ORB_GLOW); _r.call(3, 0, 1, 1, ORB_GLOW)
-	_r.call(0, -3, 1, 1, ORB_GLOW); _r.call(0, 3, 1, 1, ORB_GLOW)
-	_r.call(-2, 0, 5, 1, ORB_MID); _r.call(0, -2, 1, 5, ORB_MID)
-	_r.call(-1, -1, 3, 3, ORB_MID); _r.call(0, 0, 1, 1, Color.WHITE)
+	c.append({"pos": Vector2.ZERO, "radius": 8.0, "color": GLOW})
+	_r.call(-4, 0, 1, 1, EDGE); _r.call(4, 0, 1, 1, EDGE)
+	_r.call(0, -4, 1, 1, EDGE); _r.call(0, 4, 1, 1, EDGE)
+	_r.call(-3, -1, 7, 3, MID); _r.call(-1, -3, 3, 7, MID)
+	_r.call(-2, -2, 5, 5, MID)
+	_r.call(-1, -1, 3, 3, CORE); _r.call(0, 0, 1, 1, Color.WHITE)
 
 	return PixelSprite.build_texture(r, c)
 

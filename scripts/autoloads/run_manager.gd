@@ -40,6 +40,7 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 		"max_dot_spread_kill": 0,
 		"elites_cleared": 0,
 		"best_combo": 0,
+		"triggers_fired": 0,
 		"region": region,
 		"ascension_level": ascension_level,
 	}

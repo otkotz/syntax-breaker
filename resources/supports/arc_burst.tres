@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arc_burst"
+name = "Arc Burst"
+required_tags = Array[String](["lightning"])
+excluded_tags = Array[String]([])
+stat_modifiers = {"crit_chance_add": 0.05}
+added_tags = Array[String]([])
+behavior_key = "arc_burst"
+rarity = "uncommon"
+description = "Critical hits arc lightning to nearby enemies"
