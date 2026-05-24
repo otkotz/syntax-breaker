@@ -10,6 +10,10 @@ var _selected_mutation: Dictionary = {}
 @onready var title_label: Label = $MarginContainer/VBox/TitleLabel
 @onready var content: VBoxContainer = $MarginContainer/VBox/ScrollContainer/Content
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK:
+		get_viewport().set_input_as_handled()
+
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
 	var exclude: Array = []

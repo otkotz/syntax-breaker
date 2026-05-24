@@ -64,6 +64,7 @@ func _generate_offerings() -> void:
 			else:
 				pool.append({"type": "support", "resource": res, "cost": _get_cost("support", res.rarity)})
 
+	var legendary_pool: Array[Dictionary] = []
 	for res: Resource in _load_resources("res://resources/passives/"):
 		if res is PassiveResource and MetaProgression.is_unlocked("passives", res.id):
 			var owned := false
@@ -72,22 +73,22 @@ func _generate_offerings() -> void:
 					owned = true
 					break
 			if not owned:
-				pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
+				if res.rarity == "legendary":
+					legendary_pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
+				else:
+					pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
 
 	var legendary_added := false
-	if randf() < 1.0 / 15.0:
-		var legendaries: Array[Dictionary] = []
-		for entry: Dictionary in pool:
-			if entry["type"] == "passive" and entry["resource"].rarity == "legendary":
-				legendaries.append(entry)
-		if legendaries.size() > 0:
-			legendaries.shuffle()
-			_offerings.append(legendaries[0])
-			pool.erase(legendaries[0])
-			legendary_added = true
+	if RunManager.current_stage >= 5 and legendary_pool.size() > 0 and randf() < 1.0 / 15.0:
+		legendary_pool.shuffle()
+		_offerings.append(legendary_pool[0])
+		legendary_added = true
+
+	for upgrade_def: Dictionary in STAT_UPGRADES:
+		_offerings.append(_make_stat_upgrade(upgrade_def))
 
 	pool.shuffle()
-	var count := mini(OFFERING_COUNT - (1 if legendary_added else 0), pool.size())
+	var count := mini(OFFERING_COUNT - (1 if legendary_added else 0) - STAT_UPGRADES.size(), pool.size())
 	for i in count:
 		_offerings.append(pool[i])
 
@@ -98,6 +99,22 @@ func _load_resources(dir_path: String) -> Array:
 		if res:
 			resources.append(res)
 	return resources
+
+const STAT_UPGRADES := [
+	{"key": "damage", "name": "Flat Damage", "amount": 5.0, "base_cost": 30, "cost_step": 10,
+	 "fmt": "+%.0f damage to all skills (current: +%.0f)"},
+	{"key": "cooldown", "name": "Haste", "amount": -0.08, "base_cost": 35, "cost_step": 12,
+	 "fmt": "-%.0f%% cooldown (current: %.0f%% reduction)"},
+	{"key": "crit_chance", "name": "Precision", "amount": 0.04, "base_cost": 40, "cost_step": 15,
+	 "fmt": "+%.0f%% crit chance (current: +%.0f%%)"},
+]
+
+func _make_stat_upgrade(upgrade_def: Dictionary) -> Dictionary:
+	var key: String = upgrade_def["key"]
+	var current: float = RunManager.shop_bonuses.get(key, 0.0)
+	var times_bought: int = int(absf(current) / absf(upgrade_def["amount"]))
+	var cost: int = upgrade_def["base_cost"] + times_bought * upgrade_def["cost_step"]
+	return {"type": "stat_upgrade", "cost": cost, "upgrade": upgrade_def}
 
 func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
@@ -119,7 +136,9 @@ func _refresh_ui() -> void:
 func _create_card(offering: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 130.0
-	var rarity: String = offering["resource"].rarity if "rarity" in offering["resource"] else "common"
+
+	var is_upgrade := offering["type"] == "stat_upgrade"
+	var rarity := "rare" if is_upgrade else (offering["resource"].rarity if "rarity" in offering["resource"] else "common")
 	var rarity_color := UITheme.get_rarity_color(rarity)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C_CARD_BG
@@ -135,28 +154,43 @@ func _create_card(offering: Dictionary) -> Control:
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var title := Label.new()
-	var type_label: String = offering["type"]
-	if type_label == "support_upgrade":
-		var q_level: int = RunManager.get_support_quality(offering["resource"].id) + 1
-		type_label = "QUALITY %d/4" % q_level
+	var rarity_label := Label.new()
+	var desc := Label.new()
+
+	if is_upgrade:
+		var upg: Dictionary = offering["upgrade"]
+		var key: String = upg["key"]
+		var current: float = RunManager.shop_bonuses.get(key, 0.0)
+		title.text = "[UPGRADE] %s" % upg["name"]
+		rarity_label.text = "UPGRADE"
+		var display_amount := absf(upg["amount"])
+		var display_current := absf(current)
+		if key != "damage":
+			display_amount *= 100.0
+			display_current *= 100.0
+		desc.text = upg["fmt"] % [display_amount, display_current]
 	else:
-		type_label = type_label.to_upper()
-	title.text = "[%s] %s" % [type_label, offering["resource"].name]
+		var type_label: String = offering["type"]
+		if type_label == "support_upgrade":
+			var q_level: int = RunManager.get_support_quality(offering["resource"].id) + 1
+			type_label = "QUALITY %d/4" % q_level
+		else:
+			type_label = type_label.to_upper()
+		title.text = "[%s] %s" % [type_label, offering["resource"].name]
+		rarity_label.text = rarity.to_upper()
+		var desc_text: String = offering["resource"].description
+		if offering["type"] == "support_upgrade":
+			var next_q: int = RunManager.get_support_quality(offering["resource"].id) + 1
+			desc_text = "+%d%% modifier strength" % (next_q * 5)
+			if next_q >= RunManager.MAX_QUALITY_LEVEL:
+				var bonus_desc := StatCalculator.get_max_quality_description(offering["resource"].id)
+				desc_text += "\nMAX BONUS: " + bonus_desc
+		desc.text = desc_text
+
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", UITheme.C_SILVER)
-	var rarity_label := Label.new()
-	rarity_label.text = rarity.to_upper()
 	rarity_label.add_theme_font_size_override("font_size", 22)
 	rarity_label.add_theme_color_override("font_color", rarity_color)
-	var desc := Label.new()
-	var desc_text: String = offering["resource"].description
-	if offering["type"] == "support_upgrade":
-		var next_q: int = RunManager.get_support_quality(offering["resource"].id) + 1
-		desc_text = "+%d%% modifier strength" % (next_q * 5)
-		if next_q >= RunManager.MAX_QUALITY_LEVEL:
-			var bonus_desc := StatCalculator.get_max_quality_description(offering["resource"].id)
-			desc_text += "\nMAX BONUS: " + bonus_desc
-	desc.text = desc_text
 	desc.add_theme_font_size_override("font_size", 26)
 	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -190,6 +224,7 @@ func _on_buy(offering: Dictionary) -> void:
 				_pending_skill_instance = si
 				_show_swap_panel()
 			else:
+				_skill_instances.append(si)
 				skill_purchased.emit(si)
 				GameBus.skill_acquired.emit(offering["resource"])
 		"support":
@@ -205,6 +240,13 @@ func _on_buy(offering: Dictionary) -> void:
 			RunManager.owned_passives.append(offering["resource"])
 			_recompute_all_skills()
 			GameBus.passive_acquired.emit(offering["resource"])
+		"stat_upgrade":
+			var upg: Dictionary = offering["upgrade"]
+			var key: String = upg["key"]
+			var current: float = RunManager.shop_bonuses.get(key, 0.0)
+			RunManager.shop_bonuses[key] = current + upg["amount"]
+			_recompute_all_skills()
+			_offerings.append(_make_stat_upgrade(upg))
 	_refresh_ui()
 
 func _show_link_panel() -> void:

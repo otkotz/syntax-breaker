@@ -164,7 +164,9 @@ func _show_reward_picker(is_treasure: bool) -> void:
 	var picker := REWARD_PICKER_SCENE.instantiate() as RewardPicker
 	_ui_layer.add_child(picker)
 	picker.setup(stage_type, _skill_instances)
+	var chose := false
 	picker.reward_chosen.connect(func(reward: Dictionary):
+		chose = true
 		picker.queue_free()
 		_apply_reward(reward)
 		if is_treasure:
@@ -172,6 +174,13 @@ func _show_reward_picker(is_treasure: bool) -> void:
 		else:
 			_open_mandatory_shop()
 	, CONNECT_ONE_SHOT)
+	picker.tree_exiting.connect(func():
+		if not chose:
+			if is_treasure:
+				_show_stage_map()
+			else:
+				_open_mandatory_shop()
+	)
 
 func _apply_reward(reward: Dictionary) -> void:
 	match reward.get("type", ""):
@@ -198,6 +207,16 @@ func _apply_reward(reward: Dictionary) -> void:
 			for si: SkillInstance in _skill_instances:
 				si.recompute(RunManager.owned_passives)
 			GameBus.passive_acquired.emit(res)
+		"support_quality":
+			var res: SupportResource = reward["resource"]
+			RunManager.upgrade_support_quality(res.id)
+			for si: SkillInstance in _skill_instances:
+				si.recompute(RunManager.owned_passives)
+		"mutation":
+			var mutation: Dictionary = reward["mutation"]
+			var skill_idx: int = reward.get("skill_index", 0)
+			if skill_idx >= 0 and skill_idx < _skill_instances.size():
+				_skill_instances[skill_idx].add_mutation(mutation)
 		"gold":
 			RunManager.add_gold(reward["amount"])
 
@@ -225,8 +244,8 @@ func _open_mandatory_shop() -> void:
 	_shop.continue_pressed.connect(_on_shop_continue, CONNECT_ONE_SHOT)
 	_shop.skill_purchased.connect(_on_skill_purchased)
 
-func _on_skill_purchased(si: SkillInstance) -> void:
-	add_skill_instance(si)
+func _on_skill_purchased(_si: SkillInstance) -> void:
+	pass
 
 func _on_shop_continue() -> void:
 	if _shop:

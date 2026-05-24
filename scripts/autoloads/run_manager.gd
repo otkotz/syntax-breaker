@@ -9,6 +9,7 @@ var owned_passives: Array = []
 var owned_consumables: Array[Dictionary] = []
 var support_quality: Dictionary = {}
 var run_stats: Dictionary = {}
+var shop_bonuses: Dictionary = {}
 var current_stage_data: StageData
 var current_region: String = ""
 var ascension_level: int = 0
@@ -23,6 +24,7 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	owned_passives = []
 	owned_consumables = []
 	support_quality = {}
+	shop_bonuses = {}
 	current_stage_data = null
 	stage_tree = null
 	current_region = region
@@ -115,6 +117,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"gold": gold,
 		"skill_slots_unlocked": skill_slots_unlocked,
 		"support_quality": support_quality,
+		"shop_bonuses": shop_bonuses,
 		"run_stats": run_stats,
 		"current_region": current_region,
 		"ascension_level": ascension_level,
@@ -148,6 +151,7 @@ func restore_from_save(data: Dictionary) -> void:
 	gold = int(data.get("gold", 0))
 	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
 	support_quality = data.get("support_quality", {})
+	shop_bonuses = data.get("shop_bonuses", {})
 	run_stats = data.get("run_stats", {})
 	current_region = data.get("current_region", "")
 	ascension_level = int(data.get("ascension_level", 0))

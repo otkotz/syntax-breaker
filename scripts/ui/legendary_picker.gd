@@ -6,6 +6,10 @@ signal legendary_chosen(passive: PassiveResource)
 @onready var title_label: Label = $MarginContainer/VBox/TitleLabel
 @onready var content: VBoxContainer = $MarginContainer/VBox/ScrollContainer/Content
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK:
+		get_viewport().set_input_as_handled()
+
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	var legendaries := _get_available_legendaries()
 	legendaries.shuffle()

@@ -26,7 +26,7 @@ static func _is_on_cooldown(target: Node2D) -> bool:
 	var eid := target.get_instance_id()
 	if not _target_cooldowns.has(eid):
 		return false
-	var elapsed := Time.get_ticks_msec() / 1000.0 - _target_cooldowns[eid]
+	var elapsed: float = Time.get_ticks_msec() / 1000.0 - float(_target_cooldowns[eid])
 	if elapsed >= TARGET_COOLDOWN:
 		_target_cooldowns.erase(eid)
 		return false

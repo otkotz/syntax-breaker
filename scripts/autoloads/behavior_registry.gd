@@ -21,6 +21,7 @@ func _ready() -> void:
 	register("plague_carrier", preload("res://scripts/behaviors/plague_carrier_behavior.gd"))
 	register("ricochet_amplifier", preload("res://scripts/behaviors/ricochet_amplifier_behavior.gd"))
 	register("crit_cascade", preload("res://scripts/behaviors/crit_cascade_behavior.gd"))
+	register("returning", preload("res://scripts/behaviors/returning_behavior.gd"))
 
 func register(key: String, behavior_script: GDScript) -> void:
 	_behaviors[key] = behavior_script

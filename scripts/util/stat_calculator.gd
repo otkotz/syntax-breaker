@@ -57,6 +57,10 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 		if stats.has(key):
 			stats[key] *= (1.0 + mult_totals[key])
 
+	for key: String in RunManager.shop_bonuses:
+		if stats.has(key):
+			stats[key] += RunManager.shop_bonuses[key]
+
 	_clamp_stats(stats)
 	return stats
 
@@ -76,7 +80,8 @@ static func _collect_modifiers(stats: Dictionary, modifiers: Dictionary, mult_to
 			stats[key] += modifiers[key] * quality_scale
 
 static var _max_quality_bonuses := {
-	"pierce": {"pierce": 1, "damage_mult": 1.15},
+	"pierce": {"pierce": 2, "damage_mult": 1.2},
+	"returning": {"damage_mult": 1.15},
 	"chain": {"chain_count": 2},
 	"split": {"split_count": 1},
 	"shotgun": {"projectile_count": 2},
@@ -102,7 +107,8 @@ static var _max_quality_bonuses := {
 }
 
 static var _max_quality_descriptions := {
-	"pierce": "+1 pierce, +15% damage, projectiles return at 60% damage",
+	"pierce": "+2 pierce, +20% damage",
+	"returning": "+15% damage, return at 80% damage",
 	"chain": "+2 chain bounces",
 	"split": "+1 extra split",
 	"shotgun": "+2 projectiles, 20% chance to create vortex pulling enemies",
