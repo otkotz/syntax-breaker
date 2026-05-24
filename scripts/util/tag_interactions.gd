@@ -43,5 +43,16 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 			if spread_count > 0:
 				CombatLog.interaction("Toxic Cloud", target.name, "spread poison to %d nearby" % spread_count)
 
+	# Physical + bleeding enemy hit by fire = Cauterize (burst from consumed bleed)
+	if tags.has("fire") and target.has_method("apply_dot"):
+		var dots: Dictionary = target.get("_dots")
+		if dots and dots.has("bleed"):
+			var remaining: float = dots["bleed"]["remaining"]
+			var tick_dmg: float = dots["bleed"]["damage"]
+			var burst := tick_dmg * remaining * 2.5
+			dots.erase("bleed")
+			target.take_damage(burst)
+			CombatLog.interaction("Cauterize", target.name, "burst %.1f from consumed bleed" % burst)
+
 	# Cross-element synergies
 	SynergyTracker.record_and_check(target, tags, damage)

@@ -83,7 +83,7 @@ Global passives (`affected_tags` empty) apply to all skills. Tag-specific passiv
 | Poison Dart | projectile, poison | 5 | 1.2s | 3 projectiles |
 | Flame Wave | aoe, fire | 15 | 1.5s | Self-cast AoE |
 | Static Field | aoe, lightning | 12 | 2.0s | Self-cast AoE |
-| Blade Spin | melee, aoe | 8 | 3.0s | Orbiting melee |
+| Blade Spin | melee, aoe, physical | 8 | 3.0s | Orbiting blades, causes bleed |
 
 ### Supports (11)
 
@@ -278,3 +278,6 @@ resources/
   unlocks/           12 unlock condition .tres
   config/            game_balance.tres, default_theme.tres
 ```
+notes:
+
+not much to do with gold at stage 4+
