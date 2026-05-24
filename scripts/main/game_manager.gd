@@ -35,6 +35,13 @@ func _on_player_died() -> void:
 	if _state == State.COMBAT:
 		end_run(false)
 
+func _clear_ui() -> void:
+	if _shop:
+		_shop.queue_free()
+		_shop = null
+	for child: Node in _ui_layer.get_children():
+		child.queue_free()
+
 func start_run(region_id: String = "") -> void:
 	_region = _load_region(region_id)
 	RunManager.start_run(region_id)
@@ -65,6 +72,7 @@ func _enter_first_stage() -> void:
 	_enter_stage(stage)
 
 func _show_stage_map() -> void:
+	_clear_ui()
 	_auto_save()
 	if not _stage_tree:
 		return
@@ -107,6 +115,7 @@ func _enter_stage(stage_data: StageData) -> void:
 func _advance_to_combat(stage_data: StageData) -> void:
 	_state = State.COMBAT
 	state_changed.emit(_state)
+	_clear_ui()
 
 	if _arena:
 		_arena.queue_free()
@@ -255,6 +264,7 @@ func _on_shop_continue() -> void:
 
 func end_run(victory: bool) -> void:
 	RunManager.clear_saved_run()
+	_clear_ui()
 
 	if _arena:
 		_arena.queue_free()

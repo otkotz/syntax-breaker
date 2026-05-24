@@ -10,7 +10,7 @@ var _chosen := false
 @onready var reward_container: VBoxContainer = $MarginContainer/VBox/ScrollContainer/RewardContainer
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		get_viewport().set_input_as_handled()
 
 func setup(stage_type: StageData.Type, skill_instances: Array[SkillInstance] = []) -> void:

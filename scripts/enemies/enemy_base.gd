@@ -291,6 +291,9 @@ func reset() -> void:
 	_slow_factor = 1.0
 	_slow_timer = 0.0
 	_facing_right = true
+	show()
+	set_process(true)
+	set_physics_process(true)
 	if _sprite:
 		_sprite.flip_h = false
 

@@ -36,6 +36,8 @@ func _ready() -> void:
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
 	_generate_offerings()
+	if not is_node_ready():
+		await ready
 	_refresh_ui()
 
 func _generate_offerings() -> void:
@@ -137,8 +139,8 @@ func _create_card(offering: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 130.0
 
-	var is_upgrade := offering["type"] == "stat_upgrade"
-	var rarity := "rare" if is_upgrade else (offering["resource"].rarity if "rarity" in offering["resource"] else "common")
+	var is_upgrade: bool = offering["type"] == "stat_upgrade"
+	var rarity: String = "rare" if is_upgrade else (offering["resource"].rarity if "rarity" in offering["resource"] else "common")
 	var rarity_color := UITheme.get_rarity_color(rarity)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C_CARD_BG

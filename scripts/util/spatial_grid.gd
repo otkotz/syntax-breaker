@@ -42,8 +42,11 @@ func query_nearest(pos: Vector2, max_range: float) -> Node2D:
 				continue
 			var bucket: Array = _cells[cell_key]
 			for entry: Array in bucket:
-				var entity: Node2D = entry[1]
-				if not is_instance_valid(entity) or not entity.visible:
+				var raw = entry[1]
+				if not is_instance_valid(raw):
+					continue
+				var entity: Node2D = raw
+				if not entity.visible:
 					continue
 				if entity.has_method("is_alive") and not entity.is_alive():
 					continue
@@ -65,8 +68,11 @@ func query_range(pos: Vector2, max_range: float, max_count: int = 50) -> Array[N
 				continue
 			var bucket: Array = _cells[cell_key]
 			for entry: Array in bucket:
-				var entity: Node2D = entry[1]
-				if not is_instance_valid(entity) or not entity.visible:
+				var raw = entry[1]
+				if not is_instance_valid(raw):
+					continue
+				var entity: Node2D = raw
+				if not entity.visible:
 					continue
 				if entity.has_method("is_alive") and not entity.is_alive():
 					continue

@@ -7,7 +7,7 @@ signal legendary_chosen(passive: PassiveResource)
 @onready var content: VBoxContainer = $MarginContainer/VBox/ScrollContainer/Content
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		get_viewport().set_input_as_handled()
 
 func setup(skill_instances: Array[SkillInstance]) -> void:

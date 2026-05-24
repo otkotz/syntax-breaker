@@ -61,7 +61,7 @@ func spend_gold(amount: int) -> bool:
 func advance_stage() -> void:
 	current_stage += 1
 	run_stats["stages_reached"] = current_stage
-	if current_stage == 2 or current_stage == 4:
+	if current_stage == 1 or current_stage == 4:
 		skill_slots_unlocked = mini(skill_slots_unlocked + 1, 4)
 
 const MAX_QUALITY_LEVEL := 4
