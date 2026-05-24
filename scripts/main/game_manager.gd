@@ -1,13 +1,12 @@
 class_name GameManager
 extends Node
 
-enum State { MENU, STAGE_CHOICE, COMBAT, SHOP, REWARD, RUN_END }
+enum State { MENU, STAGE_MAP, COMBAT, SHOP, REWARD, RUN_END }
 
 const ARENA_SCENE := preload("res://scenes/stages/arena.tscn")
 const SHOP_SCENE := preload("res://scenes/ui/shop.tscn")
 const RUN_SUMMARY_SCENE := preload("res://scenes/ui/run_summary.tscn")
 const SKILL_PICKER_SCENE := preload("res://scenes/ui/skill_picker.tscn")
-const STAGE_CHOICE_SCENE := preload("res://scenes/ui/stage_choice.tscn")
 const REWARD_PICKER_SCENE := preload("res://scenes/ui/reward_picker.tscn")
 const MUTATION_PICKER_SCENE := preload("res://scenes/ui/mutation_picker.tscn")
 const LEGENDARY_PICKER_SCENE := preload("res://scenes/ui/legendary_picker.tscn")
@@ -20,6 +19,7 @@ var _run_summary: RunSummary
 var _ui_layer: CanvasLayer
 var _current_stage_data: StageData
 var _region: RegionResource
+var _stage_tree: StageTree
 
 signal state_changed(new_state: State)
 signal run_completed(victory: bool)
@@ -39,6 +39,8 @@ func start_run(region_id: String = "") -> void:
 	_region = _load_region(region_id)
 	RunManager.start_run(region_id)
 	_skill_instances.clear()
+	_stage_tree = StageGenerator.generate_tree(_region)
+	RunManager.stage_tree = _stage_tree
 	_show_skill_picker()
 
 func _load_region(region_id: String) -> RegionResource:
@@ -55,47 +57,52 @@ func _show_skill_picker() -> void:
 	picker.skill_chosen.connect(func(skill: SkillResource):
 		_skill_instances.append(SkillInstance.new(skill))
 		picker.queue_free()
-		_show_stage_choice()
+		_enter_first_stage()
 	, CONNECT_ONE_SHOT)
 
-func _show_stage_choice() -> void:
+func _enter_first_stage() -> void:
+	var stage := _stage_tree.visit(0)
+	_enter_stage(stage)
+
+func _show_stage_map() -> void:
 	_auto_save()
-	var next_depth := RunManager.current_stage + 1
-	if next_depth > StageGenerator.MAX_DEPTH:
+	if not _stage_tree:
+		return
+	if _stage_tree.current_depth >= StageGenerator.MAX_DEPTH:
 		end_run(true)
 		return
 
-	var choices := StageGenerator.generate_choices(next_depth, RunManager.last_shop_depth, _region)
-
-	if choices.size() == 1:
-		_enter_stage(choices[0])
+	var available := _stage_tree.get_available_nodes()
+	if available.size() == 1:
+		var stage := _stage_tree.visit(available[0])
+		_enter_stage(stage)
 		return
 
-	_state = State.STAGE_CHOICE
+	_state = State.STAGE_MAP
 	state_changed.emit(_state)
 
-	var choice_ui := STAGE_CHOICE_SCENE.instantiate() as StageChoice
-	_ui_layer.add_child(choice_ui)
-	choice_ui.setup(choices, next_depth)
-	choice_ui.stage_chosen.connect(func(stage: StageData):
-		choice_ui.queue_free()
+	var map_ui := StageMapUI.new()
+	_ui_layer.add_child(map_ui)
+	map_ui.setup(_stage_tree)
+	map_ui.stage_chosen.connect(func(stage: StageData):
+		map_ui.queue_free()
 		_enter_stage(stage)
 	, CONNECT_ONE_SHOT)
 
 func _enter_stage(stage_data: StageData) -> void:
 	_current_stage_data = stage_data
 	RunManager.current_stage_data = stage_data
-	if stage_data.type != StageData.Type.TREASURE:
-		RunManager.advance_stage()
+	RunManager.advance_stage()
 
 	match stage_data.type:
 		StageData.Type.COMBAT, StageData.Type.ELITE, StageData.Type.BOSS:
 			_advance_to_combat(stage_data)
-		StageData.Type.SHOP:
-			RunManager.last_shop_depth = stage_data.depth
-			_open_shop()
 		StageData.Type.TREASURE:
-			_show_reward_picker(StageData.Type.TREASURE)
+			_show_reward_picker(true)
+		StageData.Type.SHOP:
+			_open_map_shop()
+		_:
+			_advance_to_combat(stage_data)
 
 func _advance_to_combat(stage_data: StageData) -> void:
 	_state = State.COMBAT
@@ -119,16 +126,14 @@ func _on_stage_completed() -> void:
 		_arena.queue_free()
 		_arena = null
 
-	if RunManager.current_stage >= StageGenerator.MAX_DEPTH:
+	if _stage_tree.current_depth >= StageGenerator.MAX_DEPTH:
 		end_run(true)
+	elif was_boss and _skill_instances.size() > 0:
+		_show_mutation_picker()
 	else:
-		var stage_type := _current_stage_data.type if _current_stage_data else StageData.Type.COMBAT
-		if was_boss and _skill_instances.size() > 0:
-			_show_mutation_picker(stage_type)
-		else:
-			_show_reward_picker(stage_type)
+		_show_reward_picker(false)
 
-func _show_mutation_picker(then_stage_type: StageData.Type) -> void:
+func _show_mutation_picker() -> void:
 	var picker := MUTATION_PICKER_SCENE.instantiate() as MutationPicker
 	_ui_layer.add_child(picker)
 	picker.setup(_skill_instances)
@@ -136,10 +141,10 @@ func _show_mutation_picker(then_stage_type: StageData.Type) -> void:
 		picker.queue_free()
 		if skill_idx >= 0 and skill_idx < _skill_instances.size():
 			_skill_instances[skill_idx].add_mutation(mutation)
-		_show_legendary_picker(then_stage_type)
+		_show_legendary_picker()
 	, CONNECT_ONE_SHOT)
 
-func _show_legendary_picker(then_stage_type: StageData.Type) -> void:
+func _show_legendary_picker() -> void:
 	var picker := LEGENDARY_PICKER_SCENE.instantiate() as LegendaryPicker
 	_ui_layer.add_child(picker)
 	picker.legendary_chosen.connect(func(passive: PassiveResource):
@@ -147,21 +152,25 @@ func _show_legendary_picker(then_stage_type: StageData.Type) -> void:
 		if passive:
 			for si: SkillInstance in _skill_instances:
 				si.recompute(RunManager.owned_passives)
-		_show_reward_picker(then_stage_type)
+		_show_reward_picker(false)
 	, CONNECT_ONE_SHOT)
 	picker.setup(_skill_instances)
 
-func _show_reward_picker(stage_type: StageData.Type) -> void:
+func _show_reward_picker(is_treasure: bool) -> void:
 	_state = State.REWARD
 	state_changed.emit(_state)
 
+	var stage_type := _current_stage_data.type if _current_stage_data else StageData.Type.COMBAT
 	var picker := REWARD_PICKER_SCENE.instantiate() as RewardPicker
 	_ui_layer.add_child(picker)
 	picker.setup(stage_type, _skill_instances)
 	picker.reward_chosen.connect(func(reward: Dictionary):
 		picker.queue_free()
 		_apply_reward(reward)
-		_show_stage_choice()
+		if is_treasure:
+			_show_stage_map()
+		else:
+			_open_mandatory_shop()
 	, CONNECT_ONE_SHOT)
 
 func _apply_reward(reward: Dictionary) -> void:
@@ -192,11 +201,21 @@ func _apply_reward(reward: Dictionary) -> void:
 		"gold":
 			RunManager.add_gold(reward["amount"])
 
-func _open_shop() -> void:
-	if _arena:
-		_arena.queue_free()
-		_arena = null
+func _open_map_shop() -> void:
+	_state = State.SHOP
+	state_changed.emit(_state)
+	_shop = SHOP_SCENE.instantiate() as Shop
+	_ui_layer.add_child(_shop)
+	_shop.setup(_skill_instances)
+	_shop.continue_pressed.connect(func():
+		if _shop:
+			_shop.queue_free()
+			_shop = null
+		_show_stage_map()
+	, CONNECT_ONE_SHOT)
+	_shop.skill_purchased.connect(_on_skill_purchased)
 
+func _open_mandatory_shop() -> void:
 	_state = State.SHOP
 	state_changed.emit(_state)
 
@@ -213,7 +232,7 @@ func _on_shop_continue() -> void:
 	if _shop:
 		_shop.queue_free()
 		_shop = null
-	_show_stage_choice()
+	_show_stage_map()
 
 func end_run(victory: bool) -> void:
 	RunManager.clear_saved_run()
@@ -296,9 +315,15 @@ func has_saved_run() -> bool:
 func resume_run() -> void:
 	var data := RunManager.load_run()
 	if data.is_empty():
+		return_to_menu_requested.emit()
 		return
 	RunManager.restore_from_save(data)
 	_region = _load_region(RunManager.current_region)
 	_deserialize_skills(data.get("skills", []))
+	_stage_tree = RunManager.stage_tree
+	if not _stage_tree:
+		RunManager.clear_saved_run()
+		return_to_menu_requested.emit()
+		return
 	RunManager.clear_saved_run()
-	_show_stage_choice()
+	_show_stage_map()

@@ -24,4 +24,3 @@ func modify_spawn(skill_instance, projectile: Node2D) -> void:
 		split.set_meta("is_split", true)
 		if split.has_method("initialize"):
 			split.initialize(skill_instance, split_dir, pool)
-		split.damage *= 0.7

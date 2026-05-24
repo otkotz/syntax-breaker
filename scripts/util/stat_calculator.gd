@@ -87,6 +87,11 @@ static var _max_quality_bonuses := {
 	"elemental_proliferation": {"area_mult": 1.4},
 	"glass_cannon": {"damage_mult": 1.25},
 	"overcharge": {"damage_mult": 1.3},
+	"spell_echo": {"echo_count": 1, "damage_mult": 1.1},
+	"cast_on_kill": {"damage_mult": 1.2},
+	"void_rift": {"damage_mult": 1.2},
+	"totem": {"cooldown_mult": 0.8},
+	"mine": {"damage_mult": 1.25},
 }
 
 static var _max_quality_descriptions := {
@@ -101,6 +106,11 @@ static var _max_quality_descriptions := {
 	"elemental_proliferation": "+40% area, 80% larger spread radius",
 	"glass_cannon": "+25% damage",
 	"overcharge": "+30% damage",
+	"spell_echo": "+1 extra echo, +10% damage",
+	"cast_on_kill": "+20% damage",
+	"void_rift": "+20% damage, +50% explosion radius",
+	"totem": "Totem casts 20% faster",
+	"mine": "+25% damage",
 }
 
 static func get_max_quality_description(support_id: String) -> String:

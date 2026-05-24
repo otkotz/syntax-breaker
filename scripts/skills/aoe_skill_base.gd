@@ -10,8 +10,10 @@ var _timer: float = 0.0
 var _has_hit: bool = false
 var _color: Color = Color(1.0, 0.9, 0.6, 0.35)
 var _skill_id: String = ""
+var _kill_count: int = 0
 
 var _arc_data: Array = []
+var _wave_hit_set: Array = []
 const ARC_COUNT := 6
 
 func _ready() -> void:
@@ -26,6 +28,8 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	_has_hit = false
 	_skill_id = si.base.id
 	_color = TagColors.get_color_faded(si.base.tags)
+	_wave_hit_set.clear()
+	_kill_count = 0
 	scale = Vector2.ONE
 
 	match _skill_id:
@@ -51,11 +55,16 @@ func _generate_arcs() -> void:
 
 func _physics_process(delta: float) -> void:
 	_timer += delta
-	if not _has_hit:
+	if _skill_id == "flame_wave":
+		_hit_wave()
+	elif not _has_hit:
 		_has_hit = true
-		_hit_enemies()
+		_hit_enemies_in_radius(area_radius)
+		_spawn_aftermath()
 	queue_redraw()
 	if _timer >= _lifetime:
+		if _skill_id == "flame_wave":
+			_spawn_aftermath()
 		_return_to_pool()
 
 func _draw() -> void:
@@ -116,9 +125,27 @@ func _draw_default() -> void:
 	if area_radius > 4.0:
 		draw_arc(Vector2.ZERO, area_radius * 0.8, 0, TAU, 24, Color(_color, 0.5 * fade), 2.0)
 
-func _hit_enemies() -> void:
-	var enemies := Targeting.find_enemies_in_range(global_position, area_radius, 50)
-	var kill_count := 0
+func _hit_wave() -> void:
+	var t := _timer / _lifetime
+	var eased := 1.0 - (1.0 - t) * (1.0 - t)
+	var current_radius := eased * area_radius
+	var enemies := Targeting.find_enemies_in_range(global_position, current_radius, 50)
+	for enemy in enemies:
+		if enemy in _wave_hit_set:
+			continue
+		if not is_instance_valid(enemy):
+			continue
+		_wave_hit_set.append(enemy)
+		_damage_enemy(enemy)
+
+func _hit_enemies_in_radius(radius: float) -> void:
+	var enemies := Targeting.find_enemies_in_range(global_position, radius, 50)
+	for enemy in enemies:
+		_damage_enemy(enemy)
+
+func _damage_enemy(enemy: Node2D) -> void:
+	if not enemy.has_method("take_damage"):
+		return
 	var tags: Array = skill_instance.get_all_tags() if skill_instance else []
 	var element := "fire"
 	if tags.has("lightning"):
@@ -126,32 +153,40 @@ func _hit_enemies() -> void:
 	elif tags.has("poison"):
 		element = "poison"
 
-	for enemy in enemies:
-		if enemy.has_method("take_damage"):
-			var hit_damage := damage
-			var is_crit := false
-			if skill_instance:
-				var roll := CombatUtils.roll_damage(damage, skill_instance)
-				hit_damage = roll["damage"]
-				is_crit = roll["is_crit"]
-				if is_crit:
-					RunManager.record_stat("crits_landed", 1)
-			var skill_name := skill_instance.base.name if skill_instance else "unknown"
-			enemy.take_damage(hit_damage, is_crit)
-			CombatLog.hit(skill_name, enemy.name, hit_damage, is_crit)
-			if enemy.has_method("apply_dot"):
-				if tags.has("fire"):
-					enemy.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
-					CombatLog.dot_applied("burn", enemy.name, hit_damage * 0.2, 2.0)
-			GameBus.enemy_hit.emit(enemy, hit_damage, skill_instance.base if skill_instance else null)
-			HitEffect.spawn(self, enemy.global_position - global_position + Vector2.ZERO, element, 50.0)
-			if skill_instance:
-				TagInteractions.process_hit(enemy, hit_damage, tags, self)
-				skill_instance.notify_hit(enemy, self)
-				if enemy.has_method("is_alive") and not enemy.is_alive():
-					CombatLog.kill(skill_name, enemy.name)
-					skill_instance.notify_kill(enemy, self)
-					kill_count += 1
+	var hit_damage := damage
+	var is_crit := false
+	if skill_instance:
+		var roll := CombatUtils.roll_damage(damage, skill_instance)
+		hit_damage = roll["damage"]
+		is_crit = roll["is_crit"]
+		if is_crit:
+			RunManager.record_stat("crits_landed", 1)
+	var skill_name := skill_instance.base.name if skill_instance else "unknown"
+	enemy.take_damage(hit_damage, is_crit)
+	CombatLog.hit(skill_name, enemy.name, hit_damage, is_crit)
+	if enemy.has_method("apply_dot"):
+		if tags.has("fire"):
+			enemy.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
+			CombatLog.dot_applied("burn", enemy.name, hit_damage * 0.2, 2.0)
+	GameBus.enemy_hit.emit(enemy, hit_damage, skill_instance.base if skill_instance else null)
+	HitEffect.spawn(self, enemy.global_position - global_position + Vector2.ZERO, element, 50.0)
+	if skill_instance:
+		TagInteractions.process_hit(enemy, hit_damage, tags, self)
+		skill_instance.notify_hit(enemy, self)
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			CombatLog.kill(skill_name, enemy.name)
+			skill_instance.notify_kill(enemy, self)
+			_kill_count += 1
+
+func _spawn_aftermath() -> void:
+	if _kill_count > RunManager.run_stats.get("max_aoe_kill", 0):
+		RunManager.run_stats["max_aoe_kill"] = _kill_count
+	var tags: Array = skill_instance.get_all_tags() if skill_instance else []
+	var element := "fire"
+	if tags.has("lightning"):
+		element = "lightning"
+	elif tags.has("poison"):
+		element = "poison"
 	var scene_root := get_tree().current_scene if get_tree() else null
 	if scene_root:
 		match _skill_id:
@@ -167,8 +202,6 @@ func _hit_enemies() -> void:
 					AftermathEffect.spawn(scene_root, global_position, "poison_pool", area_radius * 0.4, 2.0)
 				elif element == "lightning":
 					AftermathEffect.spawn(scene_root, global_position, "static_crackle", area_radius * 0.5, 2.0)
-	if kill_count > RunManager.run_stats.get("max_aoe_kill", 0):
-		RunManager.run_stats["max_aoe_kill"] = kill_count
 
 func reset() -> void:
 	skill_instance = null
@@ -176,7 +209,9 @@ func reset() -> void:
 	_timer = 0.0
 	_has_hit = false
 	_skill_id = ""
+	_kill_count = 0
 	_arc_data.clear()
+	_wave_hit_set.clear()
 	scale = Vector2.ONE
 
 func _return_to_pool() -> void:

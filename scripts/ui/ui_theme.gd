@@ -23,6 +23,18 @@ const C_INK_FAINT := Color(0.33, 0.30, 0.40)
 const C_CARD_BG := Color(0.05, 0.03, 0.10, 0.75)
 const C_STAT_BG := Color(0.0, 0.0, 0.0, 0.3)
 
+const C_RARITY_COMMON := Color(0.72, 0.71, 0.76)
+const C_RARITY_UNCOMMON := Color(0.30, 0.75, 0.45)
+const C_RARITY_RARE := Color(0.35, 0.55, 0.95)
+const C_RARITY_LEGENDARY := Color(0.95, 0.70, 0.20)
+
+static func get_rarity_color(rarity: String) -> Color:
+	match rarity:
+		"uncommon": return C_RARITY_UNCOMMON
+		"rare": return C_RARITY_RARE
+		"legendary": return C_RARITY_LEGENDARY
+		_: return C_RARITY_COMMON
+
 const C_STR := Color(0.75, 0.30, 0.18)
 const C_DEX := Color(0.40, 0.78, 0.40)
 const C_INT := Color(0.45, 0.55, 0.85)

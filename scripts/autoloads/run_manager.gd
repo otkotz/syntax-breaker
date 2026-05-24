@@ -9,10 +9,10 @@ var owned_passives: Array = []
 var owned_consumables: Array[Dictionary] = []
 var support_quality: Dictionary = {}
 var run_stats: Dictionary = {}
-var last_shop_depth: int = 0
 var current_stage_data: StageData
 var current_region: String = ""
 var ascension_level: int = 0
+var stage_tree: StageTree
 
 func start_run(region: String = "", ascension: int = -1) -> void:
 	current_stage = 0
@@ -23,8 +23,8 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	owned_passives = []
 	owned_consumables = []
 	support_quality = {}
-	last_shop_depth = 0
 	current_stage_data = null
+	stage_tree = null
 	current_region = region
 	ascension_level = ascension if ascension >= 0 else MetaProgression.ascension_level
 	run_stats = {
@@ -115,13 +115,13 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"skill_slots_unlocked": skill_slots_unlocked,
 		"support_quality": support_quality,
 		"run_stats": run_stats,
-		"last_shop_depth": last_shop_depth,
 		"current_region": current_region,
 		"ascension_level": ascension_level,
 		"skills": skill_data,
 		"supports": supports_data,
 		"passives": passives_data,
 		"consumables": consumables_data,
+		"stage_tree": stage_tree.serialize() if stage_tree else {},
 	}
 	var file := FileAccess.open(RUN_SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -148,9 +148,17 @@ func restore_from_save(data: Dictionary) -> void:
 	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
 	support_quality = data.get("support_quality", {})
 	run_stats = data.get("run_stats", {})
-	last_shop_depth = int(data.get("last_shop_depth", 0))
 	current_region = data.get("current_region", "")
 	ascension_level = int(data.get("ascension_level", 0))
+
+	var tree_data: Dictionary = data.get("stage_tree", {})
+	if tree_data.size() > 0:
+		var region: RegionResource = null
+		if not current_region.is_empty():
+			var r_path := "res://resources/regions/%s.tres" % current_region
+			if ResourceLoader.exists(r_path):
+				region = load(r_path) as RegionResource
+		stage_tree = StageTree.deserialize(tree_data, region)
 
 	owned_supports.clear()
 	for s_data: Dictionary in data.get("supports", []):

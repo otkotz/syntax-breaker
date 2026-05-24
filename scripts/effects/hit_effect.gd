@@ -12,7 +12,18 @@ var _debris_data: Array = []
 var _element: String = "fire"
 
 static var _pool: Array = []
+static var _active: Array = []
 const MAX_POOL := 20
+
+static func clear_all() -> void:
+	for instance in _active:
+		if is_instance_valid(instance):
+			instance.queue_free()
+	_active.clear()
+	for instance in _pool:
+		if is_instance_valid(instance):
+			instance.queue_free()
+	_pool.clear()
 
 static func spawn(parent: Node, pos: Vector2, element: String, radius: float = 80.0) -> void:
 	var instance: HitEffect
@@ -28,6 +39,8 @@ static func spawn(parent: Node, pos: Vector2, element: String, radius: float = 8
 	instance.global_position = pos
 	instance._timer = 0.0
 	instance.visible = true
+	instance.set_process(true)
+	_active.append(instance)
 
 	if not instance.is_inside_tree():
 		parent.add_child(instance)
@@ -77,6 +90,7 @@ func _process(delta: float) -> void:
 	if _timer >= _duration:
 		visible = false
 		set_process(false)
+		_active.erase(self)
 		_pool.append(self)
 		return
 	queue_redraw()

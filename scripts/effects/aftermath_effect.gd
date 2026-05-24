@@ -8,8 +8,20 @@ var _radius: float = 50.0
 var _seed: int = 0
 
 static var _pool: Array = []
+static var _active: Array = []
 const MAX_ACTIVE := 15
 static var _active_count: int = 0
+
+static func clear_all() -> void:
+	for instance in _active:
+		if is_instance_valid(instance):
+			instance.queue_free()
+	_active.clear()
+	for instance in _pool:
+		if is_instance_valid(instance):
+			instance.queue_free()
+	_pool.clear()
+	_active_count = 0
 
 static func spawn(parent: Node, pos: Vector2, type: String, radius: float = 50.0, duration: float = 3.0) -> void:
 	if _active_count >= MAX_ACTIVE:
@@ -33,6 +45,7 @@ static func spawn(parent: Node, pos: Vector2, type: String, radius: float = 50.0
 	instance.set_process(true)
 	instance.z_index = -1 if (type in ["scorch", "poison_pool", "burn_patch"]) else 0
 	_active_count += 1
+	_active.append(instance)
 
 	if not instance.is_inside_tree():
 		parent.add_child(instance)
@@ -48,6 +61,7 @@ func _process(delta: float) -> void:
 	if _timer >= _duration:
 		visible = false
 		set_process(false)
+		_active.erase(self)
 		_active_count = maxi(0, _active_count - 1)
 		_pool.append(self)
 		return

@@ -11,6 +11,16 @@ static var _pool: Array = []
 static var _active: Array = []
 const MAX_ACTIVE := 30
 
+static func clear_all() -> void:
+	for instance in _active:
+		if is_instance_valid(instance):
+			instance.queue_free()
+	_active.clear()
+	for instance in _pool:
+		if is_instance_valid(instance):
+			instance.queue_free()
+	_pool.clear()
+
 static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, player_dmg: bool = false) -> void:
 	var instance: DamageNumber
 	while _pool.size() > 0:

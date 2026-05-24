@@ -24,4 +24,6 @@ func on_hit(skill_instance, target: Node2D, projectile: Node2D) -> void:
 		projectile.direction = target.global_position.direction_to(next_target.global_position)
 		projectile.rotation = projectile.direction.angle()
 		projectile._distance_traveled = 0.0
+		projectile._hit_targets.clear()
 		projectile.damage *= skill_instance.computed_stats.get("damage_mult", 0.8)
+		projectile.set_meta("chain_redirected", true)

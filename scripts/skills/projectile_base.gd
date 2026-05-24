@@ -182,7 +182,9 @@ func _on_body_entered(body: Node2D) -> void:
 			CombatLog.kill(skill_name, body.name)
 			skill_instance.notify_kill(body, self)
 
-	if pierce_remaining <= 0:
+	if get_meta("chain_redirected", false):
+		remove_meta("chain_redirected")
+	elif pierce_remaining <= 0:
 		_return_to_pool()
 	else:
 		pierce_remaining -= 1
@@ -255,7 +257,7 @@ func reset() -> void:
 	_bolt_segments.clear()
 	_skill_id = ""
 	scale = Vector2.ONE
-	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target"]:
+	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected"]:
 		if has_meta(key):
 			remove_meta(key)
 
