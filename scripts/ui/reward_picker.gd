@@ -94,6 +94,13 @@ func _roll_support(existing: Array[Dictionary]) -> Dictionary:
 			continue
 		if not MetaProgression.is_unlocked("supports", res.id):
 			continue
+		var already_owned := false
+		for s: Resource in RunManager.owned_supports:
+			if s is SupportResource and s.id == res.id:
+				already_owned = true
+				break
+		if already_owned:
+			continue
 		var dupe := false
 		for e: Dictionary in existing:
 			if e.get("type") == "support" and e.get("id") == res.id:

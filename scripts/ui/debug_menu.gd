@@ -87,9 +87,12 @@ func _build_ui() -> void:
 			_player.set_meta("god_mode", not _player.get_meta("god_mode", false))
 	)
 	_add_button(vbox, "Skip Stage", func():
-		for e: Node in get_tree().get_nodes_in_group("enemies"):
-			if e.has_method("is_alive") and e.is_alive() and e.has_method("take_damage"):
-				e.take_damage(99999.0)
+		var arena := get_parent()
+		if arena is Arena:
+			_visible = false
+			_panel.visible = false
+			get_tree().paused = false
+			arena.skip_stage()
 	)
 	_add_button(vbox, "Manage Skills", func():
 		if not _player:

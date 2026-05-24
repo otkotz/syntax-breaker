@@ -290,6 +290,15 @@ func _spawn_boss() -> void:
 	boss.apply_scaling(_hp_mult * 3.0, _speed_mult * 0.8, _damage_mult * 1.5, _gold_mult * 10.0)
 	_enemies_alive += 1
 
+func force_complete() -> void:
+	for e: Node in get_tree().get_nodes_in_group("enemies"):
+		if e.has_method("is_alive") and e.is_alive() and e.has_method("take_damage"):
+			e.take_damage(99999.0)
+	_spawned_count = _total_budget
+	_stage_timer = 0.0
+	_enemies_alive = 0
+	_complete_stage()
+
 func _complete_stage() -> void:
 	if _completed:
 		return

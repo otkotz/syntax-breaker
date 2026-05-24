@@ -44,9 +44,10 @@ func _generate_offerings() -> void:
 	for si: SkillInstance in _skill_instances:
 		owned_skill_ids[si.base.id] = true
 
+	var has_skill_slot := _skill_instances.size() < RunManager.skill_slots_unlocked
 	for res: Resource in _load_resources("res://resources/skills/"):
 		var skill_res := res as SkillResource
-		if skill_res and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
+		if skill_res and has_skill_slot and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
 			pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", skill_res.rarity)})
 
 	for res: Resource in _load_resources("res://resources/supports/"):
@@ -117,7 +118,15 @@ func _refresh_ui() -> void:
 func _create_card(offering: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 130.0
-	UITheme.style_panel(panel)
+	var rarity: String = offering["resource"].rarity if "rarity" in offering["resource"] else "common"
+	var rarity_color := UITheme.get_rarity_color(rarity)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UITheme.C_CARD_BG
+	sb.border_color = Color(rarity_color, 0.5)
+	sb.set_border_width_all(1)
+	sb.border_width_left = 3
+	sb.set_content_margin_all(14)
+	panel.add_theme_stylebox_override("panel", sb)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
 	panel.add_child(hbox)
@@ -131,13 +140,13 @@ func _create_card(offering: Dictionary) -> Control:
 		type_label = "QUALITY %d/4" % q_level
 	else:
 		type_label = type_label.to_upper()
-	var rarity_prefix := ""
-	if "rarity" in offering["resource"]:
-		if offering["resource"].rarity == "legendary":
-			rarity_prefix = "★ "
-	title.text = "%s[%s] %s" % [rarity_prefix, type_label, offering["resource"].name]
+	title.text = "[%s] %s" % [type_label, offering["resource"].name]
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", UITheme.C_SILVER)
+	var rarity_label := Label.new()
+	rarity_label.text = rarity.to_upper()
+	rarity_label.add_theme_font_size_override("font_size", 22)
+	rarity_label.add_theme_color_override("font_color", rarity_color)
 	var desc := Label.new()
 	var desc_text: String = offering["resource"].description
 	if offering["type"] == "support_upgrade":
@@ -151,6 +160,7 @@ func _create_card(offering: Dictionary) -> Control:
 	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	info.add_child(title)
+	info.add_child(rarity_label)
 	info.add_child(desc)
 	hbox.add_child(info)
 
@@ -164,11 +174,18 @@ func _create_card(offering: Dictionary) -> Control:
 	return panel
 
 func _on_buy(offering: Dictionary) -> void:
+	if offering not in _offerings:
+		return
 	if not RunManager.spend_gold(offering["cost"]):
 		return
 
+	_offerings.erase(offering)
+
 	match offering["type"]:
 		"skill":
+			if _skill_instances.size() >= RunManager.skill_slots_unlocked:
+				RunManager.add_gold(offering["cost"])
+				return
 			var si := SkillInstance.new(offering["resource"] as SkillResource)
 			si.recompute(RunManager.owned_passives)
 			skill_purchased.emit(si)
@@ -186,8 +203,8 @@ func _on_buy(offering: Dictionary) -> void:
 			RunManager.owned_passives.append(offering["resource"])
 			_recompute_all_skills()
 			GameBus.passive_acquired.emit(offering["resource"])
-
-	_offerings.erase(offering)
+	if _skill_instances.size() >= RunManager.skill_slots_unlocked:
+		_offerings = _offerings.filter(func(o: Dictionary) -> bool: return o["type"] != "skill")
 	_refresh_ui()
 
 func _show_link_panel() -> void:

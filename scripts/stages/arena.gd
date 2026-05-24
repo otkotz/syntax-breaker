@@ -135,6 +135,12 @@ func _on_enemy_killed(_enemy: Node2D, _killer_skill: Resource) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
 		Engine.time_scale = 1.0
+		HitEffect.clear_all()
+		AftermathEffect.clear_all()
+		DamageNumber.clear_all()
+
+func skip_stage() -> void:
+	spawner.force_complete()
 
 func _on_all_waves_cleared() -> void:
 	GameBus.stage_cleared.emit()
