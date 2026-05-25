@@ -5,7 +5,7 @@ signal continue_pressed
 signal skill_purchased(si: SkillInstance)
 signal skill_swapped(old_si: SkillInstance, new_si: SkillInstance)
 
-const OFFERING_COUNT := 8
+const OFFERING_COUNT := 4
 const RARITY_COSTS := {
 	"skill": {"common": 15, "uncommon": 20, "rare": 25},
 	"support": {"common": 8, "uncommon": 12, "rare": 15},
@@ -13,7 +13,6 @@ const RARITY_COSTS := {
 }
 
 var _skill_instances: Array[SkillInstance]
-var _reroll_cost: int = 2
 var _offerings: Array[Dictionary] = []
 var _pending_support: SupportResource = null
 var _pending_skill_instance: SkillInstance = null
@@ -86,11 +85,12 @@ func _generate_offerings() -> void:
 		_offerings.append(legendary_pool[0])
 		legendary_added = true
 
-	for upgrade_def: Dictionary in STAT_UPGRADES:
-		_offerings.append(_make_stat_upgrade(upgrade_def))
+	var upgrades_copy := STAT_UPGRADES.duplicate()
+	upgrades_copy.shuffle()
+	_offerings.append(_make_stat_upgrade(upgrades_copy[0]))
 
 	pool.shuffle()
-	var count := mini(OFFERING_COUNT - (1 if legendary_added else 0) - STAT_UPGRADES.size(), pool.size())
+	var count := mini(OFFERING_COUNT - (1 if legendary_added else 0) - 1, pool.size())
 	for i in count:
 		_offerings.append(pool[i])
 
@@ -103,11 +103,11 @@ func _load_resources(dir_path: String) -> Array:
 	return resources
 
 const STAT_UPGRADES := [
-	{"key": "damage", "name": "Flat Damage", "amount": 5.0, "base_cost": 30, "cost_step": 10,
-	 "fmt": "+%.0f damage to all skills (current: +%.0f)"},
-	{"key": "cooldown", "name": "Haste", "amount": -0.08, "base_cost": 35, "cost_step": 12,
+	{"key": "damage", "name": "Flat Damage", "amount": 2.5, "base_cost": 90, "cost_step": 30,
+	 "fmt": "+%.1f damage to all skills (current: +%.1f)"},
+	{"key": "cooldown", "name": "Haste", "amount": -0.04, "base_cost": 105, "cost_step": 36,
 	 "fmt": "-%.0f%% cooldown (current: %.0f%% reduction)"},
-	{"key": "crit_chance", "name": "Precision", "amount": 0.04, "base_cost": 40, "cost_step": 15,
+	{"key": "crit_chance", "name": "Precision", "amount": 0.02, "base_cost": 120, "cost_step": 45,
 	 "fmt": "+%.0f%% crit chance (current: +%.0f%%)"},
 ]
 
@@ -124,7 +124,7 @@ func _get_cost(item_type: String, rarity: String) -> int:
 func _refresh_ui() -> void:
 	gold_label.text = "Gold: %d" % RunManager.gold
 	gold_label.add_theme_color_override("font_color", UITheme.C_SILVER)
-	reroll_button.text = "Reroll (%dg)" % _reroll_cost
+	reroll_button.text = "Reroll (%dg)" % RunManager.reroll_cost
 	UITheme.style_button(reroll_button, 28)
 	UITheme.style_button(manage_button, 28)
 	UITheme.style_button(continue_button, 28)
@@ -379,9 +379,9 @@ func _on_manage() -> void:
 	_skill_manager.open(_skill_instances, RunManager.owned_supports)
 
 func _on_reroll() -> void:
-	if not RunManager.spend_gold(_reroll_cost):
+	if not RunManager.spend_gold(RunManager.reroll_cost):
 		return
-	_reroll_cost += 1
+	RunManager.reroll_cost += 1
 	_generate_offerings()
 	_refresh_ui()
 
