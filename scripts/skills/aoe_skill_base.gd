@@ -170,8 +170,11 @@ func _damage_enemy(enemy: Node2D) -> void:
 	CombatLog.hit(skill_name, enemy.name, hit_damage, is_crit)
 	if enemy.has_method("apply_dot"):
 		if tags.has("fire"):
-			enemy.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
-			CombatLog.dot_applied("burn", enemy.name, hit_damage * 0.2, 2.0)
+			enemy.apply_dot("burn", hit_damage * 0.3, 3.0, 0.5)
+			CombatLog.dot_applied("burn", enemy.name, hit_damage * 0.3, 3.0)
+		if tags.has("poison") and randf() <= 0.8:
+			enemy.apply_dot("poison", hit_damage * 0.4, 4.0, 0.5)
+			CombatLog.dot_applied("poison", enemy.name, hit_damage * 0.4, 4.0)
 	GameBus.enemy_hit.emit(enemy, hit_damage, skill_instance.base if skill_instance else null)
 	HitEffect.spawn(self, enemy.global_position - global_position + Vector2.ZERO, element, 50.0)
 	if skill_instance:
@@ -179,8 +182,11 @@ func _damage_enemy(enemy: Node2D) -> void:
 		skill_instance.notify_hit(enemy, self)
 		if is_crit:
 			skill_instance.notify_crit(enemy, self)
-		if enemy.has_method("apply_dot") and tags.has("fire"):
-			skill_instance.notify_status_apply(enemy, "burn")
+		if enemy.has_method("apply_dot"):
+			if tags.has("fire"):
+				skill_instance.notify_status_apply(enemy, "burn")
+			if tags.has("poison"):
+				skill_instance.notify_status_apply(enemy, "poison")
 		if enemy.has_method("is_alive") and not enemy.is_alive():
 			CombatLog.kill(skill_name, enemy.name)
 			skill_instance.notify_kill(enemy, self)

@@ -13,6 +13,7 @@ var _phase: Phase = Phase.CHASE
 var _phase_timer: float = 0.0
 var _ability_timer: float = 0.0
 var _charge_dir: Vector2 = Vector2.ZERO
+var _is_boss_mode: bool = false
 
 static var _boss_texture: ImageTexture
 static var _boss_offset: Vector2
@@ -172,13 +173,20 @@ static func _add_horn_rects(r: Array, start_x: float, start_y: float, dx_per_ste
 			r.append({"rect": Rect2(x_off + w - 1, hy, 1, 1), "color": BONE_D if dir < 0 else BONE_L})
 	r.append({"rect": Rect2(int(hx), int(hy) - 1, 1, 1), "color": BONE_H})
 
+func set_as_boss() -> void:
+	_is_boss_mode = true
+	scale = Vector2(1.8, 1.8)
+	if _sprite:
+		_sprite.modulate = Color(1.3, 1.0, 0.7)
+
 func _draw_health_bar() -> void:
-	var bar_width := 48.0
-	var bar_height := 4.0
-	var bar_y := -80.0
+	var bar_width := 72.0 if _is_boss_mode else 48.0
+	var bar_height := 5.0 if _is_boss_mode else 4.0
+	var bar_y := -85.0 if _is_boss_mode else -80.0
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height)), Color(0.2, 0.2, 0.2))
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
-	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height)), Color(0.85, 0.15, 0.15))
+	var bar_color := Color(1.0, 0.75, 0.1) if _is_boss_mode else Color(0.85, 0.15, 0.15)
+	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height)), bar_color)
 
 func _physics_process(delta: float) -> void:
 	if not _target or not is_instance_valid(_target):
@@ -251,6 +259,11 @@ func reset() -> void:
 	_phase_timer = 0.0
 	_ability_timer = 0.0
 	_charge_dir = Vector2.ZERO
+	if _is_boss_mode:
+		_is_boss_mode = false
+		scale = Vector2.ONE
+		if _sprite:
+			_sprite.modulate = Color.WHITE
 
 func _die() -> void:
 	RunManager.record_stat("mini_bosses_killed", 1)

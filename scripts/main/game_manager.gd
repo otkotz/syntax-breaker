@@ -10,6 +10,7 @@ const SKILL_PICKER_SCENE := preload("res://scenes/ui/skill_picker.tscn")
 const REWARD_PICKER_SCENE := preload("res://scenes/ui/reward_picker.tscn")
 const MUTATION_PICKER_SCENE := preload("res://scenes/ui/mutation_picker.tscn")
 const LEGENDARY_PICKER_SCENE := preload("res://scenes/ui/legendary_picker.tscn")
+const CHEST_REWARD_SCENE := preload("res://scenes/ui/chest_reward.tscn")
 
 var _state: State = State.MENU
 var _arena: Arena
@@ -143,10 +144,43 @@ func _on_stage_completed() -> void:
 		_show_reward_picker(false)
 
 func _show_mutation_picker() -> void:
+	var exclude: Array = []
+	for si: SkillInstance in _skill_instances:
+		for m: Dictionary in si.mutations:
+			exclude.append(m["id"])
+	var mutations := MutationData.roll_mutations(3, exclude)
+	if mutations.is_empty():
+		_show_legendary_picker()
+		return
+
+	var items: Array[Dictionary] = []
+	for m: Dictionary in mutations:
+		items.append({
+			"type_label": "MUTATION",
+			"title": m["name"],
+			"desc": m["desc"],
+			"color": Color(1.0, 0.55, 0.2),
+		})
+
+	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
+	_ui_layer.add_child(chest)
+	chest.setup(items, true, "BOSS MUTATION")
+	chest.item_chosen.connect(func(index: int):
+		var mutation: Dictionary = mutations[index]
+		chest.queue_free()
+		if _skill_instances.size() == 1:
+			_skill_instances[0].add_mutation(mutation)
+			_show_legendary_picker()
+		else:
+			_show_mutation_skill_target(mutation)
+	, CONNECT_ONE_SHOT)
+
+func _show_mutation_skill_target(mutation: Dictionary) -> void:
+	_clear_ui()
 	var picker := MUTATION_PICKER_SCENE.instantiate() as MutationPicker
 	_ui_layer.add_child(picker)
-	picker.setup(_skill_instances)
-	picker.mutation_chosen.connect(func(mutation: Dictionary, skill_idx: int):
+	picker.setup_skill_only(mutation, _skill_instances)
+	picker.mutation_chosen.connect(func(_m: Dictionary, skill_idx: int):
 		picker.queue_free()
 		if skill_idx >= 0 and skill_idx < _skill_instances.size():
 			_skill_instances[skill_idx].add_mutation(mutation)
@@ -154,22 +188,64 @@ func _show_mutation_picker() -> void:
 	, CONNECT_ONE_SHOT)
 
 func _show_legendary_picker() -> void:
-	var picker := LEGENDARY_PICKER_SCENE.instantiate() as LegendaryPicker
-	_ui_layer.add_child(picker)
-	picker.legendary_chosen.connect(func(passive: PassiveResource):
-		picker.queue_free()
-		if passive:
-			for si: SkillInstance in _skill_instances:
-				si.recompute(RunManager.owned_passives)
+	var legendaries := _get_available_legendaries()
+	legendaries.shuffle()
+	var choices := legendaries.slice(0, mini(3, legendaries.size()))
+
+	if choices.is_empty():
+		_show_reward_picker(false)
+		return
+
+	var items: Array[Dictionary] = []
+	for passive: PassiveResource in choices:
+		items.append({
+			"type_label": "LEGENDARY PASSIVE",
+			"title": passive.name,
+			"desc": passive.description,
+			"color": UITheme.C_RARITY_LEGENDARY,
+		})
+
+	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
+	_ui_layer.add_child(chest)
+	chest.setup(items, true, "LEGENDARY RELIC")
+	chest.item_chosen.connect(func(index: int):
+		chest.queue_free()
+		var passive: PassiveResource = choices[index]
+		RunManager.owned_passives.append(passive)
+		GameBus.passive_acquired.emit(passive)
+		for si: SkillInstance in _skill_instances:
+			si.recompute(RunManager.owned_passives)
 		_show_reward_picker(false)
 	, CONNECT_ONE_SHOT)
-	picker.setup(_skill_instances)
+
+func _get_available_legendaries() -> Array[PassiveResource]:
+	var result: Array[PassiveResource] = []
+	for file_name in ResourceListing.get_resource_files("res://resources/passives/"):
+		var res := load("res://resources/passives/" + file_name)
+		if res is PassiveResource and res.rarity == "legendary":
+			if not MetaProgression.is_unlocked("passives", res.id):
+				continue
+			var owned := false
+			for p: Resource in RunManager.owned_passives:
+				if p is PassiveResource and p.id == res.id:
+					owned = true
+					break
+			if not owned:
+				result.append(res)
+	return result
 
 func _show_reward_picker(is_treasure: bool) -> void:
 	_state = State.REWARD
 	state_changed.emit(_state)
 
 	var stage_type := _current_stage_data.type if _current_stage_data else StageData.Type.COMBAT
+	var is_elite := stage_type == StageData.Type.ELITE
+	var is_boss := stage_type == StageData.Type.BOSS
+
+	if is_elite or is_boss:
+		_show_chest_rewards(is_treasure, is_elite or is_boss)
+		return
+
 	var picker := REWARD_PICKER_SCENE.instantiate() as RewardPicker
 	_ui_layer.add_child(picker)
 	picker.setup(stage_type, _skill_instances)
@@ -190,6 +266,104 @@ func _show_reward_picker(is_treasure: bool) -> void:
 			else:
 				_open_mandatory_shop()
 	)
+
+func _show_chest_rewards(is_treasure: bool, is_boss_tier: bool) -> void:
+	var rewards := RewardRoller.roll(_skill_instances, true)
+
+	var items: Array[Dictionary] = []
+	for reward: Dictionary in rewards:
+		items.append(_format_reward_for_chest(reward))
+
+	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
+	_ui_layer.add_child(chest)
+	var title := "BOSS SPOILS" if is_boss_tier else "ELITE LOOT"
+	chest.setup(items, is_boss_tier, title)
+	chest.item_chosen.connect(func(index: int):
+		chest.queue_free()
+		var reward: Dictionary = rewards[index]
+		if reward.get("type") == "mutation" and _skill_instances.size() > 1:
+			_show_chest_mutation_target(reward, is_treasure)
+		else:
+			if reward.get("type") == "mutation" and _skill_instances.size() == 1:
+				reward["skill_index"] = 0
+			_apply_reward(reward)
+			if is_treasure:
+				_show_stage_map()
+			else:
+				_open_mandatory_shop()
+	, CONNECT_ONE_SHOT)
+
+func _show_chest_mutation_target(reward: Dictionary, is_treasure: bool) -> void:
+	var mutation: Dictionary = reward["mutation"]
+	var picker := MUTATION_PICKER_SCENE.instantiate() as MutationPicker
+	_ui_layer.add_child(picker)
+	picker.setup_skill_only(mutation, _skill_instances)
+	picker.mutation_chosen.connect(func(_m: Dictionary, skill_idx: int):
+		picker.queue_free()
+		reward["skill_index"] = skill_idx
+		_apply_reward(reward)
+		if is_treasure:
+			_show_stage_map()
+		else:
+			_open_mandatory_shop()
+	, CONNECT_ONE_SHOT)
+
+func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
+	match reward.get("type", ""):
+		"skill":
+			var res: SkillResource = reward["resource"]
+			return {
+				"type_label": "NEW SKILL",
+				"title": res.name,
+				"desc": "%s  [%s]" % [res.description, ", ".join(res.tags)],
+				"color": UITheme.get_rarity_color(res.rarity),
+			}
+		"support":
+			var res: SupportResource = reward["resource"]
+			return {
+				"type_label": "SUPPORT",
+				"title": res.name,
+				"desc": res.description,
+				"color": UITheme.get_rarity_color(res.rarity),
+			}
+		"passive":
+			var res: PassiveResource = reward["resource"]
+			return {
+				"type_label": "PASSIVE",
+				"title": res.name,
+				"desc": res.description,
+				"color": UITheme.get_rarity_color(res.rarity),
+			}
+		"support_quality":
+			var res: SupportResource = reward["resource"]
+			var q: int = RunManager.get_support_quality(res.id) + 1
+			var desc_text := "+%d%% modifier strength" % (q * 5)
+			if q >= RunManager.MAX_QUALITY_LEVEL:
+				var bonus := StatCalculator.get_max_quality_description(res.id)
+				if not bonus.is_empty():
+					desc_text += "\nMAX: " + bonus
+			return {
+				"type_label": "QUALITY %d/4" % q,
+				"title": res.name,
+				"desc": desc_text,
+				"color": UITheme.C_RARITY_UNCOMMON,
+			}
+		"mutation":
+			var m: Dictionary = reward["mutation"]
+			return {
+				"type_label": "MUTATION",
+				"title": m["name"],
+				"desc": m["desc"],
+				"color": Color(1.0, 0.55, 0.2),
+			}
+		"gold":
+			return {
+				"type_label": "GOLD",
+				"title": "+%d Gold" % reward["amount"],
+				"desc": "Add to your treasury",
+				"color": Color(1.0, 0.85, 0.3),
+			}
+	return {"type_label": "???", "title": "Unknown", "desc": "", "color": UITheme.C_INK_MUTE}
 
 func _apply_reward(reward: Dictionary) -> void:
 	match reward.get("type", ""):

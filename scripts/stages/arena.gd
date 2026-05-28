@@ -143,6 +143,7 @@ func _notification(what: int) -> void:
 		Engine.time_scale = 1.0
 		HitEffect.clear_all()
 		AftermathEffect.clear_all()
+		DeathEffect.clear_all()
 		DamageNumber.clear_all()
 
 func skip_stage() -> void:

@@ -10,4 +10,4 @@ affected_tags = Array[String](["projectile"])
 stat_modifiers = {"projectile_count": 6}
 rarity = "legendary"
 behavior_key = "ring_of_fire"
-description = "Projectile skills fire in a ring around you"
+description = "Projectile skills fire in random directions"

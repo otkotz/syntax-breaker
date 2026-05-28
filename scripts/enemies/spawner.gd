@@ -184,7 +184,7 @@ func _spawn_pulse() -> void:
 		for pos: Vector2 in positions:
 			_spawn_enemy_at(pos, _pick_role())
 
-	if _pulses_since_elite >= _elite_interval and _phase >= 2:
+	if _pulses_since_elite >= _elite_interval and _phase >= 2 and not _is_boss_stage:
 		_pulses_since_elite = 0
 		_spawn_elite()
 
@@ -284,6 +284,8 @@ func _spawn_boss() -> void:
 	var boss := mini_boss_scene.instantiate() as EnemyBase
 	boss.died.connect(_on_enemy_died)
 	add_child(boss)
+	if boss is MiniBoss:
+		(boss as MiniBoss).set_as_boss()
 	boss.global_position = _arena_rect.get_center()
 	boss._arena_rect = _arena_rect
 	boss.initialize(_player)

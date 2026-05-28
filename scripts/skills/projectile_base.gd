@@ -222,13 +222,13 @@ func _apply_elemental_effects(body: Node2D) -> void:
 		return
 	var tags := skill_instance.get_all_tags()
 	if tags.has("fire"):
-		body.apply_dot("burn", damage * 0.2, 2.0, 0.5)
-		CombatLog.dot_applied("burn", body.name, damage * 0.2, 2.0)
+		body.apply_dot("burn", damage * 0.3, 3.0, 0.5)
+		CombatLog.dot_applied("burn", body.name, damage * 0.3, 3.0)
 		skill_instance.notify_status_apply(body, "burn")
-	if tags.has("poison") and randf() <= 0.5:
-		body.apply_dot("poison", damage * 0.3, 3.0, 0.5)
+	if tags.has("poison") and randf() <= 0.8:
+		body.apply_dot("poison", damage * 0.4, 4.0, 0.5)
 		skill_instance.notify_status_apply(body, "poison")
-		CombatLog.dot_applied("poison", body.name, damage * 0.3, 3.0)
+		CombatLog.dot_applied("poison", body.name, damage * 0.4, 4.0)
 
 func set_pierce_count(count: int) -> void:
 	pierce_remaining = count

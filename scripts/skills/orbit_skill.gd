@@ -99,12 +99,12 @@ func _on_body_entered(body: Node2D) -> void:
 		var tags := skill_instance.get_all_tags()
 		if body.has_method("apply_dot"):
 			if tags.has("physical"):
-				body.apply_dot("bleed", hit_damage * 0.25, 3.0, 0.5)
-				CombatLog.dot_applied("bleed", body.name, hit_damage * 0.25, 3.0)
+				body.apply_dot("bleed", hit_damage * 0.35, 4.0, 0.5)
+				CombatLog.dot_applied("bleed", body.name, hit_damage * 0.35, 4.0)
 				skill_instance.notify_status_apply(body, "bleed")
-			elif tags.has("fire"):
-				body.apply_dot("burn", hit_damage * 0.2, 2.0, 0.5)
-				CombatLog.dot_applied("burn", body.name, hit_damage * 0.2, 2.0)
+			if tags.has("fire"):
+				body.apply_dot("burn", hit_damage * 0.3, 3.0, 0.5)
+				CombatLog.dot_applied("burn", body.name, hit_damage * 0.3, 3.0)
 				skill_instance.notify_status_apply(body, "burn")
 		TagInteractions.process_hit(body, hit_damage, tags, self)
 		skill_instance.notify_hit(body, self)

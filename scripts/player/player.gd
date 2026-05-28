@@ -54,23 +54,33 @@ func _setup_animated_sprite() -> void:
 	var walk_sheet: Texture2D = load("res://assets/sprites/player_walk.png")
 	var cast_sheet: Texture2D = load("res://assets/sprites/player_cast.png")
 
+	var idle_cols := 5
+	var idle_rows := 5
+	var idle_frame_w := idle_sheet.get_width() / idle_cols
+	var idle_frame_h := idle_sheet.get_height() / idle_rows
 	frames.add_animation(&"idle")
-	frames.set_animation_speed(&"idle", 4.0)
+	frames.set_animation_speed(&"idle", 10.0)
 	frames.set_animation_loop(&"idle", true)
-	for i in 4:
-		var atlas := AtlasTexture.new()
-		atlas.atlas = idle_sheet
-		atlas.region = Rect2(i * 64, 0, 64, 64)
-		frames.add_frame(&"idle", atlas)
+	for row in idle_rows:
+		for col in idle_cols:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = idle_sheet
+			atlas.region = Rect2(col * idle_frame_w, row * idle_frame_h, idle_frame_w, idle_frame_h)
+			frames.add_frame(&"idle", atlas)
 
+	var walk_cols := 5
+	var walk_rows := 5
+	var walk_frame_w := walk_sheet.get_width() / walk_cols
+	var walk_frame_h := walk_sheet.get_height() / walk_rows
 	frames.add_animation(&"walk")
-	frames.set_animation_speed(&"walk", 8.0)
+	frames.set_animation_speed(&"walk", 15.0)
 	frames.set_animation_loop(&"walk", true)
-	for i in 4:
-		var atlas := AtlasTexture.new()
-		atlas.atlas = walk_sheet
-		atlas.region = Rect2(i * 64, 0, 64, 64)
-		frames.add_frame(&"walk", atlas)
+	for row in walk_rows:
+		for col in walk_cols:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = walk_sheet
+			atlas.region = Rect2(col * walk_frame_w, row * walk_frame_h, walk_frame_w, walk_frame_h)
+			frames.add_frame(&"walk", atlas)
 
 	frames.add_animation(&"cast")
 	frames.set_animation_speed(&"cast", 6.0)
@@ -85,6 +95,7 @@ func _setup_animated_sprite() -> void:
 	_anim_sprite.sprite_frames = frames
 	_anim_sprite.animation = &"idle"
 	_anim_sprite.play()
+	_anim_sprite.scale = Vector2(0.5, 0.5)
 	add_child(_anim_sprite)
 
 func _update_animation() -> void:
@@ -117,9 +128,9 @@ func take_damage(amount: float) -> void:
 	hp_changed.emit(current_hp, max_hp)
 	queue_redraw()
 	_spawn_damage_number(final_amount)
-	modulate = Color(10, 10, 10)
+	_anim_sprite.modulate = Color(10, 10, 10)
 	var tween := create_tween()
-	tween.tween_property(self, "modulate", Color.WHITE, 0.15)
+	tween.tween_property(_anim_sprite, "modulate", Color.WHITE, 0.15)
 	if current_hp <= 0.0:
 		if _try_auto_revive():
 			return

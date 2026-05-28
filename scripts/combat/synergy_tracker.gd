@@ -1,7 +1,7 @@
 class_name SynergyTracker
 extends RefCounted
 
-const SYNERGY_WINDOW := 1.0
+const SYNERGY_WINDOW := 1.5
 const ELEMENT_TAGS := ["fire", "lightning", "poison", "cold"]
 
 static var _recent_hits: Dictionary = {}
@@ -48,27 +48,27 @@ static func record_and_check(target: Node2D, tags: Array, damage: float) -> void
 		recent.erase("poison")
 
 static func _trigger_overload(target: Node2D, damage: float) -> void:
-	var burst := damage * 0.6
-	var enemies := Targeting.find_enemies_in_range(target.global_position, 100.0, 15)
+	var burst := damage * 0.8
+	var enemies := Targeting.find_enemies_in_range(target.global_position, 130.0, 20)
 	for e: Node2D in enemies:
 		if e.has_method("take_damage"):
 			e.take_damage(burst)
 	CombatLog.interaction("Overload", target.name, "fire+lightning AoE %.1f to %d" % [burst, enemies.size()])
 
 static func _trigger_shatter(target: Node2D, damage: float) -> void:
-	var burst := damage * 1.5
+	var burst := damage * 2.0
 	if target.has_method("take_damage"):
 		target.take_damage(burst)
 	CombatLog.interaction("Shatter", target.name, "lightning+cold burst %.1f" % burst)
 
 static func _trigger_frostblight(target: Node2D, damage: float) -> void:
 	if target.has_method("apply_dot"):
-		target.apply_dot("frostblight", damage * 0.5, 3.0, 0.5)
-	var enemies := Targeting.find_enemies_in_range(target.global_position, 80.0, 8)
+		target.apply_dot("frostblight", damage * 0.6, 4.0, 0.5)
+	var enemies := Targeting.find_enemies_in_range(target.global_position, 120.0, 10)
 	var spread := 0
 	for e: Node2D in enemies:
 		if e != target and e.has_method("apply_dot"):
-			e.apply_dot("frostblight", damage * 0.3, 2.0, 0.5)
+			e.apply_dot("frostblight", damage * 0.4, 3.0, 0.5)
 			spread += 1
 	CombatLog.interaction("Frostblight", target.name, "cold+poison spread to %d" % spread)
 

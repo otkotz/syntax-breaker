@@ -126,6 +126,7 @@ func _physics_process(delta: float) -> void:
 		if _slow_timer <= 0.0:
 			_slow_factor = 1.0
 			modulate.b = 1.0
+			queue_redraw()
 
 	var effective_speed := move_speed * _slow_factor * _get_consumable_slow()
 
@@ -158,6 +159,7 @@ func _update_facing() -> void:
 
 func _draw() -> void:
 	_draw_health_bar()
+	_draw_status_icons()
 
 func _draw_health_bar() -> void:
 	var bar_width := 24.0
@@ -168,6 +170,33 @@ func _draw_health_bar() -> void:
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
 	var hp_rect := Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height))
 	draw_rect(hp_rect, Color(0.1, 0.9, 0.1))
+
+const STATUS_COLORS: Dictionary = {
+	"poison": Color(0.2, 0.9, 0.2),
+	"burn": Color(1.0, 0.5, 0.1),
+	"bleed": Color(0.9, 0.15, 0.15),
+	"shock": Color(0.4, 0.8, 1.0),
+	"frostblight": Color(0.7, 0.9, 1.0),
+}
+
+func _draw_status_icons() -> void:
+	var active: Array = []
+	for dot_type: String in _dots:
+		active.append(dot_type)
+	if _slow_timer > 0.0:
+		active.append("slow")
+	if active.is_empty():
+		return
+	var icon_size := 4.0
+	var gap := 1.0
+	var total_w: float = active.size() * icon_size + (active.size() - 1) * gap
+	var start_x: float = -total_w / 2.0
+	var icon_y := -34.0
+	for i: int in active.size():
+		var key: String = active[i]
+		var col: Color = STATUS_COLORS.get(key, Color(0.5, 0.5, 1.0))
+		var x: float = start_x + i * (icon_size + gap)
+		draw_rect(Rect2(Vector2(x, icon_y), Vector2(icon_size, icon_size)), col)
 
 func _check_contact_damage() -> void:
 	for i in get_slide_collision_count():
@@ -219,8 +248,10 @@ func _process(delta: float) -> void:
 			take_damage(tick_dmg)
 		if dot["remaining"] <= 0.0:
 			expired.append(dot_type)
-	for key: String in expired:
-		_dots.erase(key)
+	if not expired.is_empty():
+		for key: String in expired:
+			_dots.erase(key)
+		queue_redraw()
 
 func take_damage(amount: float, crit: bool = false) -> void:
 	if current_hp <= 0.0:
@@ -239,19 +270,26 @@ func is_alive() -> bool:
 	return current_hp > 0.0
 
 func apply_slow(factor: float, duration: float) -> void:
+	var was_slowed := _slow_timer > 0.0
 	_slow_factor = min(_slow_factor, factor)
 	_slow_timer = max(_slow_timer, duration)
 	modulate.b = 2.0
+	if not was_slowed:
+		queue_redraw()
 
 func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float) -> void:
+	var is_new := dot_type not in _dots
 	_dots[dot_type] = {
 		"damage": damage_per_tick,
 		"remaining": duration,
 		"interval": tick_interval,
 		"timer": 0.0,
 	}
+	if is_new:
+		queue_redraw()
 
 func _die() -> void:
+	DeathEffect.spawn(get_parent(), global_position + Vector2(0, -14), _dots)
 	Targeting.unregister(self)
 	RunManager.add_gold(gold_value)
 	RunManager.record_stat("enemies_killed", 1)

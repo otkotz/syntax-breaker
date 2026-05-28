@@ -43,6 +43,13 @@ func _show_mutations() -> void:
 		btn.pressed.connect(func(): _on_mutation_selected(mutation))
 		content.add_child(btn)
 
+func setup_skill_only(mutation: Dictionary, skill_instances: Array[SkillInstance]) -> void:
+	_skill_instances = skill_instances
+	_selected_mutation = mutation
+	if title_label:
+		title_label.text = "APPLY MUTATION"
+	_show_skill_picker()
+
 func _on_mutation_selected(mutation: Dictionary) -> void:
 	_selected_mutation = mutation
 	if _skill_instances.size() == 1:

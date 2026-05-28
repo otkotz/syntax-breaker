@@ -78,7 +78,7 @@ func _try_cast(si: SkillInstance) -> bool:
 
 	if PassiveBehaviors.has_ring_of_fire() and si.base.has_tag("projectile"):
 		for i in count:
-			var angle := TAU * i / count
+			var angle := randf() * TAU
 			_spawn_skill(si, Vector2.from_angle(angle), target)
 	else:
 		var direction := global_position.direction_to(target.global_position)

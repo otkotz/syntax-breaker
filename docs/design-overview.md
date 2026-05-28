@@ -211,7 +211,7 @@ All enemies for a stage spawn at once in groups of 4-6 scattered across the map 
 | Support | 8g | 12g | 15g |
 | Passive | 10g | 15g | 20g |
 
-Reroll starts at 2g, +1g each reroll. Only unlocked content appears in shop.
+Reroll starts at 2g, +1g each reroll (cost persists across stages, resets on new run). Only unlocked content appears in shop.
 
 ---
 
@@ -280,4 +280,4 @@ resources/
 ```
 notes:
 
-not much to do with gold at stage 4+
+blade spin as guard skill vs proj 
