@@ -121,12 +121,14 @@ func _draw_health_bar() -> void:
 	draw_rect(hp_rect, Color(0.1, 0.9, 0.1))
 
 const STATUS_COLORS: Dictionary = {
-	"poison": Color(0.2, 0.9, 0.2),
-	"burn": Color(1.0, 0.5, 0.1),
-	"bleed": Color(0.9, 0.15, 0.15),
-	"shock": Color(0.4, 0.8, 1.0),
-	"frostblight": Color(0.7, 0.9, 1.0),
+	"poison": Color(0.4, 0.95, 0.3),
+	"burn": Color(1.0, 0.55, 0.12),
+	"bleed": Color(0.95, 0.15, 0.15),
+	"shock": Color(0.5, 0.85, 1.0),
+	"frostblight": Color(0.72, 0.92, 1.0),
+	"slow": Color(0.6, 0.72, 1.0),
 }
+const STATUS_OUTLINE := Color(0.04, 0.04, 0.07, 0.9)
 
 func _draw_status_icons() -> void:
 	var active: Array = []
@@ -136,16 +138,48 @@ func _draw_status_icons() -> void:
 		active.append("slow")
 	if active.is_empty():
 		return
-	var icon_size := 4.0
-	var gap := 1.0
-	var total_w: float = active.size() * icon_size + (active.size() - 1) * gap
+	var icon := 7.0
+	var gap := 2.0
+	var total_w: float = active.size() * icon + (active.size() - 1) * gap
 	var start_x: float = -total_w / 2.0
-	var icon_y := -34.0
+	var cy := -45.0
 	for i: int in active.size():
 		var key: String = active[i]
-		var col: Color = STATUS_COLORS.get(key, Color(0.5, 0.5, 1.0))
-		var x: float = start_x + i * (icon_size + gap)
-		draw_rect(Rect2(Vector2(x, icon_y), Vector2(icon_size, icon_size)), col)
+		var col: Color = STATUS_COLORS.get(key, Color(0.6, 0.6, 0.7))
+		var c := Vector2(start_x + i * (icon + gap) + icon / 2.0, cy)
+		_draw_status_glyph(key, c, icon / 2.0, col)
+
+func _draw_status_glyph(key: String, c: Vector2, r: float, col: Color) -> void:
+	match key:
+		"burn":  # flame — upward triangle
+			_draw_outlined_poly(PackedVector2Array([
+				c + Vector2(0, -r), c + Vector2(r, r), c + Vector2(-r, r)]), col)
+		"slow":  # downward triangle
+			_draw_outlined_poly(PackedVector2Array([
+				c + Vector2(-r, -r), c + Vector2(r, -r), c + Vector2(0, r)]), col)
+		"bleed":  # diamond
+			_draw_outlined_poly(PackedVector2Array([
+				c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0)]), col)
+		"shock":  # lightning bolt
+			_draw_outlined_poly(PackedVector2Array([
+				c + Vector2(r * 0.2, -r), c + Vector2(-r * 0.6, r * 0.1),
+				c + Vector2(r * 0.1, r * 0.1), c + Vector2(-r * 0.2, r),
+				c + Vector2(r * 0.7, -r * 0.2), c + Vector2(-r * 0.1, -r * 0.2)]), col)
+		"frostblight":  # snowflake — circle backing with spokes
+			draw_circle(c, r + 0.6, STATUS_OUTLINE)
+			draw_circle(c, r, col)
+			for a in 3:
+				var d := Vector2(cos(a * PI / 3.0), sin(a * PI / 3.0)) * r
+				draw_line(c - d, c + d, STATUS_OUTLINE, 1.0)
+		_:  # poison and fallback — solid pip
+			draw_circle(c, r + 0.6, STATUS_OUTLINE)
+			draw_circle(c, r, col)
+
+func _draw_outlined_poly(pts: PackedVector2Array, fill: Color) -> void:
+	draw_colored_polygon(pts, fill)
+	var loop := pts
+	loop.append(pts[0])
+	draw_polyline(loop, STATUS_OUTLINE, 1.0)
 
 func _check_contact_damage() -> void:
 	for i in get_slide_collision_count():

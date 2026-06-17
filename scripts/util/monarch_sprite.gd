@@ -50,7 +50,7 @@ func _paint_abdomen(top_y: int) -> void:
 # folded elytra wing-cases on the back
 func _paint_elytra(sh_y: int) -> void:
 	for s in [-1, 1]:
-		var x := CX + s * 7
+		var x: int = CX + s * 7
 		_fill_trapezoid(x - 3 * s, x + 4 * s, sh_y - 2, x - 1 * s, x + 2 * s, sh_y + 18, 1)
 		_fill_trapezoid(x - 2 * s, x + 3 * s, sh_y - 1, x, x + 2 * s, sh_y + 17, 3)
 		_line(x + 2 * s, sh_y, x + 1 * s, sh_y + 15, 9)   # vein highlight

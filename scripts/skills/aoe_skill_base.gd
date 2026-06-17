@@ -58,7 +58,7 @@ func _generate_arcs() -> void:
 
 func _physics_process(delta: float) -> void:
 	_timer += delta
-	if _skill_id == "flame_wave":
+	if _skill_id == "flame_wave" or _skill_id == "frost_nova":
 		_hit_wave()
 	elif not _has_hit:
 		_has_hit = true
@@ -66,7 +66,7 @@ func _physics_process(delta: float) -> void:
 		_spawn_aftermath()
 	queue_redraw()
 	if _timer >= _lifetime:
-		if _skill_id == "flame_wave":
+		if _skill_id == "flame_wave" or _skill_id == "frost_nova":
 			_spawn_aftermath()
 		_return_to_pool()
 
