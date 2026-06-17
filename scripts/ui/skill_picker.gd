@@ -82,7 +82,7 @@ func _build_header(parent: Control) -> void:
 func _populate() -> void:
 	for file_name in ResourceListing.get_resource_files("res://resources/skills/"):
 		var res := load("res://resources/skills/" + file_name)
-		if res is SkillResource:
+		if res is SkillResource and MetaProgression.is_unlocked("skills", (res as SkillResource).id):
 			_add_skill_card(res as SkillResource)
 
 func _add_skill_card(skill: SkillResource) -> void:
