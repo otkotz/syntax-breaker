@@ -1,10 +1,13 @@
 class_name BehaviorBase
 extends RefCounted
 
-var quality_level: int = 0
+var support_id: String = ""
 
-func is_max_quality() -> bool:
-	return quality_level >= RunManager.MAX_QUALITY_LEVEL
+func is_mastered() -> bool:
+	for p: Resource in RunManager.owned_passives:
+		if p is PassiveResource and p.id == support_id + "_mastery":
+			return true
+	return false
 
 func modify_spawn(_skill_instance, _projectile: Node2D) -> void:
 	pass

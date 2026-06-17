@@ -1,4 +1,4 @@
-class_name CritCascadeBehavior
+﻿class_name CritCascadeBehavior
 extends BehaviorBase
 
 const BASE_BONUS := 0.20
@@ -11,9 +11,9 @@ static var _bonus_timer: float = 0.0
 static var _bonus_amount: float = 0.0
 
 func on_crit(_skill_instance, _target: Node2D, _projectile: Node2D) -> void:
-	_bonus_amount = MAX_Q_BONUS if is_max_quality() else BASE_BONUS
+	_bonus_amount = MAX_Q_BONUS if is_mastered() else BASE_BONUS
 	_bonus_active = true
-	_bonus_timer = MAX_Q_DURATION if is_max_quality() else DURATION
+	_bonus_timer = MAX_Q_DURATION if is_mastered() else DURATION
 
 static func get_cascade_bonus() -> float:
 	if _bonus_active and _bonus_timer > 0.0:

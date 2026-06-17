@@ -69,6 +69,12 @@ func _configure(element: String, radius: float) -> void:
 			_debris_color = Color(0.49, 0.83, 0.29)
 			_duration = 0.4
 			_debris_count = 8
+		"cold":
+			_core_color = Color(0.9, 0.98, 1.0)
+			_ring_color = Color(0.6, 0.85, 1.0)
+			_debris_color = Color(0.75, 0.92, 1.0)
+			_duration = 0.4
+			_debris_count = 8
 		_:
 			_core_color = Color.WHITE
 			_ring_color = Color(1.0, 0.9, 0.5)

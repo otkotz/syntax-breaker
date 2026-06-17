@@ -85,15 +85,6 @@ func _format_reward(reward: Dictionary) -> String:
 		"passive":
 			var res: PassiveResource = reward["resource"]
 			return "PASSIVE: %s\n%s" % [res.name, res.description]
-		"support_quality":
-			var res: SupportResource = reward["resource"]
-			var q: int = RunManager.get_support_quality(res.id) + 1
-			var desc_text := "+%d%% modifier strength" % (q * 5)
-			if q >= RunManager.MAX_QUALITY_LEVEL:
-				var bonus := StatCalculator.get_max_quality_description(res.id)
-				if not bonus.is_empty():
-					desc_text += "\nMAX: " + bonus
-			return "QUALITY %d/4: %s\n%s" % [q, res.name, desc_text]
 		"mutation":
 			var m: Dictionary = reward["mutation"]
 			return "MUTATION: %s\n%s" % [m["name"], m["desc"]]

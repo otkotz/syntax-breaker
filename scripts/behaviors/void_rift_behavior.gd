@@ -1,10 +1,10 @@
-class_name VoidRiftBehavior
+﻿class_name VoidRiftBehavior
 extends BehaviorBase
 
 func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	var damage: float = skill_instance.computed_stats.get("damage", 10.0) * 0.4
 	var radius := 80.0
-	if is_max_quality():
+	if is_mastered():
 		radius = 120.0
 		damage *= 1.3
 	var enemies := Targeting.find_enemies_in_range(target.global_position, radius, 20)

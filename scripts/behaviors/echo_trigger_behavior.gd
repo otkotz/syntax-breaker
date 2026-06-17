@@ -1,4 +1,4 @@
-class_name EchoTriggerBehavior
+﻿class_name EchoTriggerBehavior
 extends BehaviorBase
 
 const BASE_CHANCE := 0.3
@@ -10,7 +10,7 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	if not TriggerGuard.can_trigger(target):
 		return
 
-	var chance := MAX_Q_CHANCE if is_max_quality() else BASE_CHANCE
+	var chance := MAX_Q_CHANCE if is_mastered() else BASE_CHANCE
 	if randf() > chance:
 		return
 
@@ -23,7 +23,7 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		return
 
 	TriggerGuard.begin(target)
-	var dmg_mult := MAX_Q_DAMAGE_MULT if is_max_quality() else DAMAGE_MULT
+	var dmg_mult := MAX_Q_DAMAGE_MULT if is_mastered() else DAMAGE_MULT
 	var echo_damage: float = skill_instance.computed_stats.get("damage", 10.0) * dmg_mult
 	echo_damage *= ComboTracker.current_multiplier
 	nearest.take_damage(echo_damage)

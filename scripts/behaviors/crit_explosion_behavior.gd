@@ -1,4 +1,4 @@
-class_name CritExplosionBehavior
+﻿class_name CritExplosionBehavior
 extends BehaviorBase
 
 func on_hit(skill_instance, target: Node2D, _projectile: Node2D) -> void:
@@ -8,7 +8,7 @@ func on_hit(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 
 	RunManager.record_stat("crits_landed", 1)
 	var explosion_damage: float = skill_instance.computed_stats.get("damage", 10.0) * 0.5
-	var explosion_radius: float = 90.0 if is_max_quality() else 60.0
+	var explosion_radius: float = 90.0 if is_mastered() else 60.0
 	var enemies := Targeting.find_enemies_in_range(target.global_position, explosion_radius, 20)
 	for enemy in enemies:
 		if enemy != target and enemy.has_method("take_damage"):

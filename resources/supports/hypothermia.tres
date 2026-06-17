@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hypothermia"
+name = "Hypothermia"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {}
+added_tags = Array[String](["cold"])
+behavior_key = "hypothermia"
+rarity = "uncommon"
+description = "Adds cold to the skill, chilling enemies on hit and applying frostblight"

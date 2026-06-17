@@ -42,15 +42,13 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 	var mult_totals: Dictionary = {}
 
 	for support: SupportResource in supports:
-		var quality_level: int = RunManager.get_support_quality(support.id)
-		var quality_scale: float = 1.0 + quality_level * RunManager.QUALITY_PER_LEVEL
-		_collect_modifiers(stats, support.stat_modifiers, mult_totals, quality_scale)
-		if RunManager.is_support_max_quality(support.id):
-			_collect_modifiers(stats, _get_max_quality_bonus(support.id), mult_totals)
+		_collect_modifiers(stats, support.stat_modifiers, mult_totals)
+		if _has_mastery_passive(support.id):
+			_collect_modifiers(stats, _get_mastery_bonus(support.id), mult_totals)
 
 	var matching_passives: Array = TagMatcher.get_matching_passives(skill, passives)
 	for passive: PassiveResource in matching_passives:
-		_collect_modifiers(stats, passive.stat_modifiers, mult_totals, 1.0)
+		_collect_modifiers(stats, passive.stat_modifiers, mult_totals)
 
 	# Apply collected multipliers: base * (1 + sum_of_bonuses)
 	for key: String in mult_totals:
@@ -64,22 +62,22 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 	_clamp_stats(stats)
 	return stats
 
-static func _collect_modifiers(stats: Dictionary, modifiers: Dictionary, mult_totals: Dictionary, quality_scale: float = 1.0) -> void:
+static func _collect_modifiers(stats: Dictionary, modifiers: Dictionary, mult_totals: Dictionary) -> void:
 	for key: String in modifiers:
 		if key.ends_with("_mult"):
 			var base_key: String = key.trim_suffix("_mult")
-			var bonus: float = (modifiers[key] - 1.0) * quality_scale
+			var bonus: float = modifiers[key] - 1.0
 			if not mult_totals.has(base_key):
 				mult_totals[base_key] = 0.0
 			mult_totals[base_key] += bonus
 		elif key.ends_with("_add"):
 			var base_key: String = key.trim_suffix("_add")
 			if stats.has(base_key):
-				stats[base_key] += modifiers[key] * quality_scale
+				stats[base_key] += modifiers[key]
 		elif stats.has(key):
-			stats[key] += modifiers[key] * quality_scale
+			stats[key] += modifiers[key]
 
-static var _max_quality_bonuses := {
+static var _mastery_bonuses := {
 	"pierce": {"pierce": 2, "damage_mult": 1.2},
 	"returning": {"damage_mult": 1.15},
 	"chain": {"chain_count": 2},
@@ -106,38 +104,15 @@ static var _max_quality_bonuses := {
 	"crit_cascade": {"crit_chance_add": 0.05},
 }
 
-static var _max_quality_descriptions := {
-	"pierce": "+2 pierce, +20% damage",
-	"returning": "+15% damage, return at 80% damage",
-	"chain": "+2 chain bounces",
-	"split": "+1 extra split",
-	"shotgun": "+2 projectiles, 20% chance to create vortex pulling enemies",
-	"increased_area": "+25% area",
-	"faster_casting": "-15% cooldown, hits slow enemies 40% for 1.5s",
-	"crit_explosion": "+10% crit chance, +30% area, 50% larger explosions",
-	"poison_on_hit": "+15% damage, stronger poison (5 dmg, 4s)",
-	"elemental_proliferation": "+40% area, 80% larger spread radius",
-	"glass_cannon": "+25% damage",
-	"overcharge": "+30% damage",
-	"spell_echo": "+1 extra echo, +10% damage",
-	"cast_on_kill": "+20% damage",
-	"void_rift": "+20% damage, +50% explosion radius",
-	"totem": "Totem casts 20% faster",
-	"mine": "+25% damage",
-	"corpse_bloom": "+15% damage, larger poison clouds",
-	"toxic_burst": "+10% damage, stronger burst (60% skill damage)",
-	"arc_burst": "+5% crit chance, arcs to 3 targets",
-	"echo_trigger": "+15% damage, 40% trigger chance",
-	"plague_carrier": "+10% damage, spreads to 3 targets",
-	"ricochet_amplifier": "+1 chain, +10% damage, 7% per bounce",
-	"crit_cascade": "+5% crit chance, 30% bonus for 1.5s",
-}
+static func _has_mastery_passive(support_id: String) -> bool:
+	var mastery_id := support_id + "_mastery"
+	for p: Resource in RunManager.owned_passives:
+		if p is PassiveResource and p.id == mastery_id:
+			return true
+	return false
 
-static func get_max_quality_description(support_id: String) -> String:
-	return _max_quality_descriptions.get(support_id, "")
-
-static func _get_max_quality_bonus(support_id: String) -> Dictionary:
-	return _max_quality_bonuses.get(support_id, {})
+static func _get_mastery_bonus(support_id: String) -> Dictionary:
+	return _mastery_bonuses.get(support_id, {})
 
 static func _clamp_stats(stats: Dictionary) -> void:
 	for key: String in STAT_MINS:

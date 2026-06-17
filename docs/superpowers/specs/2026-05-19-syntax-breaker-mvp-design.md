@@ -317,9 +317,9 @@ Passive-driven scaling systems tracked by `EngineTracker`:
 | Ricochet Amplifier | projectile | — | ricochet_amplifier |
 | Crit Cascade | universal | — | crit_cascade |
 
-### Support Quality System
+### Support Mastery Passives
 
-Supports can be upgraded up to quality level 4. Each level grants +5% modifier strength. At max quality, a unique bonus unlocks (per support, defined in StatCalculator).
+Each support has a corresponding rare "mastery" passive (e.g., Pierce Mastery, Chain Mastery). Owning the passive enhances the linked support with bonus stats and upgraded behavior effects. Supports can be bought multiple times and equipped across different skills.
 
 ### Passives (29)
 

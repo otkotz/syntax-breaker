@@ -10,11 +10,11 @@ static func get_positions(type: Type, count: int, arena: Rect2, player_pos: Vect
 		Type.RING:
 			return _ring(count, arena, player_pos)
 		Type.LINES:
-			return _lines(count, arena)
+			return _lines(count, arena, player_pos)
 		Type.CLUSTER:
 			return _cluster(count, arena, player_pos)
 		Type.STREAM:
-			return _stream(count, arena)
+			return _stream(count, arena, player_pos)
 		Type.SCATTERED:
 			return _scattered(count, arena, player_pos)
 	return _scattered(count, arena, player_pos)
@@ -25,15 +25,20 @@ static func random_edge_position(arena: Rect2, player_pos: Vector2) -> Vector2:
 static func _ring(count: int, arena: Rect2, player_pos: Vector2) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
 	var offset_angle := randf() * TAU
+	var min_dist := 300.0
 	for i in count:
 		var angle := offset_angle + (float(i) / count) * TAU
 		var dir := Vector2.from_angle(angle)
-		positions.append(_project_to_edge(player_pos, dir, arena))
+		var pos := _project_to_edge(player_pos, dir, arena)
+		if pos.distance_to(player_pos) < min_dist:
+			pos = _random_edge_point(arena, player_pos)
+		positions.append(pos)
 	return positions
 
-static func _lines(count: int, arena: Rect2) -> Array[Vector2]:
+static func _lines(count: int, arena: Rect2, player_pos: Vector2) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
-	var edge := randi() % 4
+	var safe := _safe_edges(arena, player_pos)
+	var edge: int = safe[randi() % safe.size()]
 	var margin := 40.0
 	for i in count:
 		var t := (float(i) + 0.5) / count
@@ -63,9 +68,10 @@ static func _cluster(count: int, arena: Rect2, player_pos: Vector2) -> Array[Vec
 			positions.append(center + offset)
 	return positions
 
-static func _stream(count: int, arena: Rect2) -> Array[Vector2]:
+static func _stream(count: int, arena: Rect2, player_pos: Vector2) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
-	var edge := randi() % 4
+	var safe := _safe_edges(arena, player_pos)
+	var edge: int = safe[randi() % safe.size()]
 	var margin := 40.0
 	var center_t := randf_range(0.3, 0.7)
 	for i in count:
@@ -90,11 +96,32 @@ static func _scattered(count: int, arena: Rect2, player_pos: Vector2) -> Array[V
 		positions.append(_random_edge_point(arena, player_pos))
 	return positions
 
+static func _safe_edges(arena: Rect2, player_pos: Vector2, threshold: float = 250.0) -> Array[int]:
+	var edges: Array[int] = []
+	if player_pos.y - arena.position.y > threshold:
+		edges.append(0)
+	if arena.end.y - player_pos.y > threshold:
+		edges.append(1)
+	if player_pos.x - arena.position.x > threshold:
+		edges.append(2)
+	if arena.end.x - player_pos.x > threshold:
+		edges.append(3)
+	if edges.is_empty():
+		var center := arena.get_center()
+		var dx := player_pos.x - center.x
+		var dy := player_pos.y - center.y
+		if absf(dx) > absf(dy):
+			edges.append(2 if dx > 0 else 3)
+		else:
+			edges.append(0 if dy > 0 else 1)
+	return edges
+
 static func _random_edge_point(arena: Rect2, player_pos: Vector2) -> Vector2:
 	var margin := 40.0
-	var min_dist := 150.0
-	for attempt in 10:
-		var edge := randi() % 4
+	var min_dist := 300.0
+	var safe := _safe_edges(arena, player_pos)
+	for attempt in 12:
+		var edge: int = safe[randi() % safe.size()]
 		var pos: Vector2
 		match edge:
 			0:
@@ -107,7 +134,12 @@ static func _random_edge_point(arena: Rect2, player_pos: Vector2) -> Vector2:
 				pos = Vector2(arena.end.x - margin, randf_range(arena.position.y + margin, arena.end.y - margin))
 		if pos.distance_to(player_pos) > min_dist:
 			return pos
-	return Vector2(arena.end.x - margin, arena.get_center().y)
+	var fallback_edge: int = safe[randi() % safe.size()]
+	match fallback_edge:
+		0: return Vector2(arena.get_center().x, arena.position.y + margin)
+		1: return Vector2(arena.get_center().x, arena.end.y - margin)
+		2: return Vector2(arena.position.x + margin, arena.get_center().y)
+		_: return Vector2(arena.end.x - margin, arena.get_center().y)
 
 static func _project_to_edge(origin: Vector2, direction: Vector2, arena: Rect2) -> Vector2:
 	var margin := 40.0

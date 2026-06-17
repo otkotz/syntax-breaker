@@ -22,8 +22,7 @@ var _base_gold_value: int
 var _sprite: Sprite2D
 var _facing_right: bool = true
 
-static var _oni_texture: ImageTexture
-static var _oni_offset: Vector2
+static var _gremlin_variants: Array = []
 
 signal died(enemy: EnemyBase)
 
@@ -42,80 +41,30 @@ func _ready() -> void:
 
 func _setup_sprite() -> void:
 	_sprite = Sprite2D.new()
-	var data := _get_body_texture_data()
-	_sprite.texture = data["texture"]
-	_sprite.offset = data["offset"]
+	_randomize_variant()
 	add_child(_sprite)
 
-func _get_body_texture_data() -> Dictionary:
-	if not _oni_texture:
-		var data := _build_oni_texture()
-		_oni_texture = data["texture"]
-		_oni_offset = data["offset"]
-	return {"texture": _oni_texture, "offset": _oni_offset}
+func _randomize_variant() -> void:
+	var variants := _get_body_variants()
+	var data: Dictionary = variants[randi() % variants.size()]
+	_sprite.texture = data["texture"]
+	_sprite.offset = data["offset"]
 
-static func _build_oni_texture() -> Dictionary:
-	const OUTLINE := Color(0.04, 0.01, 0.02)
-	const SKIN_D := Color(0.23, 0.04, 0.08)
-	const SKIN_M := Color(0.54, 0.12, 0.17)
-	const SKIN_L := Color(0.84, 0.23, 0.28)
-	const SKIN_H := Color(0.97, 0.54, 0.54)
-	const EYE := Color(1.0, 0.85, 0.3)
-	const FANG := Color(0.96, 0.91, 0.82)
-	const HORN_D := Color(0.23, 0.15, 0.09)
-	const HORN_L := Color(0.75, 0.63, 0.46)
-	const PANTS := Color(0.1, 0.04, 0.09)
-	const PANTS_L := Color(0.16, 0.08, 0.16)
-	const SASH := Color(0.48, 0.09, 0.13)
-	const SASH_L := Color(0.84, 0.23, 0.28)
-	const BLADE_D := Color(0.35, 0.38, 0.46)
-	const BLADE_L := Color(0.88, 0.91, 0.96)
-
-	var r: Array = []
-	var _r := func(x: float, y: float, w: float, h: float, c: Color) -> void:
-		r.append({"rect": Rect2(x, y, w, h), "color": c})
-
-	# Facing right (f=1): dx as-is
-	# legs
-	_r.call(-3, -11, 3, 11, PANTS); _r.call(1, -11, 3, 11, PANTS)
-	_r.call(-4, -2, 8, 1, PANTS_L); _r.call(-4, 0, 8, 1, OUTLINE)
-	# sash
-	_r.call(-4, -13, 8, 2, SASH); _r.call(-4, -13, 8, 1, SASH_L); _r.call(-5, -12, 2, 3, SASH)
-	# torso
-	_r.call(-4, -19, 7, 6, SKIN_M); _r.call(-4, -19, 8, 1, SKIN_M)
-	_r.call(-4, -18, 1, 5, SKIN_D); _r.call(3, -18, 1, 5, SKIN_D)
-	_r.call(-2, -18, 4, 2, SKIN_L); _r.call(-1, -18, 3, 1, SKIN_H); _r.call(0, -17, 1, 3, SKIN_D)
-	# head
-	_r.call(-3, -26, 7, 6, SKIN_M); _r.call(-3, -21, 7, 1, SKIN_D)
-	_r.call(-3, -26, 1, 6, SKIN_D); _r.call(3, -26, 1, 6, SKIN_D)
-	_r.call(-2, -26, 5, 1, SKIN_L); _r.call(-1, -26, 4, 1, SKIN_H)
-	# neck
-	_r.call(-2, -20, 3, 1, SKIN_D)
-	# eyes
-	_r.call(-2, -24, 2, 2, OUTLINE); _r.call(1, -24, 2, 2, OUTLINE)
-	_r.call(-2, -23, 2, 1, EYE); _r.call(1, -23, 2, 1, EYE)
-	# mouth + fangs
-	_r.call(-1, -22, 4, 1, OUTLINE); _r.call(-1, -22, 1, 1, FANG); _r.call(2, -22, 1, 1, FANG)
-	# horns
-	_r.call(-3, -28, 2, 2, HORN_L); _r.call(-4, -30, 2, 2, HORN_L); _r.call(-4, -31, 1, 1, FANG)
-	_r.call(-4, -28, 1, 2, HORN_D)
-	_r.call(2, -28, 2, 2, HORN_L); _r.call(3, -30, 2, 2, HORN_L); _r.call(4, -31, 1, 1, FANG)
-	_r.call(4, -28, 1, 2, HORN_D)
-	# sword arm
-	_r.call(4, -17, 2, 6, SKIN_M); _r.call(4, -17, 1, 6, SKIN_D); _r.call(5, -11, 2, 1, SKIN_D)
-	# sword
-	_r.call(6, -18, 1, 3, OUTLINE); _r.call(6, -21, 2, 1, SASH)
-	_r.call(6, -35, 1, 14, BLADE_L); _r.call(7, -34, 1, 12, BLADE_D)
-	# off arm
-	_r.call(-5, -17, 2, 5, SKIN_M); _r.call(-5, -17, 1, 5, SKIN_D); _r.call(-6, -12, 2, 1, SKIN_D)
-
-	return PixelSprite.build_texture(r)
+# Trash-melee "Glitch Gremlin" — built once, three corruption accents.
+func _get_body_variants() -> Array:
+	if _gremlin_variants.is_empty():
+		_gremlin_variants.append(GremlinSprite.build("red"))
+		_gremlin_variants.append(GremlinSprite.build("toxic"))
+		_gremlin_variants.append(GremlinSprite.build("void"))
+	return _gremlin_variants
 
 func initialize(target: Node2D) -> void:
 	_target = target
 	current_hp = max_hp
 	_dots.clear()
 	_pick_wander_dir()
+	if _sprite:
+		_randomize_variant()
 	show()
 	set_process(true)
 	set_physics_process(true)
@@ -256,6 +205,7 @@ func _process(delta: float) -> void:
 func take_damage(amount: float, crit: bool = false) -> void:
 	if current_hp <= 0.0:
 		return
+	amount *= EngineTracker.get_deep_freeze_mult(self)
 	current_hp -= amount
 	_flash_hit()
 	_spawn_damage_number(amount, crit)

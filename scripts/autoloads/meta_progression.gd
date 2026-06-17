@@ -5,8 +5,14 @@ const MAX_ASCENSION := 20
 
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
-	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning"],
-	"passives": ["thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact"],
+	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning", "hypothermia"],
+	"passives": ["thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact",
+		"pierce_mastery", "returning_mastery", "chain_mastery", "split_mastery", "shotgun_mastery",
+		"increased_area_mastery", "faster_casting_mastery", "crit_explosion_mastery", "poison_on_hit_mastery",
+		"elemental_proliferation_mastery", "glass_cannon_mastery", "overcharge_mastery", "spell_echo_mastery",
+		"cast_on_kill_mastery", "void_rift_mastery", "totem_mastery", "mine_mastery", "corpse_bloom_mastery",
+		"toxic_burst_mastery", "arc_burst_mastery", "echo_trigger_mastery", "plague_carrier_mastery",
+		"ricochet_amplifier_mastery", "crit_cascade_mastery", "deep_freeze"],
 }
 
 var ascension_level: int = 0

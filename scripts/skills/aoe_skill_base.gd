@@ -39,6 +39,8 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 		"static_field":
 			_lifetime = 0.6
 			_generate_arcs()
+		"frost_nova":
+			_lifetime = 0.6
 		_:
 			_lifetime = 0.5
 
@@ -74,6 +76,8 @@ func _draw() -> void:
 			_draw_flame_wave()
 		"static_field":
 			_draw_static_field()
+		"frost_nova":
+			_draw_frost_nova()
 		_:
 			_draw_default()
 
@@ -119,6 +123,31 @@ func _draw_static_field() -> void:
 	if flash_op > 0.0:
 		draw_circle(Vector2.ZERO, area_radius * 0.5 * (1.0 - (1.0 - t) * (1.0 - t)), Color(1.0, 1.0, 1.0, flash_op * 0.5))
 
+func _draw_frost_nova() -> void:
+	var t := _timer / _lifetime
+	var eased := 1.0 - (1.0 - t) * (1.0 - t)
+	var fade := 1.0 - t
+
+	var rim := Color(0.6, 0.9, 1.0, fade)
+	var core := Color(0.85, 0.97, 1.0, fade)
+
+	# expanding frost ring
+	var r_outer := eased * area_radius
+	if r_outer > 4.0:
+		draw_arc(Vector2.ZERO, r_outer, 0, TAU, 32, Color(rim, fade * 0.7), 10.0)
+		draw_circle(Vector2.ZERO, r_outer, Color(0.6, 0.9, 1.0, 0.12 * fade))
+
+	# radial ice shards
+	for i in 8:
+		var ang := (float(i) / 8.0) * TAU + 0.3
+		var inner := Vector2(cos(ang), sin(ang)) * area_radius * 0.25
+		var outer := Vector2(cos(ang), sin(ang)) * r_outer
+		draw_line(inner, outer, Color(core, fade * 0.6), 3.0)
+
+	var flash_op := maxf(0.0, 1.0 - t * 3.0)
+	if flash_op > 0.0:
+		draw_circle(Vector2.ZERO, area_radius * 0.3 * eased, Color(0.95, 0.99, 1.0, flash_op * 0.6))
+
 func _draw_default() -> void:
 	var t := _timer / _lifetime
 	var fade := 1.0 - t
@@ -155,6 +184,8 @@ func _damage_enemy(enemy: Node2D) -> void:
 		element = "lightning"
 	elif tags.has("poison"):
 		element = "poison"
+	elif tags.has("cold"):
+		element = "cold"
 
 	var hit_damage := damage
 	var is_crit := false
@@ -175,6 +206,11 @@ func _damage_enemy(enemy: Node2D) -> void:
 		if tags.has("poison") and randf() <= 0.8:
 			enemy.apply_dot("poison", hit_damage * 0.4, 4.0, 0.5)
 			CombatLog.dot_applied("poison", enemy.name, hit_damage * 0.4, 4.0)
+		if tags.has("cold"):
+			enemy.apply_dot("frostblight", hit_damage * 0.2, 3.0, 0.5)
+			CombatLog.dot_applied("frostblight", enemy.name, hit_damage * 0.2, 3.0)
+	if tags.has("cold") and enemy.has_method("apply_slow"):
+		enemy.apply_slow(0.5, 2.0)
 	GameBus.enemy_hit.emit(enemy, hit_damage, skill_instance.base if skill_instance else null)
 	HitEffect.spawn(self, enemy.global_position - global_position + Vector2.ZERO, element, 50.0)
 	if skill_instance:
@@ -187,6 +223,8 @@ func _damage_enemy(enemy: Node2D) -> void:
 				skill_instance.notify_status_apply(enemy, "burn")
 			if tags.has("poison"):
 				skill_instance.notify_status_apply(enemy, "poison")
+			if tags.has("cold"):
+				skill_instance.notify_status_apply(enemy, "frostblight")
 		if enemy.has_method("is_alive") and not enemy.is_alive():
 			CombatLog.kill(skill_name, enemy.name)
 			skill_instance.notify_kill(enemy, self)
@@ -209,6 +247,8 @@ func _spawn_aftermath() -> void:
 				AftermathEffect.spawn(scene_root, global_position, "embers", area_radius * 0.5, 3.0)
 			"static_field":
 				AftermathEffect.spawn(scene_root, global_position, "static_crackle", area_radius * 0.7, 2.5)
+			"frost_nova":
+				AftermathEffect.spawn(scene_root, global_position, "frost_patch", area_radius * 0.7, 2.5)
 			_:
 				if element == "fire":
 					AftermathEffect.spawn(scene_root, global_position, "scorch", area_radius * 0.4, 2.0)
@@ -216,6 +256,8 @@ func _spawn_aftermath() -> void:
 					AftermathEffect.spawn(scene_root, global_position, "poison_pool", area_radius * 0.4, 2.0)
 				elif element == "lightning":
 					AftermathEffect.spawn(scene_root, global_position, "static_crackle", area_radius * 0.5, 2.0)
+				elif element == "cold":
+					AftermathEffect.spawn(scene_root, global_position, "frost_patch", area_radius * 0.4, 2.0)
 
 func reset() -> void:
 	skill_instance = null

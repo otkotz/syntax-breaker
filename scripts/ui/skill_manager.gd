@@ -438,9 +438,7 @@ func _build_slot_row(filled: bool, support: SupportResource, _skill_color: Color
 	btn.add_theme_stylebox_override("pressed", ps)
 
 	if filled:
-		var q: int = RunManager.get_support_quality(support.id)
-		var q_str := "  Q%d" % q if q > 0 else ""
-		btn.text = support.name + q_str
+		btn.text = support.name
 		btn.add_theme_font_size_override("font_size", 20)
 		btn.add_theme_color_override("font_color", color)
 		btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
@@ -477,9 +475,7 @@ func _build_inv_item(support: SupportResource) -> Button:
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	var color := _get_support_color(support)
-	var q: int = RunManager.get_support_quality(support.id)
-	var q_str := "  Q%d" % q if q > 0 else ""
-	btn.text = support.name + q_str + "\n" + support.description
+	btn.text = support.name + "\n" + support.description
 	btn.add_theme_font_size_override("font_size", 18)
 	btn.add_theme_color_override("font_color", color)
 	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
@@ -691,22 +687,6 @@ func _show_support_info_drawer(support: SupportResource) -> void:
 	desc.add_theme_color_override("font_color", C_INK_MUTE)
 	_drawer_list.add_child(desc)
 
-	var q: int = RunManager.get_support_quality(support.id)
-	if q > 0:
-		var q_lbl := Label.new()
-		q_lbl.text = "Quality: %d" % q
-		q_lbl.add_theme_font_size_override("font_size", 20)
-		q_lbl.add_theme_color_override("font_color", C_BRONZE)
-		_drawer_list.add_child(q_lbl)
-
-	if RunManager.is_support_max_quality(support.id):
-		var bonus := Label.new()
-		bonus.text = "MAX: " + StatCalculator.get_max_quality_description(support.id)
-		bonus.add_theme_font_size_override("font_size", 20)
-		bonus.add_theme_color_override("font_color", C_GOLD)
-		bonus.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_drawer_list.add_child(bonus)
-
 	var cancel_btn := _make_drawer_btn("CLOSE", false)
 	cancel_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	cancel_btn.pressed.connect(func() -> void: _close_drawer())
@@ -721,10 +701,8 @@ func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	btn.size_flags_horizontal = SIZE_EXPAND_FILL
 
 	var color := _get_support_color(support)
-	var q: int = RunManager.get_support_quality(support.id)
-	var q_str := "  Q%d" % q if q > 0 else ""
 	var current_marker := "  [current]" if is_current else ""
-	btn.text = support.name + q_str + current_marker + "\n" + support.description
+	btn.text = support.name + current_marker + "\n" + support.description
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_font_size_override("font_size", 20)
 	btn.add_theme_color_override("font_color", color)

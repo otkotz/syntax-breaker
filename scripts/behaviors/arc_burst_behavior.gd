@@ -1,4 +1,4 @@
-class_name ArcBurstBehavior
+﻿class_name ArcBurstBehavior
 extends BehaviorBase
 
 const ARC_COUNT := 2
@@ -12,8 +12,8 @@ func on_crit(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		return
 
 	TriggerGuard.begin(target)
-	var arc_count := MAX_Q_ARC_COUNT if is_max_quality() else ARC_COUNT
-	var dmg_mult := MAX_Q_DAMAGE_MULT if is_max_quality() else ARC_DAMAGE_MULT
+	var arc_count := MAX_Q_ARC_COUNT if is_mastered() else ARC_COUNT
+	var dmg_mult := MAX_Q_DAMAGE_MULT if is_mastered() else ARC_DAMAGE_MULT
 	var arc_damage: float = skill_instance.computed_stats.get("damage", 10.0) * dmg_mult
 
 	var enemies := Targeting.find_enemies_in_range(target.global_position, ARC_RANGE, arc_count + 1)

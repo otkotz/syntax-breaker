@@ -1,4 +1,4 @@
-class_name CorpseBloomBehavior
+﻿class_name CorpseBloomBehavior
 extends BehaviorBase
 
 const BASE_RADIUS := 70.0
@@ -24,8 +24,8 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	if not scene:
 		return
 
-	var radius := MAX_Q_RADIUS if is_max_quality() else BASE_RADIUS
-	var dmg := MAX_Q_DAMAGE if is_max_quality() else BASE_DAMAGE
+	var radius := MAX_Q_RADIUS if is_mastered() else BASE_RADIUS
+	var dmg := MAX_Q_DAMAGE if is_mastered() else BASE_DAMAGE
 
 	TriggerGuard.begin(target)
 	_active_clouds += 1

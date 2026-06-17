@@ -72,7 +72,7 @@ func _rebuild_behaviors() -> void:
 		if not support.behavior_key.is_empty():
 			var behavior: BehaviorBase = BehaviorRegistry.get_behavior(support.behavior_key)
 			if behavior:
-				behavior.quality_level = RunManager.get_support_quality(support.id)
+				behavior.support_id = support.id
 				behaviors.append(behavior)
 
 func notify_spawn(projectile: Node2D) -> void:

@@ -1,4 +1,4 @@
-class_name RicochetAmplifierBehavior
+﻿class_name RicochetAmplifierBehavior
 extends BehaviorBase
 
 const BONUS_PER_CHAIN := 0.05
@@ -11,8 +11,8 @@ func on_hit(_skill_instance, _target: Node2D, projectile: Node2D) -> void:
 		return
 	if not projectile.has_meta("chains_remaining"):
 		return
-	var bonus_per := MAX_Q_BONUS_PER_CHAIN if is_max_quality() else BONUS_PER_CHAIN
-	var cap := MAX_Q_MAX_BONUS if is_max_quality() else MAX_BONUS
+	var bonus_per := MAX_Q_BONUS_PER_CHAIN if is_mastered() else BONUS_PER_CHAIN
+	var cap := MAX_Q_MAX_BONUS if is_mastered() else MAX_BONUS
 
 	var current_bonus: float = projectile.get_meta("ricochet_bonus", 0.0)
 	current_bonus = minf(current_bonus + bonus_per, cap)

@@ -1,7 +1,10 @@
 class_name MiniBoss
 extends EnemyBase
 
-enum Phase { CHASE, TELEGRAPH, CHARGE, COOLDOWN }
+const ENEMY_PROJECTILE_SCENE := preload("res://scenes/enemies/enemy_projectile.tscn")
+
+enum Phase { CHASE, TELEGRAPH, ATTACK, COOLDOWN }
+enum Attack { CHARGE, SLAM, VOLLEY }
 
 @export var charge_speed: float = 400.0
 @export var telegraph_duration: float = 0.8
@@ -15,163 +18,59 @@ var _ability_timer: float = 0.0
 var _charge_dir: Vector2 = Vector2.ZERO
 var _is_boss_mode: bool = false
 
-static var _boss_texture: ImageTexture
-static var _boss_offset: Vector2
+var _current_attack: Attack = Attack.CHARGE
+var _slam_target: Vector2 = Vector2.ZERO
+var _slam_origin: Vector2 = Vector2.ZERO
+var _attack_count: int = 0
+var _telegraph_indicator: Node2D
 
-func _get_body_texture_data() -> Dictionary:
-	if not _boss_texture:
-		var data := _build_boss_texture()
-		_boss_texture = data["texture"]
-		_boss_offset = data["offset"]
-	return {"texture": _boss_texture, "offset": _boss_offset}
+# Each region has its own boss sprite. Sprites are authored at different native
+# resolutions, so each carries a display scale that lands it at a comparable,
+# imposing on-screen height (~2× a heavy).
+const BOSS_BY_REGION := {
+	"burning_grounds": "demon",
+	"toxic_depths": "monarch",
+	"storm_spire": "overseer",
+}
+const BOSS_SCALE := {
+	"demon": 0.8,
+	"monarch": 0.85,
+	"overseer": 1.0,
+}
+const DEFAULT_BOSS := "demon"
 
-static func _build_boss_texture() -> Dictionary:
-	const PLATE_D := Color(0.039, 0.016, 0.031)
-	const PLATE_M := Color(0.102, 0.039, 0.078)
-	const PLATE_L := Color(0.227, 0.102, 0.149)
-	const MUSCLE_D := Color(0.290, 0.039, 0.078)
-	const MUSCLE_M := Color(0.478, 0.094, 0.133)
-	const MUSCLE_L := Color(0.722, 0.196, 0.227)
-	const MUSCLE_H := Color(0.910, 0.353, 0.376)
-	const MOLTEN := Color(1.0, 0.478, 0.188)
-	const MOLTEN_H := Color(1.0, 0.847, 0.439)
-	const BONE_D := Color(0.165, 0.102, 0.078)
-	const BONE_M := Color(0.416, 0.290, 0.227)
-	const BONE_L := Color(0.749, 0.627, 0.455)
-	const BONE_H := Color(0.957, 0.863, 0.627)
-	const EYE_R := Color(1.0, 0.188, 0.251)
-	const EYE_C := Color(1.0, 0.847, 0.302)
-	const OUTLINE := Color(0.02, 0.008, 0.02)
+# Built once per boss type, keyed by type -> Array of variant textures.
+static var _boss_variants_by_type: Dictionary = {}
+static var _projectile_pool: ObjectPool
 
-	var r: Array = []
-	var c: Array = []
-	var _r := func(x: float, y: float, w: float, h: float, col: Color) -> void:
-		r.append({"rect": Rect2(x, y, w, h), "color": col})
+const SLAM_RADIUS := 120.0
+const SLAM_DAMAGE_MULT := 1.5
+const VOLLEY_COUNT := 8
+const VOLLEY_SPEED := 180.0
 
-	# --- LEGS + FEET ---
-	for side in [-1, 1]:
-		var lx: float = -16.0 if side == -1 else 8.0
-		_r.call(lx, -22, 8, 22, MUSCLE_M)
-		_r.call(lx, -22, 2, 22, MUSCLE_D); _r.call(lx + 6, -22, 2, 22, MUSCLE_D)
-		_r.call(lx - 1, -14, 10, 3, PLATE_M); _r.call(lx - 1, -14, 10, 1, PLATE_L)
-		_r.call(lx + 3, -13, 2, 1, MOLTEN)
-		_r.call(lx - 2, -3, 12, 3, PLATE_M); _r.call(lx - 2, -3, 12, 1, PLATE_L)
-		for i in 3:
-			var cx: float = lx - 1.0 + i * 4.0
-			_r.call(cx, 0, 2, 3, BONE_M); _r.call(cx, 2, 1, 1, BONE_H)
+func _boss_type() -> String:
+	return BOSS_BY_REGION.get(RunManager.current_region, DEFAULT_BOSS)
 
-	# --- HIP / LOINCLOTH ---
-	_r.call(-20, -30, 40, 8, PLATE_D); _r.call(-20, -30, 40, 2, PLATE_M)
-	_r.call(-3, -31, 6, 4, PLATE_L); _r.call(-2, -30, 4, 2, MOLTEN); _r.call(-1, -30, 2, 1, MOLTEN_H)
-	_r.call(-22, -28, 3, 12, PLATE_M); _r.call(19, -28, 3, 12, PLATE_M)
+func _setup_sprite() -> void:
+	super._setup_sprite()
+	var s: float = BOSS_SCALE.get(_boss_type(), 0.8)
+	_sprite.scale = Vector2(s, s)
 
-	# --- TORSO ---
-	_r.call(-18, -48, 36, 18, MUSCLE_M)
-	_r.call(-18, -48, 3, 18, MUSCLE_D); _r.call(15, -48, 3, 18, MUSCLE_D)
-	_r.call(-14, -46, 10, 4, MUSCLE_L); _r.call(4, -46, 10, 4, MUSCLE_L)
-	_r.call(-12, -46, 6, 1, MUSCLE_H); _r.call(6, -46, 6, 1, MUSCLE_H)
-	_r.call(-2, -48, 4, 18, MUSCLE_D); _r.call(-1, -47, 2, 16, OUTLINE)
-	_r.call(0, -45, 1, 12, MOLTEN); _r.call(0, -44, 1, 8, MOLTEN_H)
-	for i in 3:
-		var ry: float = -38.0 + i * 3.0
-		_r.call(-14, ry, 28, 2, PLATE_M); _r.call(-14, ry, 28, 1, PLATE_L)
-	_r.call(-14, -30, 28, 1, MOLTEN); _r.call(-8, -30, 16, 1, MOLTEN_H)
-	_r.call(-20, -50, 40, 2, PLATE_M); _r.call(-20, -50, 40, 1, PLATE_L); _r.call(-1, -50, 2, 2, BONE_L)
+# Region boss — built once per type, three corruption accents each.
+func _get_body_variants() -> Array:
+	var t := _boss_type()
+	if not _boss_variants_by_type.has(t):
+		_boss_variants_by_type[t] = _build_boss_variants(t)
+	return _boss_variants_by_type[t]
 
-	# --- ARMS ---
-	for side in [-1, 1]:
-		var ax: float = -28.0 if side == -1 else 20.0
-		_r.call(ax, -44, 8, 16, MUSCLE_M)
-		_r.call(ax, -44, 2, 16, MUSCLE_D); _r.call(ax + 6, -44, 2, 16, MUSCLE_D)
-		_r.call(ax + 2, -42, 4, 4, MUSCLE_L)
-		var elbow_x: float = ax + (8.0 if side == -1 else -2.0)
-		_r.call(elbow_x + side * -4, -30, 2, 3, BONE_M); _r.call(elbow_x + side * -5, -29, 1, 1, BONE_L)
-		_r.call(ax + 1, -28, 6, 16, MUSCLE_M); _r.call(ax + 1, -28, 2, 16, MUSCLE_D)
-		var spike_x: float = ax + (0.0 if side == -1 else 7.0)
-		_r.call(spike_x, -24, 1, 2, BONE_M); _r.call(spike_x, -18, 1, 2, BONE_M)
-		_r.call(ax + 1, -12, 6, 1, PLATE_M); _r.call(ax + 3, -12, 2, 1, MOLTEN)
-		_r.call(ax + 1, -11, 6, 5, MUSCLE_D); _r.call(ax + 1, -11, 6, 1, MUSCLE_M)
-		for i in 4:
-			var claw_x: float = ax + 1.0 + i * 1.5
-			_r.call(claw_x, -6, 1, 5, BONE_M); _r.call(claw_x, -2, 1, 1, BONE_H)
-
-	# --- SHOULDERS ---
-	for side in [-1, 1]:
-		var sx: float = -30.0 if side == -1 else 14.0
-		_r.call(sx, -56, 16, 10, PLATE_D)
-		_r.call(sx, -56, 16, 2, PLATE_M); _r.call(sx, -55, 16, 1, PLATE_L)
-		_r.call(sx + 7, -52, 2, 2, MOLTEN); _r.call(sx + 8, -52, 1, 1, MOLTEN_H)
-		for i in 3:
-			var spk_x: float = sx + 2.0 + i * 5.0
-			var spk_h: float = 6.0 + (2 - i) * 2.0
-			_r.call(spk_x, -56 - spk_h, 2, spk_h, BONE_M)
-			_r.call(spk_x, -56 - spk_h - 1, 1, 1, BONE_L)
-
-	# --- HEAD ---
-	_r.call(-10, -60, 20, 2, PLATE_M); _r.call(-9, -58, 18, 2, PLATE_M)
-	_r.call(-8, -56, 16, 2, PLATE_M); _r.call(-7, -54, 14, 2, PLATE_M)
-	_r.call(-8, -60, 16, 1, PLATE_L); _r.call(-4, -60, 8, 1, Color(0.353, 0.165, 0.227))
-	_r.call(-10, -59, 1, 6, PLATE_D); _r.call(9, -59, 1, 6, PLATE_D)
-	# Forehead sigil
-	_r.call(-3, -59, 6, 1, MOLTEN); _r.call(-2, -58, 4, 1, MOLTEN)
-	_r.call(-1, -57, 2, 1, MOLTEN_H); _r.call(0, -56, 1, 1, MOLTEN_H)
-	# Eyes
-	for side in [-1, 1]:
-		var ex: float = -8.0 if side == -1 else 3.0
-		_r.call(ex, -57, 5, 4, OUTLINE)
-		_r.call(ex + 1, -56, 3, 2, EYE_R)
-		_r.call(ex + 1, -56, 1, 1, EYE_C); _r.call(ex + 3, -55, 1, 1, EYE_C)
-		_r.call(ex + 2, -56, 1, 1, Color.WHITE)
-	# Jaw
-	_r.call(-5, -52, 10, 2, PLATE_M); _r.call(-2, -52, 4, 2, OUTLINE)
-	_r.call(-1, -52, 2, 1, MOLTEN)
-	# Mandibles
-	for side in [-1, 1]:
-		var mx: float = -6.0 if side == -1 else 4.0
-		var md: float = float(side)
-		_r.call(mx, -50, 2, 2, BONE_M)
-		_r.call(mx + md * 2, -48, 2, 2, BONE_M)
-		_r.call(mx + md * 3, -46, 2, 2, BONE_L)
-		_r.call(mx + md * 3, -44, 1, 1, BONE_H)
-
-	# --- HORN CROWN ---
-	# Central spike
-	for i in 16:
-		var w: int = maxi(1, 3 - int(float(i) / 16.0 * 2.5))
-		_r.call(-w / 2, -61 - i, w, 1, BONE_M)
-		if w > 1 and (i % 2 == 0):
-			_r.call(-w / 2, -61 - i, 1, 1, BONE_L)
-	_r.call(0, -77, 1, 1, BONE_H)
-	_r.call(-3, -61, 6, 2, PLATE_M); _r.call(-3, -61, 6, 1, PLATE_L)
-	# Horn pairs
-	_add_horn_rects(r, -6, -60, -2.0, 10)
-	_add_horn_rects(r, -10, -59, -3.0, 14)
-	_add_horn_rects(r, -13, -57, -4.0, 18)
-	_add_horn_rects(r, 5, -60, 2.0, 10)
-	_add_horn_rects(r, 9, -59, 3.0, 14)
-	_add_horn_rects(r, 12, -57, 4.0, 18)
-
-	return PixelSprite.build_texture(r, c)
-
-static func _add_horn_rects(r: Array, start_x: float, start_y: float, dx_per_step: float, length: int) -> void:
-	const BONE_M := Color(0.416, 0.290, 0.227)
-	const BONE_D := Color(0.165, 0.102, 0.078)
-	const BONE_L := Color(0.749, 0.627, 0.455)
-	const BONE_H := Color(0.957, 0.863, 0.627)
-	var dir: float = signf(dx_per_step) if dx_per_step != 0.0 else 1.0
-	var hx: float = start_x
-	var hy: float = start_y
-	for i in length:
-		var t: float = float(i) / float(length - 1)
-		hx += dx_per_step * 0.4
-		hy -= 1
-		var w: int = maxi(1, int(4.0 - t * 3.5))
-		var x_off: int = int(hx) - (w / 2 if dir < 0 else 0)
-		r.append({"rect": Rect2(x_off, hy, w, 1), "color": BONE_M})
-		if w > 1:
-			r.append({"rect": Rect2(x_off, hy, 1, 1), "color": BONE_L if dir < 0 else BONE_D})
-			r.append({"rect": Rect2(x_off + w - 1, hy, 1, 1), "color": BONE_D if dir < 0 else BONE_L})
-	r.append({"rect": Rect2(int(hx), int(hy) - 1, 1, 1), "color": BONE_H})
+func _build_boss_variants(boss_type: String) -> Array:
+	match boss_type:
+		"monarch":
+			return [MonarchSprite.build("toxic"), MonarchSprite.build("royal"), MonarchSprite.build("red")]
+		"overseer":
+			return [OverseerSprite.build("system"), OverseerSprite.build("lightning"), OverseerSprite.build("void")]
+		_:
+			return [DemonSprite.build("fire"), DemonSprite.build("red"), DemonSprite.build("void")]
 
 func set_as_boss() -> void:
 	_is_boss_mode = true
@@ -188,6 +87,22 @@ func _draw_health_bar() -> void:
 	var bar_color := Color(1.0, 0.75, 0.1) if _is_boss_mode else Color(0.85, 0.15, 0.15)
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height)), bar_color)
 
+# --- Attack selection ---
+
+func _pick_attack() -> Attack:
+	_attack_count += 1
+	if _attack_count <= 1:
+		return Attack.CHARGE
+	var roll := randf()
+	if _is_boss_mode:
+		if roll < 0.35: return Attack.CHARGE
+		if roll < 0.65: return Attack.SLAM
+		return Attack.VOLLEY
+	else:
+		return Attack.CHARGE if roll < 0.55 else Attack.SLAM
+
+# --- Phase machine ---
+
 func _physics_process(delta: float) -> void:
 	if not _target or not is_instance_valid(_target):
 		return
@@ -197,8 +112,8 @@ func _physics_process(delta: float) -> void:
 			_chase(delta)
 		Phase.TELEGRAPH:
 			_telegraph(delta)
-		Phase.CHARGE:
-			_charge(delta)
+		Phase.ATTACK:
+			_do_attack(delta)
 		Phase.COOLDOWN:
 			_cooldown(delta)
 
@@ -220,28 +135,69 @@ func _chase(delta: float) -> void:
 	_ability_timer += delta
 	if _ability_timer >= ability_interval:
 		_ability_timer = 0.0
-		_start_telegraph()
+		_begin_telegraph()
 
-func _start_telegraph() -> void:
+func _begin_telegraph() -> void:
+	_current_attack = _pick_attack()
 	_phase = Phase.TELEGRAPH
-	_phase_timer = telegraph_duration
-	_charge_dir = global_position.direction_to(_target.global_position)
-	modulate = Color(1.5, 0.3, 0.3)
+	velocity = Vector2.ZERO
+
+	match _current_attack:
+		Attack.CHARGE:
+			_phase_timer = telegraph_duration
+			_charge_dir = global_position.direction_to(_target.global_position)
+			modulate = Color(1.5, 0.3, 0.3)
+		Attack.SLAM:
+			_phase_timer = 1.0
+			_slam_target = _target.global_position
+			_slam_origin = global_position
+			modulate = Color(1.5, 0.8, 0.2)
+			_spawn_slam_indicator()
+		Attack.VOLLEY:
+			_phase_timer = 0.9
+			modulate = Color(0.6, 0.3, 1.5)
 
 func _telegraph(delta: float) -> void:
 	_phase_timer -= delta
-	if _phase_timer <= 0.0:
-		_phase = Phase.CHARGE
-		_phase_timer = charge_duration
+	queue_redraw()
 
-func _charge(delta: float) -> void:
-	velocity = _charge_dir * charge_speed
-	move_and_slide()
-	_clamp_to_arena()
-	_check_contact_damage()
-	_update_facing()
-	Targeting.update_position(self)
+	if _current_attack == Attack.SLAM:
+		var t := 1.0 - _phase_timer
+		var lift := sin(t * PI) * 8.0
+		if _sprite:
+			_sprite.position.y = -lift
+
+	if _phase_timer <= 0.0:
+		_phase = Phase.ATTACK
+		_execute_attack()
+
+func _execute_attack() -> void:
+	match _current_attack:
+		Attack.CHARGE:
+			_phase_timer = charge_duration
+		Attack.SLAM:
+			_phase_timer = 0.15
+			global_position = _slam_target
+			if _sprite:
+				_sprite.position.y = 0.0
+			_slam_hit()
+			_remove_slam_indicator()
+		Attack.VOLLEY:
+			_phase_timer = 0.3
+			_fire_volley()
+
+func _do_attack(delta: float) -> void:
+	match _current_attack:
+		Attack.CHARGE:
+			velocity = _charge_dir * charge_speed
+			move_and_slide()
+			_clamp_to_arena()
+			_check_contact_damage()
+			_update_facing()
+			Targeting.update_position(self)
+
 	_phase_timer -= delta
+	queue_redraw()
 	if _phase_timer <= 0.0:
 		_phase = Phase.COOLDOWN
 		_phase_timer = cooldown_duration
@@ -253,12 +209,81 @@ func _cooldown(delta: float) -> void:
 		_phase = Phase.CHASE
 		modulate = Color.WHITE
 
+# --- Slam ---
+
+func _spawn_slam_indicator() -> void:
+	_remove_slam_indicator()
+	_telegraph_indicator = _SlamIndicator.new()
+	(_telegraph_indicator as _SlamIndicator).radius = SLAM_RADIUS
+	get_parent().add_child(_telegraph_indicator)
+	_telegraph_indicator.global_position = _slam_target
+
+func _remove_slam_indicator() -> void:
+	if _telegraph_indicator and is_instance_valid(_telegraph_indicator):
+		_telegraph_indicator.queue_free()
+		_telegraph_indicator = null
+
+func _slam_hit() -> void:
+	var damage: float = contact_damage * SLAM_DAMAGE_MULT
+	var players := get_tree().get_nodes_in_group("player")
+	for p: Node2D in players:
+		if p.global_position.distance_to(_slam_target) <= SLAM_RADIUS:
+			if p.has_method("take_damage"):
+				p.take_damage(damage)
+	_spawn_slam_shockwave()
+
+func _spawn_slam_shockwave() -> void:
+	var wave := _Shockwave.new()
+	wave.max_radius = SLAM_RADIUS
+	get_parent().add_child(wave)
+	wave.global_position = _slam_target
+
+# --- Volley ---
+
+func _fire_volley() -> void:
+	if not _projectile_pool or not is_instance_valid(_projectile_pool._parent):
+		_projectile_pool = ObjectPool.new(ENEMY_PROJECTILE_SCENE, 16, get_tree().current_scene)
+	var count := VOLLEY_COUNT + (4 if _is_boss_mode else 0)
+	var offset_angle := randf() * TAU
+	for i in count:
+		var angle := offset_angle + (float(i) / count) * TAU
+		var dir := Vector2.from_angle(angle)
+		var proj := _projectile_pool.get_instance() as EnemyProjectile
+		if proj:
+			var dmg := contact_damage * 0.6
+			proj.initialize(dir, VOLLEY_SPEED, dmg, global_position, _projectile_pool)
+
+# --- Draw telegraph indicators on boss ---
+
+func _draw() -> void:
+	_draw_health_bar()
+	_draw_status_icons()
+	if _phase != Phase.TELEGRAPH:
+		return
+
+	match _current_attack:
+		Attack.CHARGE:
+			var line_end := _charge_dir * 200.0
+			var alpha := 0.4 + 0.3 * sin(_phase_timer * 12.0)
+			draw_line(Vector2.ZERO, line_end, Color(1.0, 0.2, 0.1, alpha), 3.0)
+		Attack.VOLLEY:
+			var pulse := 0.3 + 0.2 * sin(_phase_timer * 10.0)
+			draw_arc(Vector2.ZERO, 40.0, 0, TAU, 16, Color(0.6, 0.2, 1.0, pulse), 2.0)
+			draw_arc(Vector2.ZERO, 60.0, 0, TAU, 20, Color(0.6, 0.2, 1.0, pulse * 0.5), 1.5)
+
+# --- Reset ---
+
 func reset() -> void:
 	super.reset()
 	_phase = Phase.CHASE
 	_phase_timer = 0.0
 	_ability_timer = 0.0
 	_charge_dir = Vector2.ZERO
+	_current_attack = Attack.CHARGE
+	_attack_count = 0
+	_remove_slam_indicator()
+	if _sprite:
+		_sprite.position.y = 0.0
 	if _is_boss_mode:
 		_is_boss_mode = false
 		scale = Vector2.ONE
@@ -266,5 +291,44 @@ func reset() -> void:
 			_sprite.modulate = Color.WHITE
 
 func _die() -> void:
+	_remove_slam_indicator()
+	if _sprite:
+		_sprite.position.y = 0.0
 	RunManager.record_stat("mini_bosses_killed", 1)
 	super._die()
+
+# --- Inner classes for visual effects ---
+
+class _SlamIndicator extends Node2D:
+	var radius: float = 120.0
+	var _timer: float = 0.0
+
+	func _process(delta: float) -> void:
+		_timer += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.5 + 0.3 * sin(_timer * 10.0)
+		draw_arc(Vector2.ZERO, radius, 0, TAU, 24, Color(1.0, 0.5, 0.1, pulse), 2.0)
+		var inner := radius * (0.3 + 0.15 * sin(_timer * 8.0))
+		draw_arc(Vector2.ZERO, inner, 0, TAU, 16, Color(1.0, 0.8, 0.2, pulse * 0.6), 1.5)
+		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.9, 0.3, pulse))
+
+class _Shockwave extends Node2D:
+	var max_radius: float = 120.0
+	var _timer: float = 0.0
+	const DURATION := 0.35
+
+	func _process(delta: float) -> void:
+		_timer += delta
+		queue_redraw()
+		if _timer >= DURATION:
+			queue_free()
+
+	func _draw() -> void:
+		var t := _timer / DURATION
+		var r := max_radius * t
+		var fade := 1.0 - t
+		draw_arc(Vector2.ZERO, r, 0, TAU, 24, Color(1.0, 0.6, 0.1, fade * 0.8), 3.0)
+		if r > 10.0:
+			draw_arc(Vector2.ZERO, r * 0.6, 0, TAU, 20, Color(1.0, 0.8, 0.3, fade * 0.4), 2.0)

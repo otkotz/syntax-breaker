@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "unlock_frost_nova"
+item_type = "skills"
+item_id = "frost_nova"
+condition_type = "reach_stage"
+condition_params = {"stage": 4}
+description = "Reach stage 4 in a single run"

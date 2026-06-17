@@ -18,9 +18,6 @@ static func roll(skill_instances: Array[SkillInstance], high_quality: bool) -> A
 	return rewards
 
 static func _roll_fallback(high_quality: bool, existing: Array[Dictionary], skill_instances: Array[SkillInstance]) -> Dictionary:
-	var quality_up := _roll_support_quality(existing)
-	if not quality_up.is_empty():
-		return quality_up
 	if skill_instances.size() > 0:
 		var mutation := _roll_mutation(existing, skill_instances)
 		if not mutation.is_empty():
@@ -32,10 +29,7 @@ static func _try_roll(rtype: String, high_quality: bool, existing: Array[Diction
 		"skill":
 			return _roll_skill(existing, skill_instances)
 		"support":
-			var s := _roll_support(existing)
-			if s.is_empty():
-				return _roll_support_quality(existing)
-			return s
+			return _roll_support(existing)
 		"passive":
 			return _roll_passive(existing)
 		"mutation":
@@ -84,13 +78,6 @@ static func _roll_support(existing: Array[Dictionary]) -> Dictionary:
 			continue
 		if not MetaProgression.is_unlocked("supports", res.id):
 			continue
-		var already_owned := false
-		for s: Resource in RunManager.owned_supports:
-			if s is SupportResource and s.id == res.id:
-				already_owned = true
-				break
-		if already_owned:
-			continue
 		var dupe := false
 		for e: Dictionary in existing:
 			if e.get("type") == "support" and e.get("id") == res.id:
@@ -126,22 +113,6 @@ static func _roll_passive(existing: Array[Dictionary]) -> Dictionary:
 		return {"type": "passive", "id": res.id, "resource": res}
 	return {}
 
-static func _roll_support_quality(existing: Array[Dictionary]) -> Dictionary:
-	var upgradeable: Array[SupportResource] = []
-	for s: Resource in RunManager.owned_supports:
-		if s is SupportResource and not RunManager.is_support_max_quality(s.id):
-			var dupe := false
-			for e: Dictionary in existing:
-				if e.get("type") == "support_quality" and e.get("id") == s.id:
-					dupe = true
-					break
-			if not dupe:
-				upgradeable.append(s)
-	if upgradeable.is_empty():
-		return {}
-	upgradeable.shuffle()
-	var pick := upgradeable[0]
-	return {"type": "support_quality", "id": pick.id, "resource": pick}
 
 static func _roll_mutation(existing: Array[Dictionary], skill_instances: Array[SkillInstance]) -> Dictionary:
 	var exclude_ids: Array = []

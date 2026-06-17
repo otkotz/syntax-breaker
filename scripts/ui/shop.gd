@@ -54,16 +54,7 @@ func _generate_offerings() -> void:
 
 	for res: Resource in _load_resources("res://resources/supports/"):
 		if res is SupportResource and MetaProgression.is_unlocked("supports", res.id):
-			var already_owned := false
-			for s: Resource in RunManager.owned_supports:
-				if s is SupportResource and s.id == res.id:
-					already_owned = true
-					break
-			if already_owned:
-				if not RunManager.is_support_max_quality(res.id):
-					pool.append({"type": "support_upgrade", "resource": res, "cost": _get_cost("support", res.rarity)})
-			else:
-				pool.append({"type": "support", "resource": res, "cost": _get_cost("support", res.rarity)})
+			pool.append({"type": "support", "resource": res, "cost": _get_cost("support", res.rarity)})
 
 	var legendary_pool: Array[Dictionary] = []
 	for res: Resource in _load_resources("res://resources/passives/"):
@@ -172,22 +163,10 @@ func _create_card(offering: Dictionary) -> Control:
 			display_current *= 100.0
 		desc.text = upg["fmt"] % [display_amount, display_current]
 	else:
-		var type_label: String = offering["type"]
-		if type_label == "support_upgrade":
-			var q_level: int = RunManager.get_support_quality(offering["resource"].id) + 1
-			type_label = "QUALITY %d/4" % q_level
-		else:
-			type_label = type_label.to_upper()
+		var type_label: String = offering["type"].to_upper()
 		title.text = "[%s] %s" % [type_label, offering["resource"].name]
 		rarity_label.text = rarity.to_upper()
-		var desc_text: String = offering["resource"].description
-		if offering["type"] == "support_upgrade":
-			var next_q: int = RunManager.get_support_quality(offering["resource"].id) + 1
-			desc_text = "+%d%% modifier strength" % (next_q * 5)
-			if next_q >= RunManager.MAX_QUALITY_LEVEL:
-				var bonus_desc := StatCalculator.get_max_quality_description(offering["resource"].id)
-				desc_text += "\nMAX BONUS: " + bonus_desc
-		desc.text = desc_text
+		desc.text = offering["resource"].description
 
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", UITheme.C_SILVER)
@@ -234,10 +213,6 @@ func _on_buy(offering: Dictionary) -> void:
 			RunManager.owned_supports.append(offering["resource"])
 			GameBus.support_acquired.emit(offering["resource"])
 			_show_link_panel()
-		"support_upgrade":
-			var support := offering["resource"] as SupportResource
-			RunManager.upgrade_support_quality(support.id)
-			_recompute_all_skills()
 		"passive":
 			RunManager.owned_passives.append(offering["resource"])
 			_recompute_all_skills()

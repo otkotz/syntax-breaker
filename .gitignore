@@ -4,3 +4,8 @@
 
 # Claude Code
 .claude/
+
+# Build artifacts
+*.apk
+*.apk.idsig
+*.zip

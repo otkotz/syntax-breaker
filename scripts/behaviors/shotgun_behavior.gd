@@ -1,4 +1,4 @@
-class_name ShotgunBehavior
+﻿class_name ShotgunBehavior
 extends BehaviorBase
 
 const VORTEX_CHANCE := 0.2
@@ -7,7 +7,7 @@ const VORTEX_PULL_STRENGTH := 200.0
 const VORTEX_DURATION := 1.5
 
 func on_hit(_skill_instance, target: Node2D, _projectile: Node2D) -> void:
-	if not is_max_quality():
+	if not is_mastered():
 		return
 	if randf() > VORTEX_CHANCE:
 		return

@@ -81,6 +81,8 @@ func _draw() -> void:
 			_draw_smoke()
 		"static_crackle":
 			_draw_static_crackle()
+		"frost_patch":
+			_draw_frost_patch()
 
 func _draw_scorch() -> void:
 	var fade_in: float = minf(1.0, _timer / 0.2)
@@ -147,6 +149,19 @@ func _draw_smoke() -> void:
 		var sy: float = -local_t * 60.0
 		var sz: float = 4.0 + local_t * 12.0
 		draw_circle(Vector2(sx, sy), sz, Color(0.23, 0.23, 0.23, op))
+
+func _draw_frost_patch() -> void:
+	var fade_in: float = minf(1.0, _timer / 0.3)
+	var fade_out: float = minf(1.0, _duration - _timer)
+	var op: float = fade_in * fade_out
+	draw_circle(Vector2.ZERO, _radius, Color(0.6, 0.85, 1.0, 0.18 * op))
+	draw_circle(Vector2.ZERO, _radius * 0.6, Color(0.8, 0.95, 1.0, 0.15 * op))
+	for i in 6:
+		var ang: float = _prand(_seed + i + 500) * TAU
+		var dist: float = _prand(_seed + i + 510) * _radius * 0.7
+		var pos := Vector2(cos(ang), sin(ang)) * dist
+		var twinkle: float = 0.5 + 0.5 * sin(_timer * 4.0 + _prand(_seed + i + 520) * 10.0)
+		draw_rect(Rect2(pos - Vector2(2, 2), Vector2(4, 4)), Color(0.9, 0.98, 1.0, twinkle * op))
 
 func _draw_static_crackle() -> void:
 	for i in 5:

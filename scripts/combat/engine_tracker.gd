@@ -70,6 +70,20 @@ static func get_detonation_mult(hit_count: int) -> float:
 		return 1.0 + DETONATION_BONUS
 	return 1.0
 
+# --- Cold Engine: Deep Freeze ---
+# Chilled (slowed) enemies take more damage from all sources
+const DEEP_FREEZE_BONUS := 0.25
+
+static func get_deep_freeze_mult(target: Node2D) -> float:
+	if not _has_passive("deep_freeze"):
+		return 1.0
+	if target == null:
+		return 1.0
+	var slow_timer: Variant = target.get("_slow_timer")
+	if slow_timer != null and slow_timer > 0.0:
+		return 1.0 + DEEP_FREEZE_BONUS
+	return 1.0
+
 # --- Tick / Cleanup ---
 static func tick(delta: float) -> void:
 	if _crit_streak_timer > 0.0:

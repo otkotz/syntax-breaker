@@ -1,4 +1,4 @@
-class_name PlagueCarrierBehavior
+﻿class_name PlagueCarrierBehavior
 extends BehaviorBase
 
 const SPREAD_COUNT := 2
@@ -20,8 +20,8 @@ func on_kill(_skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		return
 
 	TriggerGuard.begin(target)
-	var count := MAX_Q_SPREAD_COUNT if is_max_quality() else SPREAD_COUNT
-	var radius := MAX_Q_SPREAD_RANGE if is_max_quality() else SPREAD_RANGE
+	var count := MAX_Q_SPREAD_COUNT if is_mastered() else SPREAD_COUNT
+	var radius := MAX_Q_SPREAD_RANGE if is_mastered() else SPREAD_RANGE
 	var enemies := Targeting.find_enemies_in_range(target.global_position, radius, count + 1)
 	var spread := 0
 	for enemy: Node2D in enemies:

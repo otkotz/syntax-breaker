@@ -11,9 +11,13 @@ var _speed_mult: float = 1.0
 
 const IFRAME_DURATION := 0.5
 
+@export var energy_element: String = "cold"
+
 var _anim_sprite: AnimatedSprite2D
 var _cast_timer: float = 0.0
+var _facing: String = "S"
 const CAST_ANIM_DURATION := 0.3
+const FACE_RANGE := 1200.0
 
 signal hp_changed(current: float, maximum: float)
 signal died
@@ -49,65 +53,59 @@ func _setup_animated_sprite() -> void:
 	_anim_sprite = AnimatedSprite2D.new()
 	_anim_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var frames := SpriteFrames.new()
+	var pal := BreakerSprite.palette(energy_element)
 
-	var idle_sheet: Texture2D = load("res://assets/sprites/player_idle.png")
-	var walk_sheet: Texture2D = load("res://assets/sprites/player_walk.png")
-	var cast_sheet: Texture2D = load("res://assets/sprites/player_cast.png")
-
-	var idle_cols := 5
-	var idle_rows := 5
-	var idle_frame_w := idle_sheet.get_width() / idle_cols
-	var idle_frame_h := idle_sheet.get_height() / idle_rows
-	frames.add_animation(&"idle")
-	frames.set_animation_speed(&"idle", 10.0)
-	frames.set_animation_loop(&"idle", true)
-	for row in idle_rows:
-		for col in idle_cols:
-			var atlas := AtlasTexture.new()
-			atlas.atlas = idle_sheet
-			atlas.region = Rect2(col * idle_frame_w, row * idle_frame_h, idle_frame_w, idle_frame_h)
-			frames.add_frame(&"idle", atlas)
-
-	var walk_cols := 5
-	var walk_rows := 5
-	var walk_frame_w := walk_sheet.get_width() / walk_cols
-	var walk_frame_h := walk_sheet.get_height() / walk_rows
-	frames.add_animation(&"walk")
-	frames.set_animation_speed(&"walk", 15.0)
-	frames.set_animation_loop(&"walk", true)
-	for row in walk_rows:
-		for col in walk_cols:
-			var atlas := AtlasTexture.new()
-			atlas.atlas = walk_sheet
-			atlas.region = Rect2(col * walk_frame_w, row * walk_frame_h, walk_frame_w, walk_frame_h)
-			frames.add_frame(&"walk", atlas)
-
-	frames.add_animation(&"cast")
-	frames.set_animation_speed(&"cast", 6.0)
-	frames.set_animation_loop(&"cast", true)
-	for i in 4:
-		var atlas := AtlasTexture.new()
-		atlas.atlas = cast_sheet
-		atlas.region = Rect2(i * 64, 0, 64, 64)
-		frames.add_frame(&"cast", atlas)
+	# Procedurally generate idle / walk / cast for all 8 facing directions.
+	for dir: String in BreakerSprite.DIRS:
+		_build_mode(frames, pal, "idle", dir, 8.0, true)
+		_build_mode(frames, pal, "walk", dir, 12.0, true)
+		_build_mode(frames, pal, "cast", dir, 16.0, true)
 
 	frames.remove_animation(&"default")
 	_anim_sprite.sprite_frames = frames
-	_anim_sprite.animation = &"idle"
+	_anim_sprite.animation = _anim_name("idle", _facing)
 	_anim_sprite.play()
-	_anim_sprite.scale = Vector2(0.5, 0.5)
+	_anim_sprite.scale = Vector2(1.5, 1.5)
 	add_child(_anim_sprite)
 
+func _build_mode(frames: SpriteFrames, pal: PackedColorArray, mode: String, dir: String, speed: float, loops: bool) -> void:
+	var anim := _anim_name(mode, dir)
+	frames.add_animation(anim)
+	frames.set_animation_speed(anim, speed)
+	frames.set_animation_loop(anim, loops)
+	for frame in 5:
+		frames.add_frame(anim, BreakerSprite.build_texture(dir, frame, mode, pal))
+
+func _anim_name(mode: String, dir: String) -> StringName:
+	return StringName(mode + "_" + dir)
+
 func _update_animation() -> void:
-	var target_anim: StringName
+	var mode: String
 	if _cast_timer > 0.0:
-		target_anim = &"cast"
+		mode = "cast"
+		_face_nearest_enemy()
 	elif velocity.length_squared() > 10.0:
-		target_anim = &"walk"
+		mode = "walk"
+		_facing = _dir_from_vector(velocity)
 	else:
-		target_anim = &"idle"
+		mode = "idle"
+	var target_anim := _anim_name(mode, _facing)
 	if _anim_sprite.animation != target_anim:
 		_anim_sprite.play(target_anim)
+
+func _face_nearest_enemy() -> void:
+	var target := Targeting.find_nearest_enemy(global_position, FACE_RANGE)
+	if target:
+		_facing = _dir_from_vector(global_position.direction_to(target.global_position))
+	elif velocity.length_squared() > 10.0:
+		_facing = _dir_from_vector(velocity)
+
+func _dir_from_vector(v: Vector2) -> String:
+	# Screen space (y down): E=0°, S=90°, W=180°, N=-90°.
+	var idx := int(roundi(rad_to_deg(v.angle()) / 45.0)) % 8
+	if idx < 0:
+		idx += 8
+	return ["E", "SE", "S", "SW", "W", "NW", "N", "NE"][idx]
 
 func _connect_caster() -> void:
 	var caster := get_node_or_null("SkillCaster") as SkillCaster

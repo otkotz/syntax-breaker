@@ -47,6 +47,16 @@ static func build_texture(rects: Array, circles: Array = [], padding: int = 2) -
 	var sprite_offset := (min_pos + max_pos) / 2.0
 	return {"texture": tex, "offset": sprite_offset}
 
+static func hue_shift(base_data: Dictionary, shift: float) -> Dictionary:
+	var img: Image = base_data["texture"].get_image().duplicate()
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a > 0:
+				c.h = fmod(c.h + shift, 1.0)
+				img.set_pixel(x, y, c)
+	return {"texture": ImageTexture.create_from_image(img), "offset": base_data["offset"]}
+
 static func build_circle_texture(radius: float, color: Color) -> Dictionary:
 	return build_texture([], [{"pos": Vector2.ZERO, "radius": radius, "color": color}])
 

@@ -7,7 +7,6 @@ var equipped_skills: Array = []
 var owned_supports: Array = []
 var owned_passives: Array = []
 var owned_consumables: Array[Dictionary] = []
-var support_quality: Dictionary = {}
 var run_stats: Dictionary = {}
 var shop_bonuses: Dictionary = {}
 var reroll_cost: int = 2
@@ -24,7 +23,6 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	owned_supports = []
 	owned_passives = []
 	owned_consumables = []
-	support_quality = {}
 	shop_bonuses = {}
 	reroll_cost = 2
 	current_stage_data = null
@@ -66,21 +64,6 @@ func advance_stage() -> void:
 	if current_stage == 1 or current_stage == 4:
 		skill_slots_unlocked = mini(skill_slots_unlocked + 1, 4)
 
-const MAX_QUALITY_LEVEL := 4
-const QUALITY_PER_LEVEL := 0.05
-
-func get_support_quality(support_id: String) -> int:
-	return support_quality.get(support_id, 0)
-
-func upgrade_support_quality(support_id: String) -> bool:
-	var current: int = support_quality.get(support_id, 0)
-	if current >= MAX_QUALITY_LEVEL:
-		return false
-	support_quality[support_id] = current + 1
-	return true
-
-func is_support_max_quality(support_id: String) -> bool:
-	return get_support_quality(support_id) >= MAX_QUALITY_LEVEL
 
 func add_consumable(res: ConsumableResource) -> void:
 	for entry: Dictionary in owned_consumables:
@@ -118,7 +101,6 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"current_stage": current_stage,
 		"gold": gold,
 		"skill_slots_unlocked": skill_slots_unlocked,
-		"support_quality": support_quality,
 		"shop_bonuses": shop_bonuses,
 		"reroll_cost": reroll_cost,
 		"run_stats": run_stats,
@@ -153,7 +135,6 @@ func restore_from_save(data: Dictionary) -> void:
 	current_stage = int(data.get("current_stage", 0))
 	gold = int(data.get("gold", 0))
 	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
-	support_quality = data.get("support_quality", {})
 	shop_bonuses = data.get("shop_bonuses", {})
 	reroll_cost = int(data.get("reroll_cost", 2))
 	run_stats = data.get("run_stats", {})

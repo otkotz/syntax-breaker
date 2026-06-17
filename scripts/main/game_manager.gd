@@ -334,20 +334,6 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"desc": res.description,
 				"color": UITheme.get_rarity_color(res.rarity),
 			}
-		"support_quality":
-			var res: SupportResource = reward["resource"]
-			var q: int = RunManager.get_support_quality(res.id) + 1
-			var desc_text := "+%d%% modifier strength" % (q * 5)
-			if q >= RunManager.MAX_QUALITY_LEVEL:
-				var bonus := StatCalculator.get_max_quality_description(res.id)
-				if not bonus.is_empty():
-					desc_text += "\nMAX: " + bonus
-			return {
-				"type_label": "QUALITY %d/4" % q,
-				"title": res.name,
-				"desc": desc_text,
-				"color": UITheme.C_RARITY_UNCOMMON,
-			}
 		"mutation":
 			var m: Dictionary = reward["mutation"]
 			return {
@@ -390,11 +376,6 @@ func _apply_reward(reward: Dictionary) -> void:
 			for si: SkillInstance in _skill_instances:
 				si.recompute(RunManager.owned_passives)
 			GameBus.passive_acquired.emit(res)
-		"support_quality":
-			var res: SupportResource = reward["resource"]
-			RunManager.upgrade_support_quality(res.id)
-			for si: SkillInstance in _skill_instances:
-				si.recompute(RunManager.owned_passives)
 		"mutation":
 			var mutation: Dictionary = reward["mutation"]
 			var skill_idx: int = reward.get("skill_index", 0)

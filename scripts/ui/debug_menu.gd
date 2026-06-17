@@ -109,18 +109,11 @@ func _build_ui() -> void:
 				si.recompute(RunManager.owned_passives)
 		, CONNECT_ONE_SHOT)
 	)
-	_add_button(vbox, "Add All Supports (Max Q)", func():
+	_add_button(vbox, "Add All Supports", func():
 		for file_name in ResourceListing.get_resource_files("res://resources/supports/"):
 				var support := load("res://resources/supports/" + file_name) as SupportResource
 				if support:
-					var already_owned := false
-					for s: Resource in RunManager.owned_supports:
-						if s is SupportResource and s.id == support.id:
-							already_owned = true
-							break
-					if not already_owned:
-						RunManager.owned_supports.append(support)
-					RunManager.support_quality[support.id] = RunManager.MAX_QUALITY_LEVEL
+					RunManager.owned_supports.append(support)
 	)
 
 func _add_button(parent: Control, text: String, callback: Callable) -> void:

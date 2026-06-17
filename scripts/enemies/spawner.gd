@@ -20,12 +20,13 @@ var _speed_mult: float = 1.0
 var _damage_mult: float = 1.0
 var _gold_mult: float = 1.0
 
-var _pulse_timer: float = 0.0
+var _pulse_cooldown: float = 0.0
 var _pulse_count: int = 0
 var _total_budget: int = 80
 var _spawned_count: int = 0
 var _enemies_alive: int = 0
 var _enemies_per_pulse: int = 6
+var _spawn_threshold: int = 3
 
 var _phase: int = 1
 var _stage_duration: float = 55.0
@@ -39,7 +40,7 @@ var _elite_interval: int = 999
 var _pulses_since_elite: int = 0
 var _power_pulse_interval: int = 5
 
-const PULSE_INTERVAL := 4.5
+const MIN_PULSE_COOLDOWN := 2.0
 
 const ROLE_SCALING := {
 	"trash": {"hp": 0.3, "speed": 1.0, "damage": 0.3, "gold": 0.5},
@@ -56,6 +57,7 @@ func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> v
 	_enemies_alive = 0
 	_spawned_count = 0
 	_pulse_count = 0
+	_pulse_cooldown = 0.0
 	_pulses_since_elite = 0
 	_mini_boss_spawned = false
 	_active = false
@@ -115,8 +117,9 @@ func _configure_phase() -> void:
 			_elite_interval = 2
 			_power_pulse_interval = 4
 
-	var num_pulses := maxi(1, int(_stage_duration / PULSE_INTERVAL))
+	var num_pulses := maxi(1, int(_stage_duration / MIN_PULSE_COOLDOWN))
 	_enemies_per_pulse = maxi(4, _total_budget / num_pulses)
+	_spawn_threshold = maxi(2, int(_enemies_per_pulse * 0.35))
 
 func _ensure_pools() -> void:
 	for scene: PackedScene in [melee_scene, ranged_scene, tank_scene, swarm_scene]:
@@ -128,7 +131,7 @@ func _ensure_pools() -> void:
 func start_next_wave() -> void:
 	_active = true
 	_stage_timer = _stage_duration
-	_pulse_timer = 0.5
+	_pulse_cooldown = 0.0
 
 	if _is_boss_stage and mini_boss_scene:
 		_spawn_boss()
@@ -138,13 +141,13 @@ func _process(delta: float) -> void:
 		return
 
 	_stage_timer -= delta
-	_pulse_timer -= delta
+	_pulse_cooldown -= delta
 
 	var can_spawn := _stage_timer > 0.0 and _spawned_count < _total_budget
 
-	if _pulse_timer <= 0.0 and can_spawn:
+	if can_spawn and _pulse_cooldown <= 0.0 and _enemies_alive <= _spawn_threshold:
 		_spawn_pulse()
-		_pulse_timer = PULSE_INTERVAL
+		_pulse_cooldown = MIN_PULSE_COOLDOWN
 
 	if not can_spawn and _enemies_alive <= 0:
 		_complete_stage()
