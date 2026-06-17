@@ -78,7 +78,7 @@ func _format_reward(reward: Dictionary) -> String:
 	match reward.get("type", ""):
 		"skill":
 			var res: SkillResource = reward["resource"]
-			return "NEW SKILL: %s\n%s  [%s]" % [res.name, res.description, ", ".join(res.tags)]
+			return "%s SKILL: %s\n%s  [%s]" % [str(reward.get("tier", res.rarity)).to_upper(), res.name, res.description, ", ".join(res.tags)]
 		"support":
 			var res: SupportResource = reward["resource"]
 			return "SUPPORT: %s\n%s" % [res.name, res.description]

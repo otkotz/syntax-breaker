@@ -1,7 +1,7 @@
 class_name SkillPicker
 extends Control
 
-signal skill_chosen(skill: SkillResource)
+signal skill_chosen(skill: SkillResource, tier: String)
 
 var _skill_grid: GridContainer
 
@@ -83,10 +83,13 @@ func _populate() -> void:
 	for file_name in ResourceListing.get_resource_files("res://resources/skills/"):
 		var res := load("res://resources/skills/" + file_name)
 		if res is SkillResource and MetaProgression.is_unlocked("skills", (res as SkillResource).id):
-			_add_skill_card(res as SkillResource)
+			var skill := res as SkillResource
+			_add_skill_card(skill, RarityTiers.roll_tier(skill.rarity, RunManager.get_luck()))
 
-func _add_skill_card(skill: SkillResource) -> void:
+func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	var color := _get_skill_color(skill)
+	var tier_color := UITheme.get_rarity_color(tier)
+	var dmg_mult := RarityTiers.damage_mult(tier)
 
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -123,6 +126,14 @@ func _add_skill_card(skill: SkillResource) -> void:
 	name_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
 	name_lbl.mouse_filter = MOUSE_FILTER_IGNORE
 	head.add_child(name_lbl)
+
+	var tier_lbl := Label.new()
+	tier_lbl.text = tier.to_upper()
+	tier_lbl.add_theme_font_size_override("font_size", 16)
+	tier_lbl.add_theme_color_override("font_color", tier_color)
+	tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tier_lbl.mouse_filter = MOUSE_FILTER_IGNORE
+	head.add_child(tier_lbl)
 
 	content.add_child(_gap(6))
 
@@ -165,8 +176,9 @@ func _add_skill_card(skill: SkillResource) -> void:
 	stats_row.mouse_filter = MOUSE_FILTER_IGNORE
 	stats_panel.add_child(stats_row)
 
-	var dps := skill.base_damage / maxf(skill.base_cooldown, 0.01)
-	_add_stat(stats_row, "DMG", str(roundi(skill.base_damage)))
+	var tier_damage := skill.base_damage * dmg_mult
+	var dps := tier_damage / maxf(skill.base_cooldown, 0.01)
+	_add_stat(stats_row, "DMG", str(roundi(tier_damage)))
 	_add_stat(stats_row, "DPS", str(roundi(dps)))
 	_add_stat(stats_row, "CD", "%.1fs" % skill.base_cooldown)
 	_add_stat(stats_row, "SLOTS", str(skill.max_supports))
@@ -177,7 +189,7 @@ func _add_skill_card(skill: SkillResource) -> void:
 	select_btn.text = "SELECT [OVERRIDE]"
 	select_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	_style_select_button(select_btn, color)
-	select_btn.pressed.connect(func(): skill_chosen.emit(skill))
+	select_btn.pressed.connect(func(): skill_chosen.emit(skill, tier))
 	content.add_child(select_btn)
 
 func _build_gem(color: Color) -> PanelContainer:

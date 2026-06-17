@@ -67,7 +67,8 @@ static func _roll_skill(existing: Array[Dictionary], skill_instances: Array[Skil
 				break
 		if dupe:
 			continue
-		return {"type": "skill", "id": skill_res.id, "resource": skill_res}
+		var tier := RarityTiers.roll_tier(skill_res.rarity, RunManager.get_luck())
+		return {"type": "skill", "id": skill_res.id, "resource": skill_res, "tier": tier}
 	return {}
 
 static func _roll_support(existing: Array[Dictionary]) -> Dictionary:

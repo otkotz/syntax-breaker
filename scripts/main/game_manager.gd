@@ -62,8 +62,10 @@ func _load_region(region_id: String) -> RegionResource:
 func _show_skill_picker() -> void:
 	var picker := SKILL_PICKER_SCENE.instantiate() as SkillPicker
 	_ui_layer.add_child(picker)
-	picker.skill_chosen.connect(func(skill: SkillResource):
-		_skill_instances.append(SkillInstance.new(skill))
+	picker.skill_chosen.connect(func(skill: SkillResource, tier: String):
+		var si := SkillInstance.new(skill)
+		si.set_rarity_tier(tier)
+		_skill_instances.append(si)
 		picker.queue_free()
 		_enter_first_stage()
 	, CONNECT_ONE_SHOT)
@@ -313,10 +315,10 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 		"skill":
 			var res: SkillResource = reward["resource"]
 			return {
-				"type_label": "NEW SKILL",
+				"type_label": "%s SKILL" % str(reward.get("tier", res.rarity)).to_upper(),
 				"title": res.name,
 				"desc": "%s  [%s]" % [res.description, ", ".join(res.tags)],
-				"color": UITheme.get_rarity_color(res.rarity),
+				"color": UITheme.get_rarity_color(reward.get("tier", res.rarity)),
 			}
 		"support":
 			var res: SupportResource = reward["resource"]
@@ -357,7 +359,7 @@ func _apply_reward(reward: Dictionary) -> void:
 			var res: SkillResource = reward["resource"]
 			if _skill_instances.size() < RunManager.skill_slots_unlocked:
 				var si := SkillInstance.new(res)
-				si.recompute(RunManager.owned_passives)
+				si.set_rarity_tier(reward.get("tier", res.rarity), RunManager.owned_passives)
 				_skill_instances.append(si)
 				GameBus.skill_acquired.emit(res)
 			else:
@@ -465,7 +467,7 @@ func _serialize_skills() -> Array[Dictionary]:
 		var muts: Array[Dictionary] = []
 		for m: Dictionary in si.mutations:
 			muts.append(m)
-		result.append({"skill_id": si.base.id, "supports": supports, "mutations": muts})
+		result.append({"skill_id": si.base.id, "supports": supports, "mutations": muts, "tier": si.rarity_tier})
 	return result
 
 func _deserialize_skills(skill_data: Array) -> void:
@@ -479,6 +481,7 @@ func _deserialize_skills(skill_data: Array) -> void:
 		if not skill_res:
 			continue
 		var si := SkillInstance.new(skill_res)
+		si.rarity_tier = entry.get("tier", skill_res.rarity)
 		for support_id: String in entry.get("supports", []):
 			var s_path := "res://resources/supports/%s.tres" % support_id
 			if ResourceLoader.exists(s_path):

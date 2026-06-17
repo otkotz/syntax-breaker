@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fortune"
+name = "Fortune"
+affected_tags = Array[String]([])
+stat_modifiers = {"luck": 1.0}
+rarity = "uncommon"
+description = "+1 Luck. Skills you find roll higher rarity tiers (more base damage)."

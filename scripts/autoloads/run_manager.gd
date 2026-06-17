@@ -51,6 +51,15 @@ func add_gold(amount: int) -> void:
 	gold += amount
 	GameBus.gold_changed.emit(gold)
 
+# Luck biases skill rarity-tier rolls toward higher tiers. Derived from owned
+# passives' "luck" modifier plus any shop luck bonus.
+func get_luck() -> float:
+	var l := float(shop_bonuses.get("luck", 0.0))
+	for p: Resource in owned_passives:
+		if p is PassiveResource:
+			l += float((p as PassiveResource).stat_modifiers.get("luck", 0.0))
+	return l
+
 func spend_gold(amount: int) -> bool:
 	if gold >= amount:
 		gold -= amount

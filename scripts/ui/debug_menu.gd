@@ -140,6 +140,7 @@ func _update_stats() -> void:
 	var text := "FPS: %d\n" % fps
 	text += "Stage: %d/%d%s\n" % [RunManager.current_stage, StageGenerator.MAX_DEPTH, stage_type]
 	text += "Gold: %d\n" % RunManager.gold
+	text += "Luck: %.1f\n" % RunManager.get_luck()
 	text += "Enemies: %d alive\n" % alive
 	if _player:
 		text += "HP: %.0f / %.0f\n" % [_player.current_hp, _player.max_hp]

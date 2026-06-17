@@ -6,10 +6,17 @@ var linked_supports: Array[SupportResource] = []
 var computed_stats: Dictionary = {}
 var behaviors: Array[BehaviorBase] = []
 var mutations: Array[Dictionary] = []
+var rarity_tier: String = ""
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
+	rarity_tier = skill_resource.rarity  # intrinsic rarity is the floor until a tier is rolled
 	recompute()
+
+# Sets the rolled rarity tier (which scales base damage) and recomputes stats.
+func set_rarity_tier(tier: String, passives: Array = []) -> void:
+	rarity_tier = tier
+	recompute(passives)
 
 func link_support(support: SupportResource) -> bool:
 	if linked_supports.size() >= base.max_supports:
@@ -30,6 +37,8 @@ func clear_supports() -> void:
 
 func recompute(passives: Array = []) -> void:
 	computed_stats = StatCalculator.compute(base, linked_supports, passives)
+	if not rarity_tier.is_empty():
+		computed_stats["damage"] *= RarityTiers.damage_mult(rarity_tier)
 	_apply_mutations()
 	_rebuild_behaviors()
 

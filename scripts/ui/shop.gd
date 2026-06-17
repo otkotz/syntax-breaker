@@ -7,7 +7,7 @@ signal skill_swapped(old_si: SkillInstance, new_si: SkillInstance)
 
 const OFFERING_COUNT := 4
 const RARITY_COSTS := {
-	"skill": {"common": 15, "uncommon": 20, "rare": 25},
+	"skill": {"common": 15, "uncommon": 20, "rare": 25, "legendary": 35},
 	"support": {"common": 8, "uncommon": 12, "rare": 15},
 	"passive": {"common": 10, "uncommon": 15, "rare": 20, "legendary": 40},
 }
@@ -50,7 +50,8 @@ func _generate_offerings() -> void:
 	for res: Resource in _load_resources("res://resources/skills/"):
 		var skill_res := res as SkillResource
 		if skill_res and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
-			pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", skill_res.rarity)})
+			var tier := RarityTiers.roll_tier(skill_res.rarity, RunManager.get_luck())
+			pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", tier), "tier": tier})
 
 	for res: Resource in _load_resources("res://resources/supports/"):
 		if res is SupportResource and MetaProgression.is_unlocked("supports", res.id):
@@ -131,7 +132,7 @@ func _create_card(offering: Dictionary) -> Control:
 	panel.custom_minimum_size.y = 130.0
 
 	var is_upgrade: bool = offering["type"] == "stat_upgrade"
-	var rarity: String = "rare" if is_upgrade else (offering["resource"].rarity if "rarity" in offering["resource"] else "common")
+	var rarity: String = "rare" if is_upgrade else offering.get("tier", (offering["resource"].rarity if "rarity" in offering["resource"] else "common"))
 	var rarity_color := UITheme.get_rarity_color(rarity)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C_CARD_BG
@@ -200,7 +201,7 @@ func _on_buy(offering: Dictionary) -> void:
 	match offering["type"]:
 		"skill":
 			var si := SkillInstance.new(offering["resource"] as SkillResource)
-			si.recompute(RunManager.owned_passives)
+			si.set_rarity_tier(offering.get("tier", (offering["resource"] as SkillResource).rarity), RunManager.owned_passives)
 			if _skill_instances.size() >= RunManager.skill_slots_unlocked:
 				_pending_skill_instance = si
 				_show_swap_panel()
@@ -305,8 +306,9 @@ func _show_swap_panel() -> void:
 	cancel.pressed.connect(func():
 		link_panel.visible = false
 		if _pending_skill_instance:
-			_offerings.append({"type": "skill", "resource": _pending_skill_instance.base, "cost": _get_cost("skill", _pending_skill_instance.base.rarity)})
-			RunManager.add_gold(_get_cost("skill", _pending_skill_instance.base.rarity))
+			var refund_tier := _pending_skill_instance.rarity_tier
+			_offerings.append({"type": "skill", "resource": _pending_skill_instance.base, "cost": _get_cost("skill", refund_tier), "tier": refund_tier})
+			RunManager.add_gold(_get_cost("skill", refund_tier))
 		_pending_skill_instance = null
 		_refresh_ui()
 	)
