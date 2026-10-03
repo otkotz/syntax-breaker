@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "unlock_toxic_burst"
+item_type = "supports"
+item_id = "toxic_burst"
+condition_type = "stat_threshold"
+condition_params = {"stat": "poison_applied", "threshold": 250}
+description = "Apply poison 250 times in a single run"

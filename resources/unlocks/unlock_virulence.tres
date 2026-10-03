@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "unlock_virulence"
+item_type = "passives"
+item_id = "virulence"
+condition_type = "stat_threshold"
+condition_params = {"stat": "poison_applied", "threshold": 200}
+description = "Apply poison 200 times in a single run"

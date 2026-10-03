@@ -18,6 +18,9 @@ var _arena_rect: Rect2
 var _stage_data: StageData
 var _consumable_pool: Array[ConsumableResource] = []
 const CONSUMABLE_DROP_CHANCE := 0.03
+var _checkpoint_index: int = 0
+var _compilation_open := false
+const CHECKPOINTS := [0.35, 0.70]
 
 signal stage_completed
 
@@ -46,6 +49,9 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 			player.set_speed_mult(speed_mult)
 
 	var caster := player.get_node("SkillCaster") as SkillCaster
+	for skill: SkillInstance in skill_instances:
+		skill.stage_overrides.clear()
+		skill.recompute(RunManager.owned_passives)
 	caster.set_skills(skill_instances)
 
 	spawner.setup(player, _arena_rect, stage_data)
@@ -81,7 +87,7 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 	add_child(_consumable_manager)
 	_consumable_manager.setup(RunManager.get_consumable_data())
 
-	if _consumable_manager.get_slot_count() > 0:
+	if _consumable_manager:
 		var consumable_hud := ConsumableHUD.new()
 		consumable_hud.anchors_preset = Control.PRESET_BOTTOM_WIDE
 		consumable_hud.offset_top = -100
@@ -97,6 +103,12 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 	queue_redraw()
 
 func _process(delta: float) -> void:
+	RunManager.record_stat("time_played", delta)
+	RunTelemetry.tick_combat(delta, spawner._active and spawner._enemies_alive == 0 and spawner._pending_split_fragments == 0 and spawner._stage_timer > 0.0)
+	if hud.has_method("update_wave"):
+		hud.update_wave(spawner.get_stage_timer(), spawner.get_stage_progress(), spawner.get_remaining_enemies())
+	if not _compilation_open and _checkpoint_index < CHECKPOINTS.size() and spawner.get_stage_progress() >= CHECKPOINTS[_checkpoint_index]:
+		_open_compilation()
 	EngineTracker.tick(delta)
 	CritCascadeBehavior.tick(delta)
 	if player:
@@ -104,6 +116,18 @@ func _process(delta: float) -> void:
 			_arena_rect.position + Vector2(16, 16),
 			_arena_rect.end - Vector2(16, 16)
 		)
+
+func _open_compilation() -> void:
+	_compilation_open = true
+	_checkpoint_index += 1
+	get_tree().paused = true
+	var picker := CompilationPicker.new()
+	$CanvasLayer.add_child(picker)
+	picker.setup((player.get_node("SkillCaster") as SkillCaster).skill_instances)
+	picker.chosen.connect(func():
+		_compilation_open = false
+		get_tree().paused = false
+	, CONNECT_ONE_SHOT)
 
 func _draw() -> void:
 	var bg := Color(0.12, 0.12, 0.18)
@@ -150,5 +174,9 @@ func skip_stage() -> void:
 	spawner.force_complete()
 
 func _on_all_waves_cleared() -> void:
+	RunTelemetry.end_stage("cleared", {"normal_spawned": spawner._spawned_count, "normal_budget": spawner._total_budget, "seconds_remaining": spawner.get_stage_timer()})
+	for skill: SkillInstance in (player.get_node("SkillCaster") as SkillCaster).skill_instances:
+		skill.stage_overrides.clear()
+		skill.recompute(RunManager.owned_passives)
 	GameBus.stage_cleared.emit()
 	stage_completed.emit()

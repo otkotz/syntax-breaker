@@ -31,7 +31,7 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="TabBar" type="HBoxContainer" parent="MarginContainer/VBox"]
+[node name="TabBar" type="HFlowContainer" parent="MarginContainer/VBox"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 12

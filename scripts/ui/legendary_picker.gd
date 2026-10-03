@@ -11,7 +11,7 @@ func _notification(what: int) -> void:
 		get_viewport().set_input_as_handled()
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
-	var legendaries := _get_available_legendaries()
+	var legendaries := _get_available_legendaries(skill_instances)
 	legendaries.shuffle()
 	var choices := legendaries.slice(0, mini(3, legendaries.size()))
 
@@ -21,11 +21,11 @@ func setup(skill_instances: Array[SkillInstance]) -> void:
 
 	_build_ui(choices)
 
-func _get_available_legendaries() -> Array[PassiveResource]:
+func _get_available_legendaries(skill_instances: Array[SkillInstance]) -> Array[PassiveResource]:
 	var result: Array[PassiveResource] = []
 	for file_name in ResourceListing.get_resource_files("res://resources/passives/"):
 		var res := load("res://resources/passives/" + file_name)
-		if res is PassiveResource and res.rarity == "legendary":
+		if res is PassiveResource and res.rarity == "legendary" and BuildOptions.can_offer_passive(res, skill_instances):
 			if not MetaProgression.is_unlocked("passives", res.id):
 				continue
 			var owned := false

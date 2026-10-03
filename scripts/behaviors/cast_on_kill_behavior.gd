@@ -9,5 +9,5 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		return
 	var damage: float = skill_instance.computed_stats.get("damage", 10.0) * 0.5
 	damage *= ComboTracker.current_multiplier
-	nearest.take_damage(damage)
+	nearest.take_damage(damage, false, skill_instance.base, "proc")
 	CombatLog.interaction("Cast on Kill", target.name, "%.1f to %s" % [damage, nearest.name])

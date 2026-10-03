@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "unlock_patient_hunter"
+item_type = "passives"
+item_id = "patient_hunter"
+condition_type = "kill_mini_boss"
+condition_params = {}
+description = "Kill a mini-boss"

@@ -20,7 +20,7 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	var tree := target.get_tree()
 	if not tree:
 		return
-	var scene := tree.current_scene
+	var scene := target.get_parent()
 	if not scene:
 		return
 
@@ -36,10 +36,10 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		if enemy == target:
 			continue
 		if enemy.has_method("apply_dot"):
-			enemy.apply_dot("poison", dmg, DURATION, TICK)
+			enemy.apply_dot("poison", dmg, DURATION, TICK, skill_instance.base)
 
 	var cloud := _PoisonCloud.new()
-	cloud.setup(radius, dmg, DURATION, TICK)
+	cloud.setup(radius, dmg, DURATION, TICK, skill_instance.base)
 	cloud.tree_exiting.connect(func(): _active_clouds = maxi(0, _active_clouds - 1))
 	scene.add_child(cloud)
 	cloud.global_position = pos
@@ -59,12 +59,14 @@ class _PoisonCloud extends Node2D:
 	var _lifetime: float = 2.0
 	var _timer: float = 0.0
 	var _tick_timer: float = 0.0
+	var _source: SkillResource
 
-	func setup(radius: float, damage: float, lifetime: float, tick: float) -> void:
+	func setup(radius: float, damage: float, lifetime: float, tick: float, source: SkillResource = null) -> void:
 		_radius = radius
 		_damage = damage
 		_lifetime = lifetime
 		_tick_interval = tick
+		_source = source
 
 	func _process(delta: float) -> void:
 		_timer += delta
@@ -80,7 +82,7 @@ class _PoisonCloud extends Node2D:
 		var enemies := Targeting.find_enemies_in_range(global_position, _radius, 15)
 		for enemy: Node2D in enemies:
 			if enemy.has_method("apply_dot"):
-				enemy.apply_dot("poison", _damage, 1.0, 0.5)
+				enemy.apply_dot("poison", _damage, 1.0, 0.5, _source)
 
 	func _draw() -> void:
 		var fade := 1.0 - (_timer / _lifetime)

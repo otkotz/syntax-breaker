@@ -35,7 +35,7 @@ func _make_node(type: StageData.Type, depth: int) -> Dictionary:
 	return node
 
 func _roll_modifiers(depth: int) -> Array[String]:
-	var mods: Array[String] = []
+	var mods: Array[String] = StageGenerator.get_ascension_modifiers(depth)
 	if _region:
 		for mod: String in _region.stage_modifiers:
 			if not mods.has(mod):

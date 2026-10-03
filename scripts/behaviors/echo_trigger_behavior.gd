@@ -26,7 +26,7 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	var dmg_mult := MAX_Q_DAMAGE_MULT if is_mastered() else DAMAGE_MULT
 	var echo_damage: float = skill_instance.computed_stats.get("damage", 10.0) * dmg_mult
 	echo_damage *= ComboTracker.current_multiplier
-	nearest.take_damage(echo_damage)
+	nearest.take_damage(echo_damage, false, skill_instance.base, "proc")
 	CombatLog.interaction("Echo Trigger", target.name, "echo %.1f to %s" % [echo_damage, nearest.name])
 	RunManager.record_stat("triggers_fired", 1)
 	TriggerGuard.end()

@@ -6,6 +6,7 @@ var speed: float = 200.0
 var damage: float = 5.0
 var _distance_traveled: float = 0.0
 var max_range: float = 600.0
+var source_id: String = "enemy_projectile"
 
 static var _orb_texture: ImageTexture
 static var _orb_offset: Vector2
@@ -42,7 +43,8 @@ static func _build_orb_texture() -> Dictionary:
 
 var _pool_ref: ObjectPool
 
-func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool) -> void:
+func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile") -> void:
+	source_id = source
 	direction = dir
 	speed = spd
 	damage = dmg
@@ -59,7 +61,7 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("take_damage"):
-		body.take_damage(damage)
+		Player.hurt(body, damage, source_id)
 	_return_to_pool()
 
 func _return_to_pool() -> void:
@@ -69,5 +71,6 @@ func _return_to_pool() -> void:
 		queue_free()
 
 func reset() -> void:
+	source_id = "enemy_projectile"
 	_distance_traveled = 0.0
 	_pool_ref = null

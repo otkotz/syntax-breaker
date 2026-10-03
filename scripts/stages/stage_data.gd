@@ -33,6 +33,9 @@ const TYPE_DESCRIPTIONS := {
 }
 
 const MODIFIER_DATA := {
+	"elite_patrol": {"label": "Elite Patrol", "desc": "Ascension 5: one extra elite on pulse 3"},
+	"denial_reinforcement": {"label": "Denial Reinforcement", "desc": "Ascension 10: an extra caster on pulse 2, subject to role cap"},
+	"shield_reinforcement": {"label": "Shield Reinforcement", "desc": "Ascension 15: an extra shield support on pulse 4, subject to role cap"},
 	"swift": {"label": "Swift", "desc": "Enemies 30% faster"},
 	"tough": {"label": "Tough", "desc": "Enemies +50% HP"},
 	"swarming": {"label": "Swarming", "desc": "50% more enemies"},
@@ -43,6 +46,18 @@ const MODIFIER_DATA := {
 
 func get_type_name() -> String:
 	return TYPE_NAMES.get(type, "Unknown")
+
+func get_scripted_roles(pulse: int) -> Array[String]:
+	var roles: Array[String] = []
+	if depth < 2 or type not in [Type.COMBAT, Type.ELITE]:
+		return roles
+	if pulse == 3 and modifiers.has("elite_patrol"):
+		roles.append("elite")
+	if pulse == 2 and modifiers.has("denial_reinforcement"):
+		roles.append("denial_caster")
+	if pulse == 4 and modifiers.has("shield_reinforcement"):
+		roles.append("shield_support")
+	return roles
 
 func get_type_color() -> Color:
 	return TYPE_COLORS.get(type, Color.WHITE)

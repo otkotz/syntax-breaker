@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "unlock_blast_radius"
+item_type = "passives"
+item_id = "blast_radius"
+condition_type = "max_event"
+condition_params = {"event": "max_aoe_kill", "count": 6}
+description = "Kill 6 enemies with a single area cast"

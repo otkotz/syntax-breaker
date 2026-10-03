@@ -17,13 +17,13 @@ func on_kill(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 			continue
 
 		if "fire" in tags:
-			enemy.apply_dot("fire", 5.0, 2.0, 0.5)
+			enemy.apply_dot("burn", 5.0, 2.0, 0.5, skill_instance.base)
 			spread_count += 1
 		if "lightning" in tags:
-			enemy.apply_dot("shock", 3.0, 1.5, 0.3)
+			enemy.apply_dot("shock", 3.0, 1.5, 0.3, skill_instance.base)
 			spread_count += 1
 		if "poison" in tags:
-			enemy.apply_dot("poison", 3.0, 3.0, 0.5)
+			enemy.apply_dot("poison", 3.0, 3.0, 0.5, skill_instance.base)
 			spread_count += 1
 
 	if spread_count > RunManager.run_stats.get("max_dot_spread_kill", 0):

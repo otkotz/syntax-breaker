@@ -48,7 +48,12 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 
 	var matching_passives: Array = TagMatcher.get_matching_passives(skill, passives)
 	for passive: PassiveResource in matching_passives:
-		_collect_modifiers(stats, passive.stat_modifiers, mult_totals)
+		if passive.id == "swift_feet":
+			var skill_modifiers: Dictionary = passive.stat_modifiers.duplicate()
+			skill_modifiers.erase("speed_mult")
+			_collect_modifiers(stats, skill_modifiers, mult_totals)
+		else:
+			_collect_modifiers(stats, passive.stat_modifiers, mult_totals)
 
 	# Apply collected multipliers: base * (1 + sum_of_bonuses)
 	for key: String in mult_totals:
@@ -59,7 +64,7 @@ static func compute(skill: SkillResource, supports: Array, passives: Array) -> D
 		if stats.has(key):
 			stats[key] += RunManager.shop_bonuses[key]
 
-	_clamp_stats(stats)
+	clamp_final_stats(stats)
 	return stats
 
 static func _collect_modifiers(stats: Dictionary, modifiers: Dictionary, mult_totals: Dictionary) -> void:
@@ -114,7 +119,7 @@ static func _has_mastery_passive(support_id: String) -> bool:
 static func _get_mastery_bonus(support_id: String) -> Dictionary:
 	return _mastery_bonuses.get(support_id, {})
 
-static func _clamp_stats(stats: Dictionary) -> void:
+static func clamp_final_stats(stats: Dictionary) -> void:
 	for key: String in STAT_MINS:
 		if stats.has(key):
 			stats[key] = max(stats[key], STAT_MINS[key])

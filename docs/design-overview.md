@@ -7,6 +7,10 @@
 > interactions, branching stage map, build identity, meta-progression, mobile/perf, content expansion).
 > Phase 8 (first public demo) is the current focus. See `CLAUDE.md` for phase tracking.
 
+Current implementation audit and unverified playtest gates: [gameplay audit](gameplay-audit-2026-10-03.md).
+Resource counts and exported RegionResource fields are checked by the native
+[catalog snapshot test](catalog-snapshot.md); catalog size is not demo-readiness evidence.
+
 ---
 
 ## Game Loop
@@ -29,11 +33,14 @@ Main Menu → (pick Region) → Skill Picker → Stage Map ⇄ Stages → Run Su
 - **Stage modifiers** rolled from depth 3+ (`swift`, `tough`, `swarming`, `deadly`, `enriched`,
   `cursed`); regions inject their own. 1 modifier at depth 3–6, 2 at depth 7+.
 - **Combat stage**: player spawns in a 3200×3200 arena. Skills auto-fire at nearest target.
-  Enemies stream in over the stage duration (density curve scales 80 → 700 enemies, ~50–90s).
+  Enemies stream in over the stage duration (density curve scales 80 → 580 enemies, ~50–90s).
   Mini-bosses appear on the depth-4 and depth-7 density curves.
-- **Rewards**: normal combat → reward picker then a mandatory shop; treasure → free reward then
-  back to map; elite/boss → chest with rolled loot. Boss clears additionally grant a **mutation**
-  (per-skill stat graft) followed by a **legendary passive** choice.
+- **Rewards**: normal combat and elite → reward picker then back to map, without a mandatory
+  shop. Treasure offers gear, 40% max-HP healing or 35 gold. Boss 5 grants a **mutation**,
+  a **legendary passive**, a normal boss reward and a guaranteed shop; boss 10 ends the run.
+  Combat checkpoints at 35% and 70% pause the arena for a temporary build choice or skip.
+  Reward screens offer a compatible build improvement, a new direction, and a flexible option.
+  Shops reserve a slot for a compatible support or focused passive when one is available.
 - **Run end**: victory at depth 10 or on death. Unlock conditions are checked against `run_stats`;
   newly satisfied unlocks persist (meta-progression).
 
@@ -51,8 +58,9 @@ Run auto-saves on every stage-map visit (`user://active_run.json`) and can be re
 | **RunManager** | Run state — stage tree, gold, equipped skills, owned supports/passives/consumables, skill slots, region, ascension, run-stat tracking, save/resume |
 | **InputManager** | Touch/keyboard abstraction — exposes `movement_vector` |
 | **BehaviorRegistry** | Maps behavior keys → GDScript classes. **20 registered behaviors** (see Behavior System) |
-| **MetaProgression** | Persistent unlocks, ascension level (0–20), codex discovery. Saved to JSON |
+| **MetaProgression** | Persistent unlocks, regional wins/Ascension ladder, challenges, cosmetics, codex discovery. Saved to JSON |
 | **QualitySettings** | Mobile/perf quality tier (particle/effect density, shake) |
+| **RunTelemetry** | Local per-run decisions, clocks, damage sources and frame statistics; headless runs marked synthetic |
 
 ### Entry point
 
@@ -78,8 +86,9 @@ base_projectile_count, max_supports (3), scene_path, icon, rarity, description`
 `id, name, required_tags[], excluded_tags[], stat_modifiers{}, added_tags[], behavior_key,
 icon, rarity, description`
 
-Linking rule: a support links to a skill if (a) the skill has none of the support's `excluded_tags`,
-and (b) the support is universal (`required_tags` empty) or the skill has any `required_tags`.
+Tag matching checks excluded/required tags, but is not sufficient on its own. Instance-level
+validation also checks slot capacity, duplicates and incompatible behaviors (Mine/Totem/Echo
+and projectile-only supports). Reward, shop and manager use the same rejection-reason API.
 
 ### PassiveResource
 `id, name, affected_tags[], stat_modifiers{}, behavior_key, rarity, description`
@@ -89,7 +98,8 @@ matching skills. Passives may carry a `behavior_key` for runtime engine effects 
 
 ### RegionResource
 `id, name, description, bg_color, grid_color, border_color, enemy_tint, ambient_particle_color,
-stage_modifiers[], hp_mult, damage_mult, rarity` — themes the arena and biases the modifier pool.
+stage_modifiers[], favored_tags[], favored_mutations[], hp_mult, damage_mult, rarity` — themes
+the arena and supplies modifier/draft affinity. One shop slot prefers regional affinity.
 
 ### ConsumableResource
 `id, name, effect_type, duration, magnitude, cost, description`
@@ -121,7 +131,7 @@ Stat-and-behavior modules linked into skill slots. Includes:
 
 Stat-only supports have an empty `behavior_key`; the rest reference one of the 20 behaviors.
 
-### Passives (57)
+### Passives (55)
 
 Grouped into:
 - **Base stat passives** — e.g. `thick_skin`, `swift_feet`, `sharp_eyes`, `heavy_hitter`,
@@ -259,8 +269,10 @@ arena-boundary clamping. Per-stage difficulty comes from `StageData` multipliers
 | **Damage Numbers** | Floating hit text (crit emphasized) |
 
 ### Shop Economy
-Run starts at **30 gold**. Skill slots unlock progressively (1 → up to 4, gained on the 1st and 4th
-advance). Reroll starts at 2g, +1g each reroll (persists across stages, resets per run).
+Standard starts at **30 gold**; unlocked Mine/Totem contracts spend 15 of that equal starter
+budget on a support. All starters are common. Extra slots unlock at depths **1/4/7** (up to 4).
+Reroll starts at 2g, +1g each reroll, and resets on each shop visit. First stat upgrades cost
+30/36/45 gold, with increasing repeat costs. Gold retains fractions and separate earned/spent counters.
 Only unlocked content appears. Prices scale by item type and rarity.
 
 ---
@@ -269,10 +281,14 @@ Only unlocked content appears. Prices scale by item type and rarity.
 
 - **Starter pool**: 3 skills (`fireball`, `lightning_bolt`, `blade_spin`), 10 supports, and a broad
   set of base + mastery passives. Remaining content unlocks via `UnlockConditionResource` checks
-  against `run_stats` at run end (~20 unlock conditions).
+  against `run_stats` at run end (40 unlock resources; see the checked catalog snapshot).
 - **Ascension** (0–20): per-level scaling — `hp_mult +15%`, `damage_mult +10%`, `speed_mult +3%`,
   `gold_mult −2%` (floor 0.5×) per level.
-- **Codex**: discovery tracking per category.
+  Only unlocked levels can be selected, separately per region; victory unlocks the next level.
+  Ascension 5/10/15 adds elite/caster/shield reinforcements after the opening stage.
+- **Codex**: discovery, archetype challenges, cosmetic equipment and regional boss trophies.
+  Contracts unlock after wins; rewards do not add permanent combat stats. Daily seeds/history
+  remain deferred until combat balance is verified.
 - Persisted to `user://meta_progression.json`. Active run persisted to `user://active_run.json`.
 
 ---
@@ -288,11 +304,12 @@ Slotted (max 4), charge-based, used mid-combat: `health_potion`, `damage_flask`,
 `berserker_potion`, `time_slow` (enemy slow), `aoe_bomb`, `gold_magnet`, `auto_revive`.
 Managed by `ConsumableManager`; effects are timed and surfaced on the consumable HUD.
 
-## Mutations (8)
+## Mutations (12)
 
 Per-skill stat grafts offered after boss clears (`MutationData.POOL`): `piercing`, `rapid_fire`,
 `giant`, `sniper`, `scatter`, `crit_master`, plus specials `vampiric` (heal on kill) and
-`explosive` (kills deal nearby damage).
+`explosive` (kills deal nearby damage), plus tradeoffs `heavy_payload`, `hair_trigger`,
+`concentrated` and `close_quarters`. Offers use `MutationData.can_apply` compatibility.
 
 ---
 
@@ -344,7 +361,7 @@ scripts/
               object_pool, spatial_grid, resource_listing, pixel_sprite + procedural *_sprite builders
 
 resources/
-  skills/ (7)   supports/ (25)   passives/ (57)   unlocks/ (~20)
+  skills/ (7)   supports/ (25)   passives/ (55)   unlocks/ (40)
   regions/ (3)  consumables/ (8) config/ (game_balance, default_theme)
 
 scenes/

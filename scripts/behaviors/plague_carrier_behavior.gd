@@ -30,7 +30,7 @@ func on_kill(_skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		if spread >= count:
 			break
 		if enemy.has_method("apply_dot"):
-			enemy.apply_dot("poison", spread_dmg, spread_dur, 0.5)
+			enemy.apply_dot("poison", spread_dmg, spread_dur, 0.5, poison_data.get("source"))
 			spread += 1
 
 	if spread > 0:

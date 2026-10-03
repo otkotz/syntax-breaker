@@ -126,11 +126,14 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> void:
 	if si.base.scene_path.is_empty():
 		return
+	if si.base.has_tag("projectile") and ProjectileBase.active_count >= QualitySettings.projectile_cap:
+		return
 	var pool: ObjectPool = _pools.get(si.base.scene_path)
 	if pool == null:
 		return
 
 	var projectile := pool.get_instance()
+	RunManager.record_challenge_cast(false)
 	projectile.global_position = global_position
 
 	if projectile.has_method("initialize"):
@@ -154,9 +157,11 @@ func _place_totem(si: SkillInstance) -> bool:
 
 	var totem := SkillTotem.new()
 	totem.setup(si, pool, global_position)
-	get_tree().current_scene.add_child(totem)
+	_get_placement_parent().add_child(totem)
+	totem.global_position = global_position
 	totem.tree_exiting.connect(func(): _active_totems.erase(totem))
 	_active_totems.append(totem)
+	RunManager.record_challenge_cast(false)
 	CombatLog.skill_cast(si.base.name + " (Totem)", 1)
 	return true
 
@@ -167,12 +172,29 @@ func _place_mine(si: SkillInstance) -> bool:
 		_active_mines.remove_at(0)
 
 	var mine := SkillMine.new()
-	mine.setup(si, global_position + Vector2(randf_range(-30, 30), randf_range(-30, 30)))
-	get_tree().current_scene.add_child(mine)
+	var placement := global_position + Vector2(randf_range(-30, 30), randf_range(-30, 30))
+	mine.setup(si, placement)
+	_get_placement_parent().add_child(mine)
+	mine.global_position = placement
 	mine.tree_exiting.connect(func(): _active_mines.erase(mine))
 	_active_mines.append(mine)
+	RunManager.record_challenge_cast(true)
 	CombatLog.skill_cast(si.base.name + " (Mine)", 1)
 	return true
+
+func _get_placement_parent() -> Node:
+	var ancestor := get_parent()
+	while ancestor:
+		if ancestor is Arena:
+			return ancestor
+		ancestor = ancestor.get_parent()
+	return get_tree().current_scene
+
+func _exit_tree() -> void:
+	# Also clean standalone/test placements, where no Arena ancestor exists.
+	for placement in _active_mines + _active_totems:
+		if is_instance_valid(placement) and not placement.is_queued_for_deletion():
+			placement.queue_free()
 
 func _clean_totems() -> void:
 	_active_totems = _active_totems.filter(func(t: SkillTotem): return is_instance_valid(t))

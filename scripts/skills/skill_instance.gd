@@ -7,6 +7,7 @@ var computed_stats: Dictionary = {}
 var behaviors: Array[BehaviorBase] = []
 var mutations: Array[Dictionary] = []
 var rarity_tier: String = ""
+var stage_overrides: Array[Dictionary] = []
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -19,12 +20,43 @@ func set_rarity_tier(tier: String, passives: Array = []) -> void:
 	recompute(passives)
 
 func link_support(support: SupportResource) -> bool:
-	if linked_supports.size() >= base.max_supports:
-		return false
-	if not TagMatcher.can_link_support(base, support):
+	if not support_rejection_reason(support).is_empty():
 		return false
 	linked_supports.append(support)
 	recompute()
+	return true
+
+func support_rejection_reason(support: SupportResource, replacing: SupportResource = null) -> String:
+	if not TagMatcher.can_link_support(base, support):
+		return "Incompatible skill tags"
+	if linked_supports.size() >= base.max_supports and replacing == null:
+		return "All sockets are full"
+	for linked: SupportResource in linked_supports:
+		if linked != replacing and not support.id.is_empty() and linked.id == support.id:
+			return "Already linked"
+	if not can_combine_support(support, replacing):
+		return "Conflicting casting mode or projectile behavior"
+	return ""
+
+func can_combine_support(support: SupportResource, replacing: SupportResource = null) -> bool:
+	# These supports change who casts the skill. Stacking them previously made the
+	# later effects silently disappear because SkillCaster can only use one mode.
+	const CAST_MODE_SUPPORTS := ["mine", "totem"]
+	const DEFERRED_CAST_SUPPORTS := ["mine", "totem", "spell_echo"]
+	const MINE_INCOMPATIBLE_SUPPORTS := [
+		"chain", "pierce", "returning", "ricochet_amplifier", "shotgun", "split",
+	]
+	for linked: SupportResource in linked_supports:
+		if linked == replacing:
+			continue
+		if support.id in CAST_MODE_SUPPORTS and linked.id in CAST_MODE_SUPPORTS:
+			return false
+		if support.id in DEFERRED_CAST_SUPPORTS and linked.id in DEFERRED_CAST_SUPPORTS:
+			return false
+		if (support.id == "mine" and linked.id in MINE_INCOMPATIBLE_SUPPORTS) or (
+			linked.id == "mine" and support.id in MINE_INCOMPATIBLE_SUPPORTS
+		):
+			return false
 	return true
 
 func unlink_support(support: SupportResource) -> void:
@@ -40,6 +72,14 @@ func recompute(passives: Array = []) -> void:
 	if not rarity_tier.is_empty():
 		computed_stats["damage"] *= RarityTiers.damage_mult(rarity_tier)
 	_apply_mutations()
+	for override_stats: Dictionary in stage_overrides:
+		for key: String in override_stats:
+			if key.ends_with("_mult") and computed_stats.has(key.trim_suffix("_mult")):
+				computed_stats[key.trim_suffix("_mult")] *= override_stats[key]
+			elif computed_stats.has(key):
+				computed_stats[key] += override_stats[key]
+	# Mutations are applied after StatCalculator, so enforce every final bound.
+	StatCalculator.clamp_final_stats(computed_stats)
 	_rebuild_behaviors()
 
 func add_mutation(mutation: Dictionary) -> void:
@@ -120,4 +160,4 @@ func _process_mutation_kills(target: Node2D) -> void:
 		var enemies := Targeting.find_enemies_in_range(target.global_position, 80.0, 10)
 		for enemy: Node2D in enemies:
 			if enemy != target and enemy.has_method("take_damage"):
-				enemy.take_damage(damage)
+				enemy.take_damage(damage, false, base, "proc")

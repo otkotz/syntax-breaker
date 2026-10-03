@@ -51,6 +51,9 @@ const VOLLEY_SPEED := 180.0
 func _boss_type() -> String:
 	return BOSS_BY_REGION.get(RunManager.current_region, DEFAULT_BOSS)
 
+func get_contact_source() -> String:
+	return get_enemy_id() + (":charge" if _phase == Phase.ATTACK and _current_attack == Attack.CHARGE else ":contact")
+
 func _setup_sprite() -> void:
 	super._setup_sprite()
 	var s: float = BOSS_SCALE.get(_boss_type(), 0.8)
@@ -74,6 +77,7 @@ func _build_boss_variants(boss_type: String) -> Array:
 
 func set_as_boss() -> void:
 	_is_boss_mode = true
+	add_to_group("bosses")
 	scale = Vector2(1.8, 1.8)
 	if _sprite:
 		_sprite.modulate = Color(1.3, 1.0, 0.7)
@@ -229,7 +233,7 @@ func _slam_hit() -> void:
 	for p: Node2D in players:
 		if p.global_position.distance_to(_slam_target) <= SLAM_RADIUS:
 			if p.has_method("take_damage"):
-				p.take_damage(damage)
+				Player.hurt(p, damage, get_enemy_id() + ":slam")
 	_spawn_slam_shockwave()
 
 func _spawn_slam_shockwave() -> void:
@@ -242,7 +246,7 @@ func _spawn_slam_shockwave() -> void:
 
 func _fire_volley() -> void:
 	if not _projectile_pool or not is_instance_valid(_projectile_pool._parent):
-		_projectile_pool = ObjectPool.new(ENEMY_PROJECTILE_SCENE, 16, get_tree().current_scene)
+		_projectile_pool = ObjectPool.new(ENEMY_PROJECTILE_SCENE, 16, get_parent())
 	var count := VOLLEY_COUNT + (4 if _is_boss_mode else 0)
 	var offset_angle := randf() * TAU
 	for i in count:
@@ -251,7 +255,7 @@ func _fire_volley() -> void:
 		var proj := _projectile_pool.get_instance() as EnemyProjectile
 		if proj:
 			var dmg := contact_damage * 0.6
-			proj.initialize(dir, VOLLEY_SPEED, dmg, global_position, _projectile_pool)
+			proj.initialize(dir, VOLLEY_SPEED, dmg, global_position, _projectile_pool, get_enemy_id() + ":volley")
 
 # --- Draw telegraph indicators on boss ---
 
@@ -275,6 +279,7 @@ func _draw() -> void:
 
 func reset() -> void:
 	super.reset()
+	remove_from_group("bosses")
 	_phase = Phase.CHASE
 	_phase_timer = 0.0
 	_ability_timer = 0.0

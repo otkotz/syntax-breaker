@@ -1,5 +1,12 @@
 class_name EngineTracker
 extends RefCounted
+static var _notice_cooldowns: Dictionary = {}
+
+static func _notify_activation(display_name: String) -> void:
+	if float(_notice_cooldowns.get(display_name, 0.0)) > 0.0:
+		return
+	_notice_cooldowns[display_name] = 2.0
+	GameBus.keystone_triggered.emit(display_name)
 
 # --- Crit Engine: Sharpened Edge ---
 # On crit, gain stacking crit chance bonus that decays
@@ -14,6 +21,7 @@ static func on_crit() -> void:
 		return
 	_crit_streak_bonus = minf(_crit_streak_bonus + CRIT_STREAK_GAIN, CRIT_STREAK_MAX)
 	_crit_streak_timer = CRIT_STREAK_DURATION
+	_notify_activation("Sharpened Edge")
 
 static func get_crit_streak_bonus() -> float:
 	if _crit_streak_timer <= 0.0:
@@ -34,6 +42,7 @@ static func on_cast(skill_id: String = "") -> void:
 		return
 	if _tempo_timer > 0.0 and skill_id != _tempo_last_skill:
 		_tempo_stacks = mini(_tempo_stacks + 1, TEMPO_MAX_STACKS)
+		_notify_activation("Arcane Tempo")
 	_tempo_last_skill = skill_id
 	_tempo_timer = TEMPO_DURATION
 
@@ -56,6 +65,7 @@ static func get_virulence_mult(target: Node2D) -> float:
 	var dot_count := mini(dots.size() - 1, VIRULENCE_MAX_STACKS)
 	if dot_count <= 0:
 		return 1.0
+	_notify_activation("Virulence")
 	return 1.0 + dot_count * VIRULENCE_BONUS_PER_DOT
 
 # --- AoE Engine: Detonation Expert ---
@@ -67,6 +77,7 @@ static func get_detonation_mult(hit_count: int) -> float:
 	if not _has_passive("detonation_expert"):
 		return 1.0
 	if hit_count >= DETONATION_THRESHOLD:
+		_notify_activation("Detonation Expert")
 		return 1.0 + DETONATION_BONUS
 	return 1.0
 
@@ -81,11 +92,14 @@ static func get_deep_freeze_mult(target: Node2D) -> float:
 		return 1.0
 	var slow_timer: Variant = target.get("_slow_timer")
 	if slow_timer != null and slow_timer > 0.0:
+		_notify_activation("Deep Freeze")
 		return 1.0 + DEEP_FREEZE_BONUS
 	return 1.0
 
 # --- Tick / Cleanup ---
 static func tick(delta: float) -> void:
+	for key in _notice_cooldowns:
+		_notice_cooldowns[key] = maxf(0.0, float(_notice_cooldowns[key]) - delta)
 	if _crit_streak_timer > 0.0:
 		_crit_streak_timer -= delta
 		if _crit_streak_timer <= 0.0:
@@ -97,6 +111,7 @@ static func tick(delta: float) -> void:
 			_tempo_stacks = 0
 
 static func clear() -> void:
+	_notice_cooldowns.clear()
 	_crit_streak_bonus = 0.0
 	_crit_streak_timer = 0.0
 	_tempo_stacks = 0

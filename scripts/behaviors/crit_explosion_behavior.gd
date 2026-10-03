@@ -12,4 +12,4 @@ func on_hit(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 	var enemies := Targeting.find_enemies_in_range(target.global_position, explosion_radius, 20)
 	for enemy in enemies:
 		if enemy != target and enemy.has_method("take_damage"):
-			enemy.take_damage(explosion_damage)
+			enemy.take_damage(explosion_damage, false, skill_instance.base, "proc")

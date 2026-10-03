@@ -494,14 +494,15 @@ func _load_regions() -> void:
 
 func _change_ascension(delta: int) -> void:
 	var level := clampi(MetaProgression.ascension_level + delta, 0, MetaProgression.MAX_ASCENSION)
-	MetaProgression.set_ascension(level)
+	MetaProgression.set_ascension(level, get_selected_region())
 	_refresh_ascension()
 
 func _refresh_ascension() -> void:
+	MetaProgression.ascension_level = clampi(MetaProgression.ascension_level, 0, MetaProgression.get_max_ascension(get_selected_region()))
 	var level := MetaProgression.ascension_level
 	_asc_num.text = str(level)
 	_asc_down.disabled = level <= 0
-	_asc_up.disabled = level >= MetaProgression.MAX_ASCENSION
+	_asc_up.disabled = level >= MetaProgression.get_max_ascension(get_selected_region())
 	if level == 0:
 		_asc_desc.text = "Normal — the first descent."
 	elif level <= 2:
@@ -515,6 +516,8 @@ func _refresh_ascension() -> void:
 
 func _change_region(delta: int) -> void:
 	_region_index = wrapi(_region_index + delta, 0, _region_ids.size())
+	MetaProgression.set_ascension(MetaProgression.ascension_level, get_selected_region())
+	_refresh_ascension()
 	_refresh_region()
 
 func _refresh_region() -> void:

@@ -8,6 +8,7 @@ var current_hp: float
 var _damage_cooldown: float = 0.0
 var _base_move_speed: float
 var _speed_mult: float = 1.0
+var _passive_speed_mult: float = 1.0
 
 const IFRAME_DURATION := 0.5
 
@@ -24,11 +25,28 @@ signal died
 
 func _ready() -> void:
 	_base_move_speed = move_speed
-	current_hp = max_hp
+	_apply_run_passives()
+	current_hp = clampf(RunManager.current_hp / maxf(RunManager.max_hp, 1.0) * max_hp, 0.0, max_hp)
+	hp_changed.connect(RunManager.sync_health)
 	hp_changed.emit(current_hp, max_hp)
 	add_to_group("player")
 	_setup_animated_sprite()
 	_connect_caster()
+
+func _apply_run_passives() -> void:
+	var hp_bonus := 0.0
+	var speed_bonus := 0.0
+	for res: Resource in RunManager.owned_passives:
+		if not res is PassiveResource:
+			continue
+		var modifiers: Dictionary = res.stat_modifiers
+		hp_bonus += float(modifiers.get("max_hp_mult", 1.0)) - 1.0
+		# Other speed modifiers affect projectiles through StatCalculator.
+		if res.id == "swift_feet":
+			speed_bonus += float(modifiers.get("speed_mult", 1.0)) - 1.0
+	max_hp *= maxf(0.1, 1.0 + hp_bonus)
+	_passive_speed_mult = maxf(0.1, 1.0 + speed_bonus)
+	move_speed = _base_move_speed * _passive_speed_mult
 
 func _draw() -> void:
 	var bar_width := 40.0
@@ -53,7 +71,7 @@ func _setup_animated_sprite() -> void:
 	_anim_sprite = AnimatedSprite2D.new()
 	_anim_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var frames := SpriteFrames.new()
-	var pal := BreakerSprite.palette(energy_element)
+	var pal := CosmeticStyles.player_palette(energy_element)
 
 	# Procedurally generate idle / walk / cast for all 8 facing directions.
 	for dir: String in BreakerSprite.DIRS:
@@ -115,13 +133,28 @@ func _connect_caster() -> void:
 func _on_spell_cast() -> void:
 	_cast_timer = CAST_ANIM_DURATION
 
-func take_damage(amount: float) -> void:
+static func hurt(target: Node2D, amount: float, source: String) -> void:
+	if not is_instance_valid(target) or not target.has_method("take_damage"):
+		return
+	if target is Player:
+		target.take_damage(amount, source)
+	else:
+		target.take_damage(amount)
+
+func take_damage(amount: float, source: String = "unknown") -> void:
+	if current_hp <= 0.0 or amount <= 0.0:
+		return
 	if _damage_cooldown > 0.0:
 		return
 	if get_meta("god_mode", false):
 		return
 	_damage_cooldown = IFRAME_DURATION
 	var final_amount := amount * _get_damage_taken_mult()
+	var before := current_hp
+	RunManager.run_stats["last_damage_source"] = source
+	RunTelemetry.record("player_damage", {"source": source, "amount": minf(current_hp, final_amount),
+		"hp_before": before, "hp_after": maxf(0.0, before - final_amount), "x": global_position.x, "y": global_position.y})
+	RunManager.record_stat("damage_taken", minf(current_hp, final_amount))
 	current_hp = max(current_hp - final_amount, 0.0)
 	hp_changed.emit(current_hp, max_hp)
 	queue_redraw()
@@ -132,6 +165,8 @@ func take_damage(amount: float) -> void:
 	if current_hp <= 0.0:
 		if _try_auto_revive():
 			return
+		RunManager.run_stats["death_source"] = source
+		RunTelemetry.record("player_death", {"source": source, "x": global_position.x, "y": global_position.y})
 		died.emit()
 		GameBus.player_died.emit()
 
@@ -147,6 +182,8 @@ func _try_auto_revive() -> bool:
 		var mgr := nodes[0] as ConsumableManager
 		if mgr.consume_auto_revive():
 			current_hp = max_hp * 0.3
+			RunManager.record_stat("healing_received", current_hp)
+			RunTelemetry.record("player_revive", {"hp": current_hp})
 			hp_changed.emit(current_hp, max_hp)
 			return true
 	return false
@@ -155,16 +192,18 @@ func _spawn_damage_number(amount: float) -> void:
 	DamageNumber.spawn(get_parent(), global_position + Vector2(0, -20), amount, false, true)
 
 func heal(amount: float) -> void:
+	RunManager.record_stat("healing_received", minf(max_hp - current_hp, maxf(amount, 0.0)))
 	current_hp = min(current_hp + amount, max_hp)
 	hp_changed.emit(current_hp, max_hp)
 	queue_redraw()
 
 func set_max_hp(value: float) -> void:
+	var ratio := current_hp / maxf(max_hp, 1.0)
 	max_hp = value
-	current_hp = min(current_hp, max_hp)
+	current_hp = max_hp * ratio
 	hp_changed.emit(current_hp, max_hp)
 	queue_redraw()
 
 func set_speed_mult(mult: float) -> void:
 	_speed_mult = mult
-	move_speed = _base_move_speed * _speed_mult
+	move_speed = _base_move_speed * _passive_speed_mult * _speed_mult

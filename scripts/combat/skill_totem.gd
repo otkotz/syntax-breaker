@@ -47,6 +47,8 @@ func _try_cast() -> void:
 	CombatLog.skill_cast(skill_instance.base.name + " (Totem)", count)
 
 func _spawn_one(direction: Vector2) -> void:
+	if ProjectileBase.active_count >= QualitySettings.projectile_cap:
+		return
 	var proj := pool_ref.get_instance()
 	proj.global_position = global_position
 	if proj.has_method("initialize"):

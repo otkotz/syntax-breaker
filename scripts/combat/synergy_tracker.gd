@@ -6,7 +6,7 @@ const ELEMENT_TAGS := ["fire", "lightning", "poison", "cold"]
 
 static var _recent_hits: Dictionary = {}
 
-static func record_and_check(target: Node2D, tags: Array, damage: float) -> void:
+static func record_and_check(target: Node2D, tags: Array, damage: float, source: SkillResource = null) -> void:
 	var eid := target.get_instance_id()
 	var now := Time.get_ticks_msec() / 1000.0
 
@@ -35,40 +35,43 @@ static func record_and_check(target: Node2D, tags: Array, damage: float) -> void
 		active.append(tag)
 
 	if active.has("fire") and active.has("lightning") and ("fire" in new_elements or "lightning" in new_elements):
-		_trigger_overload(target, damage)
+		_trigger_overload(target, damage, source)
 		recent.erase("fire")
 		recent.erase("lightning")
 	elif active.has("lightning") and active.has("cold") and ("lightning" in new_elements or "cold" in new_elements):
-		_trigger_shatter(target, damage)
+		_trigger_shatter(target, damage, source)
 		recent.erase("lightning")
 		recent.erase("cold")
 	elif active.has("cold") and active.has("poison") and ("cold" in new_elements or "poison" in new_elements):
-		_trigger_frostblight(target, damage)
+		_trigger_frostblight(target, damage, source)
 		recent.erase("cold")
 		recent.erase("poison")
 
-static func _trigger_overload(target: Node2D, damage: float) -> void:
+static func _trigger_overload(target: Node2D, damage: float, source: SkillResource = null) -> void:
+	GameBus.synergy_triggered.emit("Overload")
 	var burst := damage * 0.8
 	var enemies := Targeting.find_enemies_in_range(target.global_position, 130.0, 20)
 	for e: Node2D in enemies:
 		if e.has_method("take_damage"):
-			e.take_damage(burst)
+			e.take_damage(burst, false, source, "proc")
 	CombatLog.interaction("Overload", target.name, "fire+lightning AoE %.1f to %d" % [burst, enemies.size()])
 
-static func _trigger_shatter(target: Node2D, damage: float) -> void:
+static func _trigger_shatter(target: Node2D, damage: float, source: SkillResource = null) -> void:
+	GameBus.synergy_triggered.emit("Shatter")
 	var burst := damage * 2.0
 	if target.has_method("take_damage"):
-		target.take_damage(burst)
+		target.take_damage(burst, false, source, "proc")
 	CombatLog.interaction("Shatter", target.name, "lightning+cold burst %.1f" % burst)
 
-static func _trigger_frostblight(target: Node2D, damage: float) -> void:
+static func _trigger_frostblight(target: Node2D, damage: float, source: SkillResource = null) -> void:
+	GameBus.synergy_triggered.emit("Frostblight")
 	if target.has_method("apply_dot"):
-		target.apply_dot("frostblight", damage * 0.6, 4.0, 0.5)
+		target.apply_dot("frostblight", damage * 0.6, 4.0, 0.5, source)
 	var enemies := Targeting.find_enemies_in_range(target.global_position, 120.0, 10)
 	var spread := 0
 	for e: Node2D in enemies:
 		if e != target and e.has_method("apply_dot"):
-			e.apply_dot("frostblight", damage * 0.4, 3.0, 0.5)
+			e.apply_dot("frostblight", damage * 0.4, 3.0, 0.5, source)
 			spread += 1
 	CombatLog.interaction("Frostblight", target.name, "cold+poison spread to %d" % spread)
 

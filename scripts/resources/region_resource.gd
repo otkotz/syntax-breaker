@@ -10,6 +10,10 @@ extends Resource
 @export var enemy_tint: Color = Color.WHITE
 @export var ambient_particle_color: Color = Color(1, 1, 1, 0.1)
 @export var stage_modifiers: Array[String] = []
+## Soft draft identity: these tags and mutations are offered more often, never
+## with stronger numbers. This changes runs without creating regional power.
+@export var favored_tags: Array[String] = []
+@export var favored_mutations: Array[String] = []
 @export var hp_mult: float = 1.0
 @export var damage_mult: float = 1.0
 @export var rarity: String = "common"

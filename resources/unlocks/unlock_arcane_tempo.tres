@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "unlock_arcane_tempo"
+item_type = "passives"
+item_id = "arcane_tempo"
+condition_type = "skills_used_count"
+condition_params = {"count": 3}
+description = "Use 3 different skills in one run"

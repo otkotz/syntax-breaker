@@ -6,12 +6,14 @@
 script = ExtResource("1")
 id = "toxic_depths"
 name = "Toxic Depths"
-description = "Poisonous fumes seep from the deep. Swarms of enemies overwhelm in greater numbers."
+description = "Larger enemy swarms. Poison, damage-over-time, and area builds appear more often in rewards."
 bg_color = Color(0.06, 0.14, 0.08, 1)
 grid_color = Color(0.1, 0.22, 0.12, 1)
 border_color = Color(0.3, 0.7, 0.3, 1)
 enemy_tint = Color(0.8, 1.0, 0.8, 1)
 ambient_particle_color = Color(0.3, 0.9, 0.2, 0.1)
 stage_modifiers = Array[String](["swarming"])
+favored_tags = Array[String](["poison", "dot", "aoe"])
+favored_mutations = Array[String](["concentrated", "vampiric", "giant"])
 hp_mult = 0.9
 damage_mult = 1.0

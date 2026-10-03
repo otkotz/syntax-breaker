@@ -12,6 +12,7 @@ var _max_range: float = 400.0
 var _hit_targets: Array[Node2D] = []
 var _color: Color = Color(1.0, 0.8, 0.1)
 var _skill_id: String = ""
+var _cosmetic_style: String = "projectile_default"
 
 var _trail_positions: Array[Vector2] = []
 var _trail_timer: float = 0.0
@@ -45,6 +46,7 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
 	scale = Vector2.ONE * area_mult
 	_color = TagColors.get_color(si.base.tags)
 	_skill_id = si.base.id
+	_cosmetic_style = CosmeticStyles.selected("projectile")
 	_trail_positions.clear()
 	_trail_timer = 0.0
 	_bolt_segments.clear()
@@ -111,7 +113,7 @@ func _draw_fireball() -> void:
 		var fade := float(i) / (_trail_positions.size() + 1)
 		var trail_r := 6.0 * (0.4 + 0.6 * fade)
 		var local_pos := inv * _trail_positions[i]
-		draw_circle(local_pos, trail_r, Color(1.0, 0.38, 0.13, fade * 0.5))
+		_draw_trail_dot(local_pos, trail_r, Color(1.0, 0.38, 0.13, fade * 0.5))
 
 	draw_circle(Vector2.ZERO, 16.0, Color(1.0, 0.31, 0.13, 0.4))
 	draw_circle(Vector2.ZERO, 10.0, Color(1.0, 0.5, 0.12))
@@ -124,6 +126,8 @@ func _draw_lightning() -> void:
 		var from := _bolt_segments[i]
 		var to := _bolt_segments[i + 1]
 		draw_line(from, to, Color(0.63, 0.85, 1.0, 0.35 * _bolt_flicker), 8.0)
+		if _cosmetic_style == "faceted_trails" and i % 2 == 0:
+			_draw_trail_dot(from, 4.0, Color(0.63, 0.85, 1.0, 0.2 * _bolt_flicker))
 	for i in _bolt_segments.size() - 1:
 		var from := _bolt_segments[i]
 		var to := _bolt_segments[i + 1]
@@ -140,7 +144,7 @@ func _draw_poison_dart() -> void:
 		var fade := float(i) / (_trail_positions.size() + 1)
 		var trail_r := 4.0 * (0.3 + 0.5 * fade)
 		var local_pos := inv * _trail_positions[i]
-		draw_circle(local_pos, trail_r, Color(0.49, 0.83, 0.29, fade * 0.5))
+		_draw_trail_dot(local_pos, trail_r, Color(0.49, 0.83, 0.29, fade * 0.5))
 
 	draw_rect(Rect2(-12, -4, 24, 8), Color(0.49, 0.83, 0.29))
 	draw_circle(Vector2.ZERO, 5.0, Color(0.8, 0.96, 0.63))
@@ -148,6 +152,13 @@ func _draw_poison_dart() -> void:
 func _draw_default() -> void:
 	draw_circle(Vector2.ZERO, 8.0, _color)
 	draw_circle(Vector2.ZERO, 5.0, Color(_color, 0.6).lightened(0.4))
+
+func _draw_trail_dot(center: Vector2, radius: float, color: Color) -> void:
+	if _cosmetic_style == "faceted_trails":
+		draw_colored_polygon(PackedVector2Array([center + Vector2(-radius, 0), center + Vector2(0, -radius),
+			center + Vector2(radius, 0), center + Vector2(0, radius)]), color)
+	else:
+		draw_circle(center, radius, color)
 
 func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("enemies"):
@@ -165,7 +176,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	var skill_name := skill_instance.base.name if skill_instance else "unknown"
 	if body.has_method("take_damage"):
-		body.take_damage(hit_damage, is_crit)
+		body.take_damage(hit_damage, is_crit, skill_instance.base if skill_instance else null)
 		CombatLog.hit(skill_name, body.name, hit_damage, is_crit)
 		if is_crit:
 			RunManager.record_stat("crits_landed", 1)
@@ -176,7 +187,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	if skill_instance:
 		_apply_elemental_effects(body)
-		TagInteractions.process_hit(body, hit_damage, skill_instance.get_all_tags(), self)
+		TagInteractions.process_hit(body, hit_damage, skill_instance.get_all_tags(), self, skill_instance.base)
 		skill_instance.notify_hit(body, self)
 		if is_crit:
 			skill_instance.notify_crit(body, self)
@@ -222,11 +233,11 @@ func _apply_elemental_effects(body: Node2D) -> void:
 		return
 	var tags := skill_instance.get_all_tags()
 	if tags.has("fire"):
-		body.apply_dot("burn", damage * 0.3, 3.0, 0.5)
+		body.apply_dot("burn", damage * 0.3, 3.0, 0.5, skill_instance.base)
 		CombatLog.dot_applied("burn", body.name, damage * 0.3, 3.0)
 		skill_instance.notify_status_apply(body, "burn")
 	if tags.has("poison") and randf() <= 0.8:
-		body.apply_dot("poison", damage * 0.4, 4.0, 0.5)
+		body.apply_dot("poison", damage * 0.4, 4.0, 0.5, skill_instance.base)
 		skill_instance.notify_status_apply(body, "poison")
 		CombatLog.dot_applied("poison", body.name, damage * 0.4, 4.0)
 
@@ -260,6 +271,7 @@ func reset() -> void:
 	_trail_timer = 0.0
 	_bolt_segments.clear()
 	_skill_id = ""
+	_cosmetic_style = "projectile_default"
 	scale = Vector2.ONE
 	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:
 		if has_meta(key):

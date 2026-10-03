@@ -41,7 +41,7 @@ func test_passive_multiplier() -> void:
 
 func test_support_and_passive_stack() -> void:
 	var stats := StatCalculator.compute(_fireball, [_chain], [_fire_mastery])
-	assert_almost_eq(stats["damage"], 9.6, 0.01)
+	assert_almost_eq(stats["damage"], 10.0, 0.01)
 
 func test_unrelated_passive_ignored() -> void:
 	var lightning_passive := PassiveResource.new()

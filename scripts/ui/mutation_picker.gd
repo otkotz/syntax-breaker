@@ -20,7 +20,7 @@ func setup(skill_instances: Array[SkillInstance]) -> void:
 	for si: SkillInstance in skill_instances:
 		for m: Dictionary in si.mutations:
 			exclude.append(m["id"])
-	_mutations = MutationData.roll_mutations(3, exclude)
+	_mutations = MutationData.roll_mutations(3, exclude, skill_instances)
 	_show_mutations()
 
 func _show_mutations() -> void:
@@ -70,6 +70,8 @@ func _show_skill_picker() -> void:
 
 	for i in _skill_instances.size():
 		var si := _skill_instances[i]
+		if not MutationData.can_apply(_selected_mutation, si):
+			continue
 		var btn := Button.new()
 		btn.custom_minimum_size.y = 100.0
 		btn.text = si.base.name

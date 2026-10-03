@@ -26,15 +26,21 @@ var _pending_skill_instance: SkillInstance = null
 @onready var link_container: VBoxContainer = $MarginContainer/VBox/LinkPanel/LinkContainer
 
 var _skill_manager: SkillManagerUI
+var _decision_id: int = 0
 
 func _ready() -> void:
 	reroll_button.pressed.connect(_on_reroll)
 	manage_button.pressed.connect(_on_manage)
-	continue_button.pressed.connect(func(): continue_pressed.emit())
+	continue_button.pressed.connect(func():
+		RunTelemetry.choose(_decision_id, {"id": "continue"})
+		continue_pressed.emit()
+	)
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
+	RunManager.reroll_cost = 2
 	_generate_offerings()
+	_decision_id = RunTelemetry.open_decision("shop", RunTelemetry.describe_offers(_offerings))
 	if not is_node_ready():
 		await ready
 	_refresh_ui()
@@ -42,6 +48,8 @@ func setup(skill_instances: Array[SkillInstance]) -> void:
 func _generate_offerings() -> void:
 	_offerings.clear()
 	var pool: Array[Dictionary] = []
+	var build_pool: Array[Dictionary] = []
+	var skill_pool: Array[Dictionary] = []
 
 	var owned_skill_ids: Dictionary = {}
 	for si: SkillInstance in _skill_instances:
@@ -51,15 +59,15 @@ func _generate_offerings() -> void:
 		var skill_res := res as SkillResource
 		if skill_res and MetaProgression.is_unlocked("skills", skill_res.id) and not owned_skill_ids.has(skill_res.id):
 			var tier := RarityTiers.roll_tier(skill_res.rarity, RunManager.get_luck())
-			pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", tier), "tier": tier})
+			skill_pool.append({"type": "skill", "resource": skill_res, "cost": _get_cost("skill", tier), "tier": tier})
 
 	for res: Resource in _load_resources("res://resources/supports/"):
-		if res is SupportResource and MetaProgression.is_unlocked("supports", res.id):
-			pool.append({"type": "support", "resource": res, "cost": _get_cost("support", res.rarity)})
+		if res is SupportResource and MetaProgression.is_unlocked("supports", res.id) and BuildOptions.can_offer_support(res, _skill_instances):
+			build_pool.append({"type": "support", "resource": res, "cost": _get_cost("support", res.rarity)})
 
 	var legendary_pool: Array[Dictionary] = []
 	for res: Resource in _load_resources("res://resources/passives/"):
-		if res is PassiveResource and MetaProgression.is_unlocked("passives", res.id):
+		if res is PassiveResource and MetaProgression.is_unlocked("passives", res.id) and BuildOptions.can_offer_passive(res, _skill_instances):
 			var owned := false
 			for p: Resource in RunManager.owned_passives:
 				if p is PassiveResource and p.id == res.id:
@@ -69,20 +77,42 @@ func _generate_offerings() -> void:
 				if res.rarity == "legendary":
 					legendary_pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
 				else:
-					pool.append({"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)})
+					var offer := {"type": "passive", "resource": res, "cost": _get_cost("passive", res.rarity)}
+					if BuildOptions.is_focused_passive(res):
+						build_pool.append(offer)
+					else:
+						pool.append(offer)
 
-	var legendary_added := false
 	if RunManager.current_stage >= 5 and legendary_pool.size() > 0 and randf() < 1.0 / 15.0:
 		legendary_pool.shuffle()
 		_offerings.append(legendary_pool[0])
-		legendary_added = true
 
 	var upgrades_copy := STAT_UPGRADES.duplicate()
 	upgrades_copy.shuffle()
 	_offerings.append(_make_stat_upgrade(upgrades_copy[0]))
 
+	build_pool.shuffle()
+	if not build_pool.is_empty():
+		var region := RewardRoller._load_current_region()
+		var regional: Array[Dictionary] = []
+		for candidate: Dictionary in build_pool:
+			if RewardRoller.get_region_affinity(candidate, region) > 0:
+				regional.append(candidate)
+		var picked: Dictionary = build_pool.back()
+		if not regional.is_empty():
+			regional.shuffle()
+			picked = regional[0]
+		build_pool.erase(picked)
+		_offerings.append(picked)
+
+	skill_pool.shuffle()
+	if not skill_pool.is_empty() and _skill_instances.size() < RunManager.skill_slots_unlocked:
+		_offerings.append(skill_pool.pop_back())
+
+	pool.append_array(build_pool)
+	pool.append_array(skill_pool)
 	pool.shuffle()
-	var count := mini(OFFERING_COUNT - (1 if legendary_added else 0) - 1, pool.size())
+	var count := mini(OFFERING_COUNT - _offerings.size(), pool.size())
 	for i in count:
 		_offerings.append(pool[i])
 
@@ -95,18 +125,20 @@ func _load_resources(dir_path: String) -> Array:
 	return resources
 
 const STAT_UPGRADES := [
-	{"key": "damage", "name": "Flat Damage", "amount": 2.5, "base_cost": 90, "cost_step": 30,
+	# First purchases cost 2–3 ordinary offers at the measured 15-gold median.
+	# Repeated purchases still escalate; these prices do not certify combat balance.
+	{"key": "damage", "name": "Flat Damage", "amount": 2.5, "base_cost": 30, "cost_step": 10,
 	 "fmt": "+%.1f damage to all skills (current: +%.1f)"},
-	{"key": "cooldown", "name": "Haste", "amount": -0.04, "base_cost": 105, "cost_step": 36,
+	{"key": "cooldown", "name": "Haste", "amount": -0.04, "base_cost": 36, "cost_step": 12,
 	 "fmt": "-%.0f%% cooldown (current: %.0f%% reduction)"},
-	{"key": "crit_chance", "name": "Precision", "amount": 0.02, "base_cost": 120, "cost_step": 45,
+	{"key": "crit_chance", "name": "Precision", "amount": 0.02, "base_cost": 45, "cost_step": 15,
 	 "fmt": "+%.0f%% crit chance (current: +%.0f%%)"},
 ]
 
 func _make_stat_upgrade(upgrade_def: Dictionary) -> Dictionary:
 	var key: String = upgrade_def["key"]
 	var current: float = RunManager.shop_bonuses.get(key, 0.0)
-	var times_bought: int = int(absf(current) / absf(upgrade_def["amount"]))
+	var times_bought: int = roundi(absf(current) / absf(upgrade_def["amount"]))
 	var cost: int = upgrade_def["base_cost"] + times_bought * upgrade_def["cost_step"]
 	return {"type": "stat_upgrade", "cost": cost, "upgrade": upgrade_def}
 
@@ -197,6 +229,7 @@ func _on_buy(offering: Dictionary) -> void:
 		return
 
 	_offerings.erase(offering)
+	RunTelemetry.record("shop_purchase", RunTelemetry.describe_offer(offering))
 
 	match offering["type"]:
 		"skill":
@@ -241,17 +274,24 @@ func _show_link_panel() -> void:
 	header.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	link_container.add_child(header)
 
+	var linkable_count := 0
 	for i in _skill_instances.size():
 		var si := _skill_instances[i]
-		if not TagMatcher.can_link_support(si.base, _pending_support):
-			continue
-		if si.linked_supports.size() >= si.base.max_supports:
+		if not si.support_rejection_reason(_pending_support).is_empty():
 			continue
 		var btn := Button.new()
 		btn.text = si.base.name
 		UITheme.style_button(btn, 28)
 		btn.pressed.connect(_on_link_skill.bind(i))
 		link_container.add_child(btn)
+		linkable_count += 1
+
+	if linkable_count == 0:
+		var hint := Label.new()
+		hint.text = "All compatible slots are full. Use Manage to swap a support."
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+		hint.add_theme_font_size_override("font_size", 24)
+		link_container.add_child(hint)
 
 	var skip := Button.new()
 	skip.text = "Skip"
@@ -308,7 +348,8 @@ func _show_swap_panel() -> void:
 		if _pending_skill_instance:
 			var refund_tier := _pending_skill_instance.rarity_tier
 			_offerings.append({"type": "skill", "resource": _pending_skill_instance.base, "cost": _get_cost("skill", refund_tier), "tier": refund_tier})
-			RunManager.add_gold(_get_cost("skill", refund_tier))
+			RunManager.refund_gold(_get_cost("skill", refund_tier))
+			RunTelemetry.record("shop_refund", {"type": "skill", "id": _pending_skill_instance.base.id, "cost": _get_cost("skill", refund_tier)})
 		_pending_skill_instance = null
 		_refresh_ui()
 	)
@@ -356,10 +397,14 @@ func _on_manage() -> void:
 	_skill_manager.open(_skill_instances, RunManager.owned_supports)
 
 func _on_reroll() -> void:
+	var paid := RunManager.reroll_cost
 	if not RunManager.spend_gold(RunManager.reroll_cost):
 		return
 	RunManager.reroll_cost += 1
+	RunManager.record_stat("rerolls", 1)
 	_generate_offerings()
+	RunTelemetry.choose(_decision_id, {"id": "reroll", "cost": paid})
+	_decision_id = RunTelemetry.open_decision("shop_reroll", RunTelemetry.describe_offers(_offerings))
 	_refresh_ui()
 
 func _recompute_all_skills() -> void:

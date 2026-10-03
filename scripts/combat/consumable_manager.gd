@@ -3,6 +3,7 @@ extends Node
 
 signal consumable_used(index: int)
 signal effect_expired(effect_type: String)
+signal inventory_changed
 
 const MAX_SLOTS := 4
 
@@ -12,6 +13,11 @@ var _active_effects: Array[Dictionary] = []
 
 func _ready() -> void:
 	add_to_group("consumable_manager")
+	RunManager.consumables_changed.connect(_reload_inventory)
+
+func _reload_inventory() -> void:
+	setup(RunManager.get_consumable_data())
+	inventory_changed.emit()
 
 func setup(consumable_data: Array[Dictionary]) -> void:
 	slots.clear()
@@ -29,13 +35,10 @@ func use_consumable(index: int) -> bool:
 		return false
 
 	var res := slots[index]
-	charges[index] -= 1
+	if not RunManager.consume_charge(res.id):
+		return false
 	_apply_effect(res)
 	consumable_used.emit(index)
-
-	if charges[index] <= 0:
-		slots.remove_at(index)
-		charges.remove_at(index)
 
 	return true
 
@@ -112,11 +115,7 @@ func has_auto_revive() -> bool:
 func consume_auto_revive() -> bool:
 	for i in slots.size():
 		if slots[i].effect_type == "revive" and charges[i] > 0:
-			charges[i] -= 1
-			if charges[i] <= 0:
-				slots.remove_at(i)
-				charges.remove_at(i)
-			return true
+			return RunManager.consume_charge(slots[i].id)
 	return false
 
 func _apply_heal(magnitude: float) -> void:

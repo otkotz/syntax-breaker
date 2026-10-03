@@ -15,7 +15,7 @@ func on_status_apply(skill_instance, target: Node2D, status_type: String) -> voi
 	TriggerGuard.begin(target)
 	var burst_mult := MAX_Q_BURST_MULT if is_mastered() else BASE_BURST_MULT
 	var burst_damage: float = skill_instance.computed_stats.get("damage", 10.0) * burst_mult
-	target.take_damage(burst_damage)
+	target.take_damage(burst_damage, false, skill_instance.base, "proc")
 	CombatLog.interaction("Toxic Burst", target.name, "burst %.1f on poison apply" % burst_damage)
 	RunManager.record_stat("triggers_fired", 1)
 	TriggerGuard.end()

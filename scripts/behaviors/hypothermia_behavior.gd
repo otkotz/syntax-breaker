@@ -18,7 +18,7 @@ func on_hit(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		target.apply_slow(factor, dur)
 	if target.has_method("apply_dot"):
 		var dmg := MASTERED_FROST_DAMAGE if is_mastered() else FROST_DAMAGE
-		target.apply_dot("frostblight", dmg, FROST_DURATION, FROST_TICK)
+		target.apply_dot("frostblight", dmg, FROST_DURATION, FROST_TICK, skill_instance.base if skill_instance else null)
 		CombatLog.dot_applied("frostblight", target.name, dmg, FROST_DURATION)
 		if skill_instance:
 			skill_instance.notify_status_apply(target, "frostblight")

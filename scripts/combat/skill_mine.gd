@@ -43,8 +43,13 @@ func _detonate() -> void:
 	var enemies := Targeting.find_enemies_in_range(global_position, _radius, 20)
 	for enemy: Node2D in enemies:
 		if enemy.has_method("take_damage"):
+			var was_alive: bool = not enemy.has_method("is_alive") or enemy.is_alive()
 			var roll := CombatUtils.roll_damage(_damage, skill_instance) if skill_instance else {"damage": _damage, "is_crit": false}
-			enemy.take_damage(roll["damage"], roll["is_crit"])
+			enemy.take_damage(roll["damage"], roll["is_crit"], skill_instance.base if skill_instance else null)
+			if skill_instance:
+				skill_instance.notify_hit(enemy, self)
+				if was_alive and enemy.has_method("is_alive") and not enemy.is_alive():
+					skill_instance.notify_kill(enemy, self)
 	if skill_instance:
 		CombatLog.interaction("Mine", "", "detonated %.1f in radius %.0f, hit %d" % [_damage, _radius, enemies.size()])
 	queue_free()

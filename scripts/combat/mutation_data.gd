@@ -52,13 +52,62 @@ const POOL := [
 		"desc": "+20% crit chance, +0.5 crit multiplier",
 		"stats": {"crit_chance_add": 0.2, "crit_mult": 0.5},
 	},
+	{
+		"id": "heavy_payload",
+		"name": "Heavy Payload",
+		"desc": "+45% damage, +35% cooldown",
+		"stats": {"damage_mult": 1.45, "cooldown_mult": 1.35},
+	},
+	{
+		"id": "hair_trigger",
+		"name": "Hair Trigger",
+		"desc": "-25% cooldown, -20% damage",
+		"stats": {"cooldown_mult": 0.75, "damage_mult": 0.8},
+	},
+	{
+		"id": "concentrated",
+		"name": "Concentrated Force",
+		"desc": "+35% damage, -35% area",
+		"stats": {"damage_mult": 1.35, "area_mult": 0.65},
+	},
+	{
+		"id": "close_quarters",
+		"name": "Close Quarters",
+		"desc": "+30% damage, -35% range",
+		"stats": {"damage_mult": 1.3, "range_mult": 0.65},
+	},
 ]
 
-static func roll_mutations(count: int, exclude_ids: Array = []) -> Array[Dictionary]:
+static func can_apply(mutation: Dictionary, target: Variant) -> bool:
+	var skill: SkillResource = target.base if target is SkillInstance else target as SkillResource
+	if skill == null:
+		return false
+	match mutation.get("id", ""):
+		"piercing", "scatter":
+			# Mines explode as an area and neither pierce nor create projectiles.
+			return skill.has_tag("projectile") and not (
+				target is SkillInstance and target.computed_stats.get("is_mine", 0) > 0
+			)
+		"concentrated":
+			return skill.has_tag("aoe")
+		"close_quarters":
+			return skill.has_tag("projectile") or skill.has_tag("melee")
+	return true
+
+static func roll_mutations(count: int, exclude_ids: Array = [], skills: Array[SkillInstance] = []) -> Array[Dictionary]:
 	var available: Array[Dictionary] = []
 	for m: Dictionary in POOL:
-		if not m["id"] in exclude_ids:
-			available.append(m)
+		if m["id"] in exclude_ids:
+			continue
+		if not skills.is_empty():
+			var applicable := false
+			for si: SkillInstance in skills:
+				if can_apply(m, si):
+					applicable = true
+					break
+			if not applicable:
+				continue
+		available.append(m)
 	available.shuffle()
 	var result: Array[Dictionary] = []
 	for i in mini(count, available.size()):

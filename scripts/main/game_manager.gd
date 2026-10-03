@@ -21,6 +21,7 @@ var _ui_layer: CanvasLayer
 var _current_stage_data: StageData
 var _region: RegionResource
 var _stage_tree: StageTree
+var _reward_generation := 0
 
 signal state_changed(new_state: State)
 signal run_completed(victory: bool)
@@ -37,6 +38,7 @@ func _on_player_died() -> void:
 		end_run(false)
 
 func _clear_ui() -> void:
+	_reward_generation += 1
 	if _shop:
 		_shop.queue_free()
 		_shop = null
@@ -44,8 +46,13 @@ func _clear_ui() -> void:
 		child.queue_free()
 
 func start_run(region_id: String = "") -> void:
+	if RunTelemetry.active:
+		RunTelemetry.finish("abandoned", _serialize_skills())
 	_region = _load_region(region_id)
 	RunManager.start_run(region_id)
+	RunTelemetry.begin({"region": region_id, "ascension": RunManager.ascension_level,
+		"quality": QualitySettings.current_preset, "entity_mult": QualitySettings.entity_mult,
+		"projectile_cap": QualitySettings.projectile_cap, "platform": OS.get_name(), "engine": Engine.get_version_info().string})
 	_skill_instances.clear()
 	_stage_tree = StageGenerator.generate_tree(_region)
 	RunManager.stage_tree = _stage_tree
@@ -62,13 +69,23 @@ func _load_region(region_id: String) -> RegionResource:
 func _show_skill_picker() -> void:
 	var picker := SKILL_PICKER_SCENE.instantiate() as SkillPicker
 	_ui_layer.add_child(picker)
+	picker.telemetry_decision = RunTelemetry.open_decision("starter", picker.offered_skills)
+	picker.contract_changed.connect(func():
+		RunTelemetry.choose(picker.telemetry_decision, {"id": "contract_changed", "contract": picker.selected_contract})
+		picker.telemetry_decision = RunTelemetry.open_decision("starter", picker.offered_skills)
+	)
 	picker.skill_chosen.connect(func(skill: SkillResource, tier: String):
 		var si := SkillInstance.new(skill)
-		si.set_rarity_tier(tier)
+		if not StarterContracts.apply(picker.selected_contract, si):
+			picker._chosen = false
+			return
+		RunTelemetry.choose(picker.telemetry_decision, {"type": "skill", "id": skill.id, "tier": "common", "contract": picker.selected_contract})
+		if RunTelemetry.active:
+			RunTelemetry.data.metadata["starter"] = skill.id
 		_skill_instances.append(si)
 		picker.queue_free()
 		_enter_first_stage()
-	, CONNECT_ONE_SHOT)
+	)
 
 func _enter_first_stage() -> void:
 	var stage := _stage_tree.visit(0)
@@ -95,7 +112,13 @@ func _show_stage_map() -> void:
 	var map_ui := StageMapUI.new()
 	_ui_layer.add_child(map_ui)
 	map_ui.setup(_stage_tree)
+	var offers: Array = []
+	for index in available:
+		var node: Dictionary = _stage_tree.get_node_data(_stage_tree.current_depth, index)
+		offers.append({"index": index, "type": StageData.TYPE_NAMES.get(node.type, "Unknown"), "modifiers": node.modifiers})
+	var decision := RunTelemetry.open_decision("map", offers)
 	map_ui.stage_chosen.connect(func(stage: StageData):
+		RunTelemetry.choose(decision, {"index": _stage_tree.visited[stage.depth - 1], "type": stage.get_type_name(), "depth": stage.depth})
 		map_ui.queue_free()
 		_enter_stage(stage)
 	, CONNECT_ONE_SHOT)
@@ -104,6 +127,7 @@ func _enter_stage(stage_data: StageData) -> void:
 	_current_stage_data = stage_data
 	RunManager.current_stage_data = stage_data
 	RunManager.advance_stage()
+	RunTelemetry.begin_stage(stage_data)
 
 	match stage_data.type:
 		StageData.Type.COMBAT, StageData.Type.ELITE, StageData.Type.BOSS:
@@ -129,6 +153,7 @@ func _advance_to_combat(stage_data: StageData) -> void:
 	_arena.start_stage(RunManager.current_stage, _skill_instances, stage_data)
 
 func _on_stage_completed() -> void:
+	RunManager.heal_between_stages()
 	if _current_stage_data and _current_stage_data.type == StageData.Type.ELITE:
 		RunManager.record_stat("elites_cleared", 1)
 
@@ -150,7 +175,7 @@ func _show_mutation_picker() -> void:
 	for si: SkillInstance in _skill_instances:
 		for m: Dictionary in si.mutations:
 			exclude.append(m["id"])
-	var mutations := MutationData.roll_mutations(3, exclude)
+	var mutations := MutationData.roll_mutations(3, exclude, _skill_instances)
 	if mutations.is_empty():
 		_show_legendary_picker()
 		return
@@ -165,10 +190,12 @@ func _show_mutation_picker() -> void:
 		})
 
 	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
+	var decision := RunTelemetry.open_decision("boss_mutation", mutations.map(func(m: Dictionary): return {"id": m.id}))
 	_ui_layer.add_child(chest)
 	chest.setup(items, true, "BOSS MUTATION")
 	chest.item_chosen.connect(func(index: int):
 		var mutation: Dictionary = mutations[index]
+		RunTelemetry.choose(decision, {"id": mutation.id})
 		chest.queue_free()
 		if _skill_instances.size() == 1:
 			_skill_instances[0].add_mutation(mutation)
@@ -180,9 +207,11 @@ func _show_mutation_picker() -> void:
 func _show_mutation_skill_target(mutation: Dictionary) -> void:
 	_clear_ui()
 	var picker := MUTATION_PICKER_SCENE.instantiate() as MutationPicker
+	var decision := RunTelemetry.open_decision("mutation_target", _serialize_skills())
 	_ui_layer.add_child(picker)
 	picker.setup_skill_only(mutation, _skill_instances)
 	picker.mutation_chosen.connect(func(_m: Dictionary, skill_idx: int):
+		RunTelemetry.choose(decision, {"id": mutation.id, "skill_index": skill_idx})
 		picker.queue_free()
 		if skill_idx >= 0 and skill_idx < _skill_instances.size():
 			_skill_instances[skill_idx].add_mutation(mutation)
@@ -208,9 +237,11 @@ func _show_legendary_picker() -> void:
 		})
 
 	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
+	var decision := RunTelemetry.open_decision("legendary", choices.map(func(p: PassiveResource): return {"id": p.id}))
 	_ui_layer.add_child(chest)
 	chest.setup(items, true, "LEGENDARY RELIC")
 	chest.item_chosen.connect(func(index: int):
+		RunTelemetry.choose(decision, {"id": choices[index].id})
 		chest.queue_free()
 		var passive: PassiveResource = choices[index]
 		RunManager.owned_passives.append(passive)
@@ -224,7 +255,7 @@ func _get_available_legendaries() -> Array[PassiveResource]:
 	var result: Array[PassiveResource] = []
 	for file_name in ResourceListing.get_resource_files("res://resources/passives/"):
 		var res := load("res://resources/passives/" + file_name)
-		if res is PassiveResource and res.rarity == "legendary":
+		if res is PassiveResource and res.rarity == "legendary" and BuildOptions.can_offer_passive(res, _skill_instances):
 			if not MetaProgression.is_unlocked("passives", res.id):
 				continue
 			var owned := false
@@ -245,32 +276,43 @@ func _show_reward_picker(is_treasure: bool) -> void:
 	var is_boss := stage_type == StageData.Type.BOSS
 
 	if is_elite or is_boss:
-		_show_chest_rewards(is_treasure, is_elite or is_boss)
+		_show_chest_rewards(is_treasure, is_boss)
 		return
 
 	var picker := REWARD_PICKER_SCENE.instantiate() as RewardPicker
+	_reward_generation += 1
+	var reward_generation := _reward_generation
 	_ui_layer.add_child(picker)
 	picker.setup(stage_type, _skill_instances)
-	var chose := false
+	# Separate lambdas capture scalar locals by value; use shared state so the
+	# exit handler sees the selection and cannot advance the route a second time.
+	var chose := [false]
 	picker.reward_chosen.connect(func(reward: Dictionary):
-		chose = true
+		chose[0] = true
 		picker.queue_free()
 		_apply_reward(reward)
 		if is_treasure:
 			_show_stage_map()
 		else:
-			_open_mandatory_shop()
+			_finish_reward_stage()
 	, CONNECT_ONE_SHOT)
 	picker.tree_exiting.connect(func():
-		if not chose:
-			if is_treasure:
-				_show_stage_map()
-			else:
-				_open_mandatory_shop()
+		if not chose[0] and not is_queued_for_deletion() and _state == State.REWARD:
+			# Never add UI while its parent is tearing children down.
+			_finish_unselected_reward.call_deferred(reward_generation, is_treasure)
 	)
+
+func _finish_unselected_reward(generation: int, is_treasure: bool) -> void:
+	if is_queued_for_deletion() or _state != State.REWARD or generation != _reward_generation:
+		return
+	if is_treasure:
+		_show_stage_map()
+	else:
+		_finish_reward_stage()
 
 func _show_chest_rewards(is_treasure: bool, is_boss_tier: bool) -> void:
 	var rewards := RewardRoller.roll(_skill_instances, true)
+	var decision := RunTelemetry.open_decision("boss_reward" if is_boss_tier else "elite_reward", RunTelemetry.describe_offers(rewards))
 
 	var items: Array[Dictionary] = []
 	for reward: Dictionary in rewards:
@@ -281,6 +323,7 @@ func _show_chest_rewards(is_treasure: bool, is_boss_tier: bool) -> void:
 	var title := "BOSS SPOILS" if is_boss_tier else "ELITE LOOT"
 	chest.setup(items, is_boss_tier, title)
 	chest.item_chosen.connect(func(index: int):
+		RunTelemetry.choose(decision, RunTelemetry.describe_offer(rewards[index]))
 		chest.queue_free()
 		var reward: Dictionary = rewards[index]
 		if reward.get("type") == "mutation" and _skill_instances.size() > 1:
@@ -292,7 +335,7 @@ func _show_chest_rewards(is_treasure: bool, is_boss_tier: bool) -> void:
 			if is_treasure:
 				_show_stage_map()
 			else:
-				_open_mandatory_shop()
+				_finish_reward_stage()
 	, CONNECT_ONE_SHOT)
 
 func _show_chest_mutation_target(reward: Dictionary, is_treasure: bool) -> void:
@@ -307,8 +350,14 @@ func _show_chest_mutation_target(reward: Dictionary, is_treasure: bool) -> void:
 		if is_treasure:
 			_show_stage_map()
 		else:
-			_open_mandatory_shop()
+			_finish_reward_stage()
 	, CONNECT_ONE_SHOT)
+
+func _finish_reward_stage() -> void:
+	if _current_stage_data and _current_stage_data.type == StageData.Type.BOSS:
+		_open_mandatory_shop()
+	else:
+		_show_stage_map()
 
 func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 	match reward.get("type", ""):
@@ -354,7 +403,12 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 	return {"type_label": "???", "title": "Unknown", "desc": "", "color": UITheme.C_INK_MUTE}
 
 func _apply_reward(reward: Dictionary) -> void:
+	RunTelemetry.record("reward_applied", RunTelemetry.describe_offer(reward))
 	match reward.get("type", ""):
+		"heal":
+			var recovered := minf(RunManager.max_hp - RunManager.current_hp, RunManager.max_hp * float(reward.get("fraction", 0.4)))
+			RunManager.current_hp += recovered
+			RunManager.record_stat("healing_received", recovered)
 		"skill":
 			var res: SkillResource = reward["resource"]
 			if _skill_instances.size() < RunManager.skill_slots_unlocked:
@@ -432,10 +486,13 @@ func end_run(victory: bool) -> void:
 
 	var new_unlocks := MetaProgression.check_unlocks(RunManager.run_stats)
 	if victory:
+		MetaProgression.record_victory(RunManager.current_region, RunManager.ascension_level)
 		RunManager.run_stats["run_completed"] = true
 		new_unlocks.append_array(MetaProgression.check_unlocks(RunManager.run_stats))
+	RunManager.run_stats["new_challenges"] = MetaProgression.record_challenges(victory, RunManager.run_stats, RunManager.current_region, RunManager.ascension_level)
 
 	GameBus.run_ended.emit(victory)
+	RunTelemetry.finish("victory" if victory else "death", _serialize_skills())
 	run_completed.emit(victory)
 
 	_run_summary = RUN_SUMMARY_SCENE.instantiate() as RunSummary
@@ -505,6 +562,8 @@ func resume_run() -> void:
 		return_to_menu_requested.emit()
 		return
 	RunManager.restore_from_save(data)
+	if not RunTelemetry.active:
+		RunTelemetry.begin({"region": RunManager.current_region, "ascension": RunManager.ascension_level, "resumed_without_earlier_telemetry": true})
 	_region = _load_region(RunManager.current_region)
 	_deserialize_skills(data.get("skills", []))
 	_stage_tree = RunManager.stage_tree

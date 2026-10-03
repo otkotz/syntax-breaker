@@ -10,6 +10,9 @@ signal skill_acquired(skill: Resource)
 signal support_acquired(support: Resource)
 signal passive_acquired(passive: Resource)
 signal codex_discovered(category: String, entry_id: String)
+signal synergy_triggered(synergy_name: String)
+signal boss_phase_changed(message: String)
+signal keystone_triggered(keystone_name: String)
 
 func _ready() -> void:
 	skill_acquired.connect(_on_skill_acquired)

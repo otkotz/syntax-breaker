@@ -9,6 +9,9 @@ var _parent: Node
 func _init(scene: PackedScene, initial_size: int, parent: Node) -> void:
 	_scene = scene
 	_parent = parent
+	# Pools are Nodes too: attach them to the owner so teardown frees the pool
+	# and its PackedScene reference along with the instances.
+	_parent.add_child(self)
 	for i in initial_size:
 		var instance := _scene.instantiate()
 		instance.set_process(false)

@@ -2,8 +2,14 @@ class_name SkillPicker
 extends Control
 
 signal skill_chosen(skill: SkillResource, tier: String)
+signal contract_changed
 
 var _skill_grid: GridContainer
+var offered_skills: Array[Dictionary] = []
+var selected_contract: String = "standard"
+var _contract_description: Label
+var _chosen: bool = false
+var telemetry_decision: int = 0
 
 const CATEGORY_TAGS := ["melee", "projectile", "aoe"]
 
@@ -24,6 +30,7 @@ func _build_ui() -> void:
 	add_child(root)
 
 	_build_header(root)
+	_build_contract_selector(root)
 
 	var scroller := ScrollContainer.new()
 	scroller.size_flags_vertical = SIZE_EXPAND_FILL
@@ -80,11 +87,17 @@ func _build_header(parent: Control) -> void:
 	vbox.add_child(sub)
 
 func _populate() -> void:
+	for child in _skill_grid.get_children():
+		_skill_grid.remove_child(child)
+		child.queue_free()
+	offered_skills.clear()
 	for file_name in ResourceListing.get_resource_files("res://resources/skills/"):
 		var res := load("res://resources/skills/" + file_name)
 		if res is SkillResource and MetaProgression.is_unlocked("skills", (res as SkillResource).id):
 			var skill := res as SkillResource
-			_add_skill_card(skill, RarityTiers.roll_tier(skill.rarity, RunManager.get_luck()))
+			if StarterContracts.rejection_reason(selected_contract, skill).is_empty():
+				offered_skills.append({"type": "skill", "id": skill.id, "tier": "common", "contract": selected_contract})
+			_add_skill_card(skill, "common")
 
 func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	var color := _get_skill_color(skill)
@@ -189,8 +202,48 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	select_btn.text = "SELECT [OVERRIDE]"
 	select_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	_style_select_button(select_btn, color)
-	select_btn.pressed.connect(func(): skill_chosen.emit(skill, tier))
+	var reason := StarterContracts.rejection_reason(selected_contract, skill)
+	select_btn.disabled = not reason.is_empty()
+	if not reason.is_empty():
+		select_btn.text = reason
+	select_btn.pressed.connect(func():
+		if _chosen or not StarterContracts.rejection_reason(selected_contract, skill).is_empty():
+			return
+		_chosen = true
+		skill_chosen.emit(skill, tier)
+	)
 	content.add_child(select_btn)
+
+func _build_contract_selector(parent: Control) -> void:
+	var selector := OptionButton.new()
+	selector.custom_minimum_size.y = 60
+	UITheme.style_button(selector, 24)
+	for contract in StarterContracts.DEFINITIONS:
+		var label: String = contract.name
+		if not StarterContracts.is_unlocked(contract.id):
+			label += " — %d wins" % int(contract.wins)
+		selector.add_item(label)
+		selector.set_item_disabled(selector.item_count - 1, not StarterContracts.is_unlocked(contract.id))
+	selector.item_selected.connect(func(index: int):
+		selected_contract = StarterContracts.DEFINITIONS[index].id
+		_refresh_contract_description()
+		_populate()
+		contract_changed.emit()
+	)
+	parent.add_child(selector)
+	_contract_description = Label.new()
+	_contract_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_contract_description.add_theme_font_size_override("font_size", 20)
+	_contract_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	parent.add_child(_contract_description)
+	_refresh_contract_description()
+
+func _refresh_contract_description() -> void:
+	var contract := StarterContracts.definition(selected_contract)
+	var support := StarterContracts.support_for(selected_contract)
+	_contract_description.text = "Common skill + %d gold. Equal shop-value budget; no free stat bonus." % (StarterContracts.STARTING_GOLD - StarterContracts.cost(selected_contract))
+	if support:
+		_contract_description.text += "\n%s pre-linked (%d gold allocated). %s" % [support.name, StarterContracts.cost(contract.id), support.description]
 
 func _build_gem(color: Color) -> PanelContainer:
 	var container := PanelContainer.new()

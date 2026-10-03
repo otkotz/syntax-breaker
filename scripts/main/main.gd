@@ -43,6 +43,7 @@ func _on_start_run() -> void:
 	game_manager.start_run(region)
 
 func _on_return_to_menu() -> void:
+	_main_menu._refresh_ascension()
 	_main_menu.show()
 
 func _on_unlocks() -> void:

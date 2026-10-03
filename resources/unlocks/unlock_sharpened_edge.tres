@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UnlockConditionResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/unlock_condition_resource.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "unlock_sharpened_edge"
+item_type = "passives"
+item_id = "sharpened_edge"
+condition_type = "kill_count"
+condition_params = {"count": 100}
+description = "Kill 100 enemies in a single run"

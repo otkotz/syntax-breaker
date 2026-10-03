@@ -642,7 +642,9 @@ func _show_drawer() -> void:
 		sep.add_theme_stylebox_override("separator", StyleBoxLine.new())
 		_drawer_list.add_child(sep)
 
-	var compatible := TagMatcher.get_linkable_supports(si.base, _available_supports)
+	var compatible := TagMatcher.get_linkable_supports(si.base, _available_supports).filter(
+		func(support: SupportResource) -> bool: return si.support_rejection_reason(support, current_support).is_empty()
+	)
 	if compatible.is_empty() and not current_support:
 		var empty := Label.new()
 		empty.text = "No supports remain. Find more on your descent."
@@ -750,6 +752,8 @@ func _close() -> void:
 # --- Assignment Logic ---
 
 func _assign_to_slot(si: SkillInstance, index: int, new_support: SupportResource, old_support: SupportResource) -> void:
+	if not si.support_rejection_reason(new_support, old_support).is_empty():
+		return
 	if old_support:
 		si.unlink_support(old_support)
 		_available_supports.append(old_support)

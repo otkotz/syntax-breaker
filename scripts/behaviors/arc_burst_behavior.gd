@@ -24,7 +24,7 @@ func on_crit(skill_instance, target: Node2D, _projectile: Node2D) -> void:
 		if arced >= arc_count:
 			break
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(arc_damage)
+			enemy.take_damage(arc_damage, false, skill_instance.base, "proc")
 			arced += 1
 
 	if arced > 0:

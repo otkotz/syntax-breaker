@@ -92,21 +92,21 @@ func _on_body_entered(body: Node2D) -> void:
 
 	var skill_name := skill_instance.base.name if skill_instance else "unknown"
 	if body.has_method("take_damage"):
-		body.take_damage(hit_damage, is_crit)
+		body.take_damage(hit_damage, is_crit, skill_instance.base if skill_instance else null)
 		CombatLog.hit(skill_name, body.name, hit_damage, is_crit)
 		GameBus.enemy_hit.emit(body, hit_damage, skill_instance.base if skill_instance else null)
 	if skill_instance:
 		var tags := skill_instance.get_all_tags()
 		if body.has_method("apply_dot"):
 			if tags.has("physical"):
-				body.apply_dot("bleed", hit_damage * 0.35, 4.0, 0.5)
+				body.apply_dot("bleed", hit_damage * 0.35, 4.0, 0.5, skill_instance.base)
 				CombatLog.dot_applied("bleed", body.name, hit_damage * 0.35, 4.0)
 				skill_instance.notify_status_apply(body, "bleed")
 			if tags.has("fire"):
-				body.apply_dot("burn", hit_damage * 0.3, 3.0, 0.5)
+				body.apply_dot("burn", hit_damage * 0.3, 3.0, 0.5, skill_instance.base)
 				CombatLog.dot_applied("burn", body.name, hit_damage * 0.3, 3.0)
 				skill_instance.notify_status_apply(body, "burn")
-		TagInteractions.process_hit(body, hit_damage, tags, self)
+		TagInteractions.process_hit(body, hit_damage, tags, self, skill_instance.base)
 		skill_instance.notify_hit(body, self)
 		if is_crit:
 			skill_instance.notify_crit(body, self)

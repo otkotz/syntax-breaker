@@ -1,0 +1,4 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://tests/shop_affinity_native.gd" id="1"]
+[node name="ShopAffinityTest" type="Node"]
+script = ExtResource("1")

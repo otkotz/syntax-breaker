@@ -68,3 +68,35 @@ func test_unlink_support() -> void:
 	si.unlink_support(_chain)
 	assert_eq(si.linked_supports.size(), 0)
 	assert_eq(si.computed_stats["damage"], 10.0)
+
+func test_cast_modes_and_echo_cannot_silently_override_each_other() -> void:
+	var si := SkillInstance.new(_fireball)
+	var mine := load("res://resources/supports/mine.tres") as SupportResource
+	var totem := load("res://resources/supports/totem.tres") as SupportResource
+	var echo := load("res://resources/supports/spell_echo.tres") as SupportResource
+	assert_true(si.link_support(mine))
+	assert_false(si.link_support(totem))
+	assert_false(si.link_support(echo))
+
+func test_mine_rejects_projectile_only_supports() -> void:
+	var si := SkillInstance.new(_fireball)
+	var pierce := load("res://resources/supports/pierce.tres") as SupportResource
+	var mine := load("res://resources/supports/mine.tres") as SupportResource
+	assert_true(si.link_support(pierce))
+	assert_false(si.link_support(mine))
+
+func test_mutation_projectile_count_respects_final_cap() -> void:
+	var si := SkillInstance.new(_fireball)
+	si.add_mutation({"id": "scatter", "stats": {"projectile_count": 99}})
+	assert_eq(si.computed_stats["projectile_count"], StatCalculator.STAT_MAXS["projectile_count"])
+
+func test_mutations_respect_all_final_stat_bounds() -> void:
+	var fragile := SkillResource.new()
+	fragile.base_damage = 1.0
+	fragile.base_cooldown = 0.05
+	var si := SkillInstance.new(fragile)
+	si.add_mutation({"id": "extreme_tradeoff", "stats": {
+		"damage_mult": 0.01, "cooldown_mult": 0.01,
+	}})
+	assert_eq(si.computed_stats["damage"], StatCalculator.STAT_MINS["damage"])
+	assert_eq(si.computed_stats["cooldown"], StatCalculator.STAT_MINS["cooldown"])

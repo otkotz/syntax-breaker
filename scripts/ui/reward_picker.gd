@@ -5,6 +5,7 @@ signal reward_chosen(reward: Dictionary)
 
 var _skill_instances: Array[SkillInstance]
 var _chosen := false
+var _decision_id: int = 0
 
 @onready var title_label: Label = $MarginContainer/VBox/TitleLabel
 @onready var reward_container: VBoxContainer = $MarginContainer/VBox/ScrollContainer/RewardContainer
@@ -24,13 +25,18 @@ func setup(stage_type: StageData.Type, skill_instances: Array[SkillInstance] = [
 			title_label.text = "Elite Cleared! Pick a Reward"
 		else:
 			title_label.text = "Stage Clear! Pick a Reward"
-	_build_rewards(is_elite or is_boss)
+	_build_rewards(is_elite or is_boss, stage_type == StageData.Type.TREASURE)
 
-func _build_rewards(high_quality: bool) -> void:
+func _build_rewards(high_quality: bool, treasure: bool = false) -> void:
 	for child: Node in reward_container.get_children():
 		child.queue_free()
 
 	var rewards := RewardRoller.roll(_skill_instances, high_quality)
+	if treasure:
+		title_label.text = "Treasure: gear, recovery or gold?"
+		rewards[1] = {"type": "heal", "fraction": 0.4}
+		rewards[2] = {"type": "gold", "amount": 35}
+	_decision_id = RunTelemetry.open_decision("treasure" if treasure else "reward", RunTelemetry.describe_offers(rewards))
 	for reward: Dictionary in rewards:
 		var btn := Button.new()
 		btn.custom_minimum_size.y = 150.0
@@ -44,6 +50,7 @@ func _on_reward_pressed(reward: Dictionary) -> void:
 	if _chosen:
 		return
 	_chosen = true
+	RunTelemetry.choose(_decision_id, RunTelemetry.describe_offer(reward))
 	for btn: Node in reward_container.get_children():
 		if btn is Button:
 			btn.disabled = true
@@ -62,6 +69,8 @@ func _show_skill_target(reward: Dictionary) -> void:
 		title_label.text = "Apply '%s' to which skill?" % m["name"]
 	for i in _skill_instances.size():
 		var si := _skill_instances[i]
+		if not MutationData.can_apply(reward["mutation"], si):
+			continue
 		var btn := Button.new()
 		btn.custom_minimum_size.y = 120.0
 		btn.text = si.base.name
@@ -76,6 +85,8 @@ func _show_skill_target(reward: Dictionary) -> void:
 
 func _format_reward(reward: Dictionary) -> String:
 	match reward.get("type", ""):
+		"heal":
+			return "RECOVERY\nRestore 40% maximum HP"
 		"skill":
 			var res: SkillResource = reward["resource"]
 			return "%s SKILL: %s\n%s  [%s]" % [str(reward.get("tier", res.rarity)).to_upper(), res.name, res.description, ", ".join(res.tags)]

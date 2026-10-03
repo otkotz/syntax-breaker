@@ -4,7 +4,7 @@ extends CharacterBody2D
 @export var max_hp: float = 20.0
 @export var move_speed: float = 80.0
 @export var contact_damage: float = 10.0
-@export var gold_value: int = 1
+@export var gold_value: float = 1.0
 @export var aggro_range: float = 200.0
 
 var current_hp: float
@@ -18,11 +18,13 @@ var _slow_timer: float = 0.0
 var _base_max_hp: float
 var _base_move_speed: float
 var _base_contact_damage: float
-var _base_gold_value: int
+var _base_gold_value: float
 var _sprite: Sprite2D
 var _facing_right: bool = true
+var _kill_source: SkillResource
 
 static var _gremlin_variants: Array = []
+const SUPPORT_GUARD_DAMAGE_MULT := 0.7
 
 signal died(enemy: EnemyBase)
 
@@ -70,6 +72,10 @@ func initialize(target: Node2D) -> void:
 	set_physics_process(true)
 
 func _physics_process(delta: float) -> void:
+	_update_slow(delta)
+	_move_toward_target()
+
+func _update_slow(delta: float) -> void:
 	if _slow_timer > 0.0:
 		_slow_timer -= delta
 		if _slow_timer <= 0.0:
@@ -77,6 +83,7 @@ func _physics_process(delta: float) -> void:
 			modulate.b = 1.0
 			queue_redraw()
 
+func _move_toward_target() -> void:
 	var effective_speed := move_speed * _slow_factor * _get_consumable_slow()
 
 	if _target and is_instance_valid(_target):
@@ -119,6 +126,16 @@ func _draw_health_bar() -> void:
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
 	var hp_rect := Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height))
 	draw_rect(hp_rect, Color(0.1, 0.9, 0.1))
+	if _has_support_guard():
+		draw_arc(Vector2(0, -13), 22.0, 0, TAU, 16, Color(0.15, 0.95, 0.95), 2.0)
+
+func _has_support_guard() -> bool:
+	if not is_inside_tree():
+		return false
+	for guard: Node in get_tree().get_nodes_in_group("shield_supports"):
+		if guard.has_method("grants_guard") and guard.grants_guard(self):
+			return true
+	return false
 
 const STATUS_COLORS: Dictionary = {
 	"poison": Color(0.4, 0.95, 0.3),
@@ -185,7 +202,10 @@ func _check_contact_damage() -> void:
 	for i in get_slide_collision_count():
 		var collision := get_slide_collision(i)
 		if collision.get_collider() is Player:
-			collision.get_collider().take_damage(contact_damage)
+			Player.hurt(collision.get_collider(), contact_damage, get_contact_source())
+
+func get_contact_source() -> String:
+	return get_enemy_id() + ":contact"
 
 const SEPARATION_RADIUS := 40.0
 const SEPARATION_STRENGTH := 0.6
@@ -228,7 +248,9 @@ func _process(delta: float) -> void:
 			var tick_dmg: float = dot["damage"]
 			if dot_type == "poison":
 				tick_dmg *= EngineTracker.get_virulence_mult(self)
-			take_damage(tick_dmg)
+			take_damage(tick_dmg, false, dot.get("source"), "dot")
+			if not is_alive():
+				return
 		if dot["remaining"] <= 0.0:
 			expired.append(dot_type)
 	if not expired.is_empty():
@@ -236,10 +258,16 @@ func _process(delta: float) -> void:
 			_dots.erase(key)
 		queue_redraw()
 
-func take_damage(amount: float, crit: bool = false) -> void:
-	if current_hp <= 0.0:
+func take_damage(amount: float, crit: bool = false, source: SkillResource = null, category: String = "direct") -> void:
+	if current_hp <= 0.0 or amount <= 0.0:
 		return
 	amount *= EngineTracker.get_deep_freeze_mult(self)
+	# Query live guardians at impact: no persistent buff, no stacking or pool leakage.
+	if _has_support_guard():
+		amount *= SUPPORT_GUARD_DAMAGE_MULT
+	var effective := minf(current_hp, amount)
+	RunManager.record_combat_damage(source, effective, amount >= current_hp, category)
+	_kill_source = source
 	current_hp -= amount
 	_flash_hit()
 	_spawn_damage_number(amount, crit)
@@ -261,13 +289,14 @@ func apply_slow(factor: float, duration: float) -> void:
 	if not was_slowed:
 		queue_redraw()
 
-func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float) -> void:
+func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float, source: SkillResource = null) -> void:
 	var is_new := dot_type not in _dots
 	_dots[dot_type] = {
 		"damage": damage_per_tick,
 		"remaining": duration,
 		"interval": tick_interval,
 		"timer": 0.0,
+		"source": source,
 	}
 	if is_new:
 		queue_redraw()
@@ -277,7 +306,7 @@ func _die() -> void:
 	Targeting.unregister(self)
 	RunManager.add_gold(gold_value)
 	RunManager.record_stat("enemies_killed", 1)
-	GameBus.enemy_killed.emit(self, null)
+	GameBus.enemy_killed.emit(self, _kill_source)
 	died.emit(self)
 	set_process(false)
 	set_physics_process(false)
@@ -295,10 +324,14 @@ func apply_scaling(hp_mult: float, speed_mult: float, damage_mult: float, gold_m
 	current_hp = max_hp
 	move_speed = _base_move_speed * speed_mult
 	contact_damage = _base_contact_damage * damage_mult
-	gold_value = int(_base_gold_value * gold_mult)
+	gold_value = _base_gold_value * gold_mult
 	queue_redraw()
 
 func reset() -> void:
+	_kill_source = null
+	var affix := get_node_or_null("EliteAffix")
+	if affix and affix.has_method("reset_affix"):
+		affix.reset_affix()
 	max_hp = _base_max_hp
 	current_hp = max_hp
 	move_speed = _base_move_speed

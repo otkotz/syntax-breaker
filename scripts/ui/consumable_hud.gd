@@ -6,6 +6,7 @@ var _buttons: Array[Button] = []
 
 func setup(manager: ConsumableManager) -> void:
 	_manager = manager
+	_manager.inventory_changed.connect(_refresh)
 	_manager.consumable_used.connect(_on_consumable_used)
 	_manager.effect_expired.connect(func(_t: String): _refresh())
 	_refresh()

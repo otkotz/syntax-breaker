@@ -1,7 +1,7 @@
 class_name TagInteractions
 extends RefCounted
 
-static func process_hit(target: Node2D, damage: float, tags: Array, source: Node2D) -> void:
+static func process_hit(target: Node2D, damage: float, tags: Array, source: Node2D, skill: SkillResource = null) -> void:
 	if not target.has_method("take_damage"):
 		return
 
@@ -13,7 +13,7 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 			var tick_dmg: float = dots["poison"]["damage"]
 			var burst := tick_dmg * remaining * 3.0
 			dots.erase("poison")
-			target.take_damage(burst)
+			target.take_damage(burst, false, skill, "proc")
 			CombatLog.interaction("Ignite", target.name, "burst %.1f from consumed poison" % burst)
 
 	# Lightning + hit on enemy near others = arc to 2 nearby
@@ -25,7 +25,7 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 				continue
 			if not enemy.has_method("take_damage"):
 				continue
-			enemy.take_damage(damage * 0.3)
+			enemy.take_damage(damage * 0.3, false, skill, "proc")
 			CombatLog.interaction("Lightning Arc", target.name, "arced %.1f to %s" % [damage * 0.3, enemy.name])
 			arcs += 1
 			if arcs >= 2:
@@ -41,7 +41,7 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 				if enemy == target:
 					continue
 				if enemy.has_method("apply_dot"):
-					enemy.apply_dot("poison", damage * 0.3, 3.0, 0.5)
+					enemy.apply_dot("poison", damage * 0.3, 3.0, 0.5, skill)
 					spread_count += 1
 			if spread_count > 0:
 				CombatLog.interaction("Toxic Cloud", target.name, "spread poison to %d nearby" % spread_count)
@@ -54,8 +54,8 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 			var tick_dmg: float = dots["bleed"]["damage"]
 			var burst := tick_dmg * remaining * 3.5
 			dots.erase("bleed")
-			target.take_damage(burst)
+			target.take_damage(burst, false, skill, "proc")
 			CombatLog.interaction("Cauterize", target.name, "burst %.1f from consumed bleed" % burst)
 
 	# Cross-element synergies
-	SynergyTracker.record_and_check(target, tags, damage)
+	SynergyTracker.record_and_check(target, tags, damage, skill)

@@ -1,22 +1,50 @@
 class_name CodexUI
 extends Control
 
-const CATEGORIES := ["skills", "supports", "passives", "enemies"]
+const CATEGORIES := ["skills", "supports", "passives", "enemies", "challenges", "cosmetics", "trophies"]
 const CATEGORY_LABELS := {
 	"skills": "Skills",
 	"supports": "Supports",
 	"passives": "Passives",
 	"enemies": "Enemies",
+	"challenges": "Challenges",
+	"cosmetics": "Cosmetics",
+	"trophies": "Trophies",
 }
 
 @onready var back_button: Button = $BackButton
-@onready var tab_bar: HBoxContainer = $MarginContainer/VBox/TabBar
+@onready var tab_bar: HFlowContainer = $MarginContainer/VBox/TabBar
 @onready var scroll: ScrollContainer = $MarginContainer/VBox/ScrollContainer
 @onready var entry_list: VBoxContainer = $MarginContainer/VBox/ScrollContainer/EntryList
 @onready var count_label: Label = $MarginContainer/VBox/CountLabel
 
 var _current_category: String = "skills"
 var _unlock_hints: Dictionary = {}
+
+class TrophyBadge extends Control:
+	var region_id: String
+	var earned: bool
+	func _draw() -> void:
+		var center := size * 0.5
+		var rim := Color(0.9, 0.72, 0.3) if earned else Color(0.28, 0.28, 0.32)
+		draw_circle(center, 34.0, Color(0.06, 0.06, 0.09))
+		draw_arc(center, 34.0, 0, TAU, 32, rim, 3.0)
+		var color := Color(1.0, 0.45, 0.15)
+		if region_id == "storm_spire":
+			color = Color(0.5, 0.75, 1.0)
+		elif region_id == "toxic_depths":
+			color = Color(0.4, 0.85, 0.35)
+		if not earned:
+			color = Color(0.3, 0.3, 0.35)
+		match region_id:
+			"burning_grounds":
+				draw_colored_polygon(PackedVector2Array([center + Vector2(-16, 17), center + Vector2(0, -23), center + Vector2(16, 17)]), color)
+			"storm_spire":
+				draw_colored_polygon(PackedVector2Array([center + Vector2(5, -24), center + Vector2(-14, 3), center + Vector2(-1, 3),
+					center + Vector2(-5, 24), center + Vector2(14, -3), center + Vector2(1, -3)]), color)
+			"toxic_depths":
+				for offset in [Vector2(0, -12), Vector2(-12, 9), Vector2(12, 9)]:
+					draw_circle(center + offset, 10.0, color)
 
 func _ready() -> void:
 	back_button.pressed.connect(func(): queue_free())
@@ -61,6 +89,26 @@ func _refresh() -> void:
 func _get_entries(category: String) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
 	match category:
+		"cosmetics":
+			for definition in CosmeticStyles.DEFINITIONS:
+				entries.append({"id": definition.id, "name": definition.name, "description": definition.description,
+					"tags": "Visual only: no stat or collision changes", "rarity": "",
+					"discovered": CosmeticStyles.is_unlocked(definition.id),
+					"unlock_hint": definition.description, "show_name": true, "cosmetic_kind": definition.kind})
+		"trophies":
+			for region_id in ["burning_grounds", "storm_spire", "toxic_depths"]:
+				var region := load("res://resources/regions/%s.tres" % region_id) as RegionResource
+				var victories := int(MetaProgression.region_victories.get(region_id, 0))
+				entries.append({"id": region_id, "name": region.name + " — Boss Trophy",
+					"description": "%d victories. Ascension unlocked: %d. Trophy only: no power bonus." % [victories, MetaProgression.get_max_ascension(region_id)],
+					"tags": "Regional final-boss victory", "rarity": "rare", "discovered": victories > 0,
+					"unlock_hint": "Defeat the final boss in " + region.name, "show_name": true, "trophy_region": region_id})
+		"challenges":
+			for definition in ArchetypeChallenges.DEFINITIONS:
+				entries.append({"id": definition.id, "name": definition.name, "description": definition.description,
+					"tags": "Achievement only: no permanent stat bonus", "rarity": "",
+					"discovered": MetaProgression.completed_challenges.has(definition.id),
+					"unlock_hint": definition.description, "show_name": true})
 		"skills":
 			for res: Resource in _load_resources("res://resources/skills/"):
 				if res is SkillResource:
@@ -122,10 +170,25 @@ func _create_entry_card(entry: Dictionary) -> PanelContainer:
 		title.text = entry["name"]
 		title.add_theme_color_override("font_color", _rarity_color(entry["rarity"]))
 	else:
-		title.text = "???"
+		title.text = entry["name"] if entry.get("show_name", false) else "???"
 		title.add_theme_color_override("font_color", UITheme.C_INK_FAINT)
 	title.add_theme_font_size_override("font_size", 30)
 	vbox.add_child(title)
+	if entry.has("trophy_region"):
+		var badge := TrophyBadge.new()
+		badge.region_id = entry.trophy_region
+		badge.earned = entry.discovered
+		badge.custom_minimum_size.y = 80
+		badge.mouse_filter = MOUSE_FILTER_IGNORE
+		vbox.add_child(badge)
+	elif entry.get("cosmetic_kind", "") == "player" and entry.discovered:
+		var preview := TextureRect.new()
+		preview.texture = BreakerSprite.build_texture("S", 0, "idle", CosmeticStyles.player_palette("cold", entry.id))
+		preview.custom_minimum_size = Vector2(96, 108)
+		preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		vbox.add_child(preview)
 
 	var desc := Label.new()
 	if entry["discovered"]:
@@ -144,6 +207,18 @@ func _create_entry_card(entry: Dictionary) -> PanelContainer:
 	desc.add_theme_font_size_override("font_size", 22)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(desc)
+	if entry.has("cosmetic_kind"):
+		var equip := Button.new()
+		var equipped: bool = CosmeticStyles.selected(entry.cosmetic_kind) == entry.id
+		equip.text = "EQUIPPED" if equipped else "EQUIP"
+		equip.disabled = equipped or not entry.discovered
+		equip.custom_minimum_size.y = 60
+		UITheme.style_button(equip, 24)
+		equip.pressed.connect(func():
+			if MetaProgression.equip_cosmetic(entry.id):
+				_refresh()
+		)
+		vbox.add_child(equip)
 
 	return panel
 

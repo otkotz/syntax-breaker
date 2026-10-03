@@ -17,6 +17,8 @@ func modify_spawn(skill_instance, projectile: Node2D) -> void:
 		return
 
 	for i in split_count:
+		if ProjectileBase.active_count >= QualitySettings.projectile_cap:
+			break
 		var angle_offset := SPLIT_ANGLE * (i + 1) * (1 if i % 2 == 0 else -1)
 		var split_dir := base_dir.rotated(angle_offset)
 		var split := pool.get_instance()
