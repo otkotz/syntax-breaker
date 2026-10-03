@@ -39,7 +39,9 @@ i [pełnym planie](gameplay-audit-2026-10-03.md).
   w `StageTree.visit` i szary ekran. Gate A nie jest domknięty.
   Nie utożsamiać testu z 99% crash-free realnych sesji.
 - B: mechanika checkpointów przechodzi, ale raport playtestów ma `insufficient_data`.
-  Brak dowodu pięciu kolejnych pełnych runów i pomiaru oczekiwania przed zmianą duration.
+  Dwa nowe ludzkie runy mają pełny pomiar oczekiwania na spawn (0,543/0,576 s),
+  lecz to nadal 2/5 próbek; jeden zawiera odstęp 71,632 s przekraczający 45 s.
+  Brak dowodu pięciu kolejnych pełnych runów spełniających gate przed zmianą duration.
 - C: scenariusze headless i pakowanie APK przechodzą; telefon jest już połączony,
   ale brak nagrań 1080×1920, nagrań śmierci oraz profilowania przy capie 40 pocisków.
 - D: model/syntetyczne fixture'y nie zastępują 50–100 realnych runów ani win-rate.
@@ -81,3 +83,10 @@ Użytkownik wybrał kontynuację testów telefonu zamiast proponowanej naprawy r
 nie zmieniano teraz kodu. Następne warunki: uzgodniona naprawa wznowienia mapy i ludzkie
 pełne runy według
 [protokołu playtestów](phone-playtest-protocol.md). Nie należy uznawać celu za osiągnięty.
+
+Po zatrzymaniu automatycznych testów użytkownik wykonał dwa runy opisane w
+[osobnym audycie](phone-human-runs-2026-10-03.md). Ponowne uruchomienie raportu na
+izolowanym zbiorze dwóch ID potwierdziło 2 completed playtests, 0 invalid files,
+0 duplicates i 0 dropped events; kod 2 oraz `insufficient_data` pozostają prawidłowe.
+Obie śmierci to `mini_boss:slam` na Elite + Deadly. Odczyt/analiza nie wznowiły gry
+ani testowania telefonu i nie zmieniły balansu. Surowe logi pozostają poza Git.

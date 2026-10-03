@@ -151,6 +151,16 @@ Unlocks scroll, niezapowiedziane checkpointy i resume również pozostają otwar
 Telefon po dwóch próbach pozostawiono w menu, bez aktywnej walki ani porzuconego runu;
 zrzut `.godot/phone-arrows-after-two-runs-menu.png`.
 
+## Dwa późniejsze ludzkie runy
+
+Analiza dwóch późniejszych ludzkich runów jest zapisana osobno w
+[audycie runów użytkownika](phone-human-runs-2026-10-03.md).
+Zbiór obejmuje tylko `b6300ae356fe3ee8f5d6fc79` i `1ae5ccee848d916c7adc25c3`;
+nie miesza wcześniejszych prób ADB ani logu sprzed aktualizacji.
+Raport ma `insufficient_data` (2/5) i kod 2 przy minimum 50. W pierwszym runie odstęp
+decyzji z końcowym ogonem wynosi 71,632 s; oba zakończył slam na Elite + Deadly.
+Automatyczne testowanie telefonu pozostaje zatrzymane na prośbę użytkownika.
+
 ## Połączenie
 
 Najprościej: USB, włączone debugowanie USB i zaakceptowany klucz komputera na telefonie.
