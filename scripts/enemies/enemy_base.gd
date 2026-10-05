@@ -43,6 +43,8 @@ func _ready() -> void:
 
 func _setup_sprite() -> void:
 	_sprite = Sprite2D.new()
+	_sprite.scale = Vector2.ONE * 1.5
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_randomize_variant()
 	add_child(_sprite)
 
@@ -120,7 +122,7 @@ func _draw() -> void:
 func _draw_health_bar() -> void:
 	var bar_width := 24.0
 	var bar_height := 3.0
-	var bar_y := -38.0
+	var bar_y := _get_health_bar_y()
 	var bg_rect := Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height))
 	draw_rect(bg_rect, Color(0.2, 0.2, 0.2))
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
@@ -128,6 +130,16 @@ func _draw_health_bar() -> void:
 	draw_rect(hp_rect, Color(0.1, 0.9, 0.1))
 	if _has_support_guard():
 		draw_arc(Vector2(0, -13), 22.0, 0, TAU, 16, Color(0.15, 0.95, 0.95), 2.0)
+
+func _get_health_bar_y() -> float:
+	if not _sprite or not _sprite.texture:
+		return -38.0
+	var top := (_sprite.offset.y - _sprite.texture.get_height() / 2.0) * _sprite.scale.y + _sprite.position.y
+	return minf(-38.0, top - 8.0)
+
+func get_damage_context() -> Dictionary:
+	return {"attacker_id": str(get_instance_id()),
+		"attacker_role": get_meta("combat_role", get_meta("spawn_role", get_enemy_id()))}
 
 func _has_support_guard() -> bool:
 	if not is_inside_tree():
@@ -159,7 +171,7 @@ func _draw_status_icons() -> void:
 	var gap := 2.0
 	var total_w: float = active.size() * icon + (active.size() - 1) * gap
 	var start_x: float = -total_w / 2.0
-	var cy := -45.0
+	var cy := _get_health_bar_y() - 7.0
 	for i: int in active.size():
 		var key: String = active[i]
 		var col: Color = STATUS_COLORS.get(key, Color(0.6, 0.6, 0.7))
@@ -202,7 +214,7 @@ func _check_contact_damage() -> void:
 	for i in get_slide_collision_count():
 		var collision := get_slide_collision(i)
 		if collision.get_collider() is Player:
-			Player.hurt(collision.get_collider(), contact_damage, get_contact_source())
+			Player.hurt(collision.get_collider(), contact_damage, get_contact_source(), get_damage_context())
 
 func get_contact_source() -> String:
 	return get_enemy_id() + ":contact"
@@ -329,6 +341,8 @@ func apply_scaling(hp_mult: float, speed_mult: float, damage_mult: float, gold_m
 
 func reset() -> void:
 	_kill_source = null
+	if has_meta("combat_role"):
+		remove_meta("combat_role")
 	var affix := get_node_or_null("EliteAffix")
 	if affix and affix.has_method("reset_affix"):
 		affix.reset_affix()

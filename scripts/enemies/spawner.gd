@@ -374,6 +374,7 @@ func _spawn_elite() -> void:
 		return
 	var pos := SpawnFormation.random_edge_position(_arena_rect, _player.global_position)
 	var enemy := _get_from_pool(mini_boss_scene)
+	enemy.set_meta("combat_role", "elite")
 	enemy.global_position = pos
 	enemy._arena_rect = _arena_rect
 	enemy.initialize(_player)
@@ -400,6 +401,7 @@ func _spawn_mini_boss() -> void:
 	var boss := mini_boss_scene.instantiate() as EnemyBase
 	boss.died.connect(_on_enemy_died)
 	add_child(boss)
+	boss.set_meta("combat_role", "mini_boss")
 	boss.global_position = SpawnFormation.random_edge_position(_arena_rect, _player.global_position)
 	boss._arena_rect = _arena_rect
 	boss.initialize(_player)
@@ -414,6 +416,7 @@ func _spawn_boss() -> void:
 	var boss := scene.instantiate() as EnemyBase
 	boss.died.connect(_on_enemy_died)
 	add_child(boss)
+	boss.set_meta("combat_role", "boss")
 	if boss is MiniBoss:
 		(boss as MiniBoss).set_as_boss()
 	boss.global_position = _arena_rect.get_center()

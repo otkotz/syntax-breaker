@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/passives/ward-reflex-v1.png" id="2"]
+[resource]
+script = ExtResource("1")
+id = "ward_reflex"
+name = "Ward Reflex"
+icon = ExtResource("2")
+stat_modifiers = {"shield_delay_reduction": 1.0}
+rarity = "uncommon"
+description = "Shield recharge starts 1 second sooner after damage (minimum delay: 1 second)."

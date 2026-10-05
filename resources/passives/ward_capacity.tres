@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveResource" load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/resources/passive_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/passives/ward-core-v1.png" id="2"]
+[resource]
+script = ExtResource("1")
+id = "ward_capacity"
+name = "Ward Core"
+icon = ExtResource("2")
+stat_modifiers = {"shield_capacity": 15.0}
+rarity = "common"
+description = "+15 maximum shield. Shield absorbs damage before HP and recharges after avoiding hits."

@@ -71,14 +71,14 @@ func _get_all_items(section: String) -> Array[Dictionary]:
 		match section:
 			"skills":
 				if res is SkillResource:
-					items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity})
+					items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity, "resource": res})
 			"supports":
 				if res is SupportResource:
-					items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity})
+					items.append({"id": res.id, "name": res.name, "description": res.description, "rarity": res.rarity, "resource": res})
 			"passives":
 				if res is PassiveResource:
 					var passive := res as PassiveResource
-					items.append({"id": passive.id, "name": passive.name, "description": passive.description, "rarity": passive.rarity})
+					items.append({"id": passive.id, "name": passive.name, "description": passive.description, "rarity": passive.rarity, "resource": passive})
 	return items
 
 func _create_card(item: Dictionary, section: String, is_unlocked: bool) -> PanelContainer:
@@ -95,6 +95,9 @@ func _create_card(item: Dictionary, section: String, is_unlocked: bool) -> Panel
 	title.add_theme_font_size_override("font_size", 28)
 
 	if is_unlocked:
+		var icon := UITheme.item_thumbnail(item.get("resource"), 64)
+		if icon:
+			vbox.add_child(icon)
 		title.text = item["name"]
 		title.add_theme_color_override("font_color", _rarity_color(item["rarity"]))
 		var desc := Label.new()

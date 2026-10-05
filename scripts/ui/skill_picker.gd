@@ -46,10 +46,10 @@ func _build_ui() -> void:
 	scroller.add_child(margin)
 
 	_skill_grid = GridContainer.new()
-	_skill_grid.columns = 2
+	_skill_grid.columns = 1
 	_skill_grid.size_flags_horizontal = SIZE_EXPAND_FILL
 	_skill_grid.add_theme_constant_override("h_separation", 10)
-	_skill_grid.add_theme_constant_override("v_separation", 10)
+	_skill_grid.add_theme_constant_override("v_separation", 18)
 	margin.add_child(_skill_grid)
 
 func _build_header(parent: Control) -> void:
@@ -71,19 +71,18 @@ func _build_header(parent: Control) -> void:
 	header.add_child(vbox)
 
 	var title := Label.new()
-	title.text = "ABILITY_MATRIX [SELECTION]"
+	title.text = "CHOOSE YOUR STARTING SKILL"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_font_size_override("font_size", 38)
 	title.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	title.uppercase = true
 	vbox.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "SELECT STARTING OVERRIDE"
+	sub.text = "Tap a card to start. Scroll down for more skills."
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 16)
-	sub.add_theme_color_override("font_color", UITheme.C_INK_LOW)
-	sub.uppercase = true
+	sub.add_theme_font_size_override("font_size", 26)
+	sub.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	vbox.add_child(sub)
 
 func _populate() -> void:
@@ -105,14 +104,14 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	var dmg_mult := RarityTiers.damage_mult(tier)
 
 	var card := PanelContainer.new()
+	card.custom_minimum_size.y = 340
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = UITheme.C_CARD_BG
 	card_style.border_color = Color(color, 0.4)
 	card_style.set_border_width_all(1)
 	card_style.border_width_top = 2
-	card_style.set_content_margin_all(10)
-	card_style.content_margin_top = 12
+	card_style.set_content_margin_all(0)
 	card_style.shadow_color = Color(color, 0.1)
 	card_style.shadow_size = 4
 	card.add_theme_stylebox_override("panel", card_style)
@@ -122,7 +121,12 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	content.size_flags_horizontal = SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 0)
 	content.mouse_filter = MOUSE_FILTER_IGNORE
-	card.add_child(content)
+	var content_margin := MarginContainer.new()
+	content_margin.mouse_filter = MOUSE_FILTER_IGNORE
+	for side in ["left", "right", "top", "bottom"]:
+		content_margin.add_theme_constant_override("margin_" + side, 20)
+	card.add_child(content_margin)
+	content_margin.add_child(content)
 
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)
@@ -134,7 +138,7 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = skill.name
-	name_lbl.add_theme_font_size_override("font_size", 26)
+	name_lbl.add_theme_font_size_override("font_size", 34)
 	name_lbl.add_theme_color_override("font_color", UITheme.C_SILVER)
 	name_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
 	name_lbl.mouse_filter = MOUSE_FILTER_IGNORE
@@ -142,7 +146,7 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 
 	var tier_lbl := Label.new()
 	tier_lbl.text = tier.to_upper()
-	tier_lbl.add_theme_font_size_override("font_size", 16)
+	tier_lbl.add_theme_font_size_override("font_size", 22)
 	tier_lbl.add_theme_color_override("font_color", tier_color)
 	tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tier_lbl.mouse_filter = MOUSE_FILTER_IGNORE
@@ -156,8 +160,7 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	content.add_child(tag_row)
 	for tag: String in skill.tags:
 		var is_category := tag in CATEGORY_TAGS
-		var prefix := "C_" if is_category else "R_"
-		var pill := _make_pill(prefix + tag.to_upper(), is_category, color)
+		var pill := _make_pill(tag.to_upper(), is_category, color)
 		tag_row.add_child(pill)
 
 	content.add_child(_gap(8))
@@ -165,7 +168,7 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	var desc := Label.new()
 	desc.text = skill.description
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 18)
+	desc.add_theme_font_size_override("font_size", 26)
 	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	desc.mouse_filter = MOUSE_FILTER_IGNORE
 	content.add_child(desc)
@@ -199,20 +202,43 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	content.add_child(_gap(8))
 
 	var select_btn := Button.new()
-	select_btn.text = "SELECT [OVERRIDE]"
+	select_btn.text = "TAP CARD TO START"
 	select_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	_style_select_button(select_btn, color)
 	var reason := StarterContracts.rejection_reason(selected_contract, skill)
 	select_btn.disabled = not reason.is_empty()
 	if not reason.is_empty():
 		select_btn.text = reason
-	select_btn.pressed.connect(func():
-		if _chosen or not StarterContracts.rejection_reason(selected_contract, skill).is_empty():
-			return
-		_chosen = true
-		skill_chosen.emit(skill, tier)
-	)
+	select_btn.pressed.connect(func(): _choose_skill(skill, tier))
 	content.add_child(select_btn)
+
+	# PanelContainer gives both children the same full card rect. The transparent
+	# hit area sits above content, so header, description and margins all select.
+	var hit_area := Button.new()
+	hit_area.name = "CardHitArea"
+	# Let the enclosing ScrollContainer see press/motion and cancel selection
+	# when a finger crosses its drag threshold.
+	hit_area.mouse_filter = MOUSE_FILTER_PASS
+	hit_area.flat = true
+	hit_area.disabled = select_btn.disabled
+	hit_area.tooltip_text = reason if select_btn.disabled else "Start with " + skill.name
+	hit_area.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	hit_area.add_theme_stylebox_override("disabled", StyleBoxEmpty.new())
+	var highlight := StyleBoxFlat.new()
+	highlight.bg_color = Color(color, 0.06)
+	highlight.border_color = color.lightened(0.2)
+	highlight.set_border_width_all(2)
+	hit_area.add_theme_stylebox_override("hover", highlight)
+	hit_area.add_theme_stylebox_override("pressed", highlight)
+	hit_area.add_theme_stylebox_override("focus", highlight)
+	hit_area.pressed.connect(func(): _choose_skill(skill, tier))
+	card.add_child(hit_area)
+
+func _choose_skill(skill: SkillResource, tier: String) -> void:
+	if _chosen or not StarterContracts.rejection_reason(selected_contract, skill).is_empty():
+		return
+	_chosen = true
+	skill_chosen.emit(skill, tier)
 
 func _build_contract_selector(parent: Control) -> void:
 	var selector := OptionButton.new()
@@ -233,7 +259,7 @@ func _build_contract_selector(parent: Control) -> void:
 	parent.add_child(selector)
 	_contract_description = Label.new()
 	_contract_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_contract_description.add_theme_font_size_override("font_size", 20)
+	_contract_description.add_theme_font_size_override("font_size", 24)
 	_contract_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(_contract_description)
 	_refresh_contract_description()
@@ -275,7 +301,7 @@ func _make_pill(text: String, is_category: bool, card_color: Color) -> PanelCont
 
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_font_size_override("font_size", 18)
 	lbl.add_theme_color_override("font_color", Color(pill_color, 0.9))
 	lbl.mouse_filter = MOUSE_FILTER_IGNORE
 	pill.add_child(lbl)
@@ -291,21 +317,21 @@ func _add_stat(parent: Control, key: String, value: String) -> void:
 	var k := Label.new()
 	k.text = key
 	k.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	k.add_theme_font_size_override("font_size", 11)
-	k.add_theme_color_override("font_color", UITheme.C_INK_FAINT)
+	k.add_theme_font_size_override("font_size", 18)
+	k.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	k.mouse_filter = MOUSE_FILTER_IGNORE
 	vbox.add_child(k)
 
 	var v := Label.new()
 	v.text = value
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_theme_font_size_override("font_size", 18)
+	v.add_theme_font_size_override("font_size", 26)
 	v.add_theme_color_override("font_color", UITheme.C_INK)
 	v.mouse_filter = MOUSE_FILTER_IGNORE
 	vbox.add_child(v)
 
 func _style_select_button(btn: Button, color: Color) -> void:
-	btn.add_theme_font_size_override("font_size", 18)
+	btn.add_theme_font_size_override("font_size", 24)
 	btn.add_theme_color_override("font_color", UITheme.C_SILVER)
 	btn.add_theme_color_override("font_hover_color", color)
 

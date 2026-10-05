@@ -125,6 +125,7 @@ func _get_entries(category: String) -> Array[Dictionary]:
 					var support := res as SupportResource
 					entries.append({
 						"id": support.id, "name": support.name, "description": support.description,
+						"resource": support,
 						"tags": ", ".join(support.required_tags),
 						"rarity": support.rarity,
 						"discovered": MetaProgression.is_discovered("supports", support.id),
@@ -136,6 +137,7 @@ func _get_entries(category: String) -> Array[Dictionary]:
 					var passive := res as PassiveResource
 					entries.append({
 						"id": passive.id, "name": passive.name, "description": passive.description,
+						"resource": passive,
 						"tags": "", "rarity": passive.rarity,
 						"discovered": MetaProgression.is_discovered("passives", passive.id),
 						"unlock_hint": _get_hint("passives", passive.id),
@@ -164,6 +166,10 @@ func _create_entry_card(entry: Dictionary) -> PanelContainer:
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
 	panel.add_child(vbox)
+	if entry.discovered:
+		var icon := UITheme.item_thumbnail(entry.get("resource"), 80)
+		if icon:
+			vbox.add_child(icon)
 
 	var title := Label.new()
 	if entry["discovered"]:

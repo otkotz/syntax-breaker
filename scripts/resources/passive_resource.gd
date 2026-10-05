@@ -3,6 +3,7 @@ extends Resource
 
 @export var id: String = ""
 @export var name: String = ""
+@export var icon: Texture2D
 @export var affected_tags: Array[String] = []
 @export var stat_modifiers: Dictionary = {}
 @export var rarity: String = "common"

@@ -74,8 +74,10 @@ func _spawn_hazard(kind: String, origin: Vector2, warning: float, lifetime: floa
 	hazard.color = Color(0.2, 0.7, 1.0) if boss_region == "storm_spire" else (Color(0.55, 0.95, 0.15) if boss_region == "toxic_depths" else Color(1.0, 0.4, 0.08))
 	get_parent().add_child(hazard)
 	hazard.global_position = origin
-	RunTelemetry.record("hazard_warning", {"source": get_enemy_id() + ":" + kind,
-		"warning_seconds": warning, "x": origin.x, "y": origin.y})
+	var warning_event := get_damage_context()
+	warning_event.merge({"source": get_enemy_id() + ":" + kind,
+		"warning_seconds": warning, "x": origin.x, "y": origin.y}, true)
+	RunTelemetry.record("hazard_warning", warning_event)
 	hazards.append(hazard)
 	return hazard
 

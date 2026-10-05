@@ -72,9 +72,7 @@ func _build_ui() -> void:
 	top.size_flags_vertical = SIZE_EXPAND_FILL
 	top.size_flags_stretch_ratio = 1.0
 	root.add_child(top)
-	_build_crest(top)
 	_build_logo(top)
-	_build_seed_chip(top)
 
 	var bottom := VBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 0)
@@ -86,7 +84,6 @@ func _build_ui() -> void:
 	bottom.add_child(_gap(16))
 	_build_actions(bottom)
 	bottom.add_child(_gap(10))
-	_build_footer(bottom)
 
 func _build_crest(parent: Control) -> void:
 	var bar := HBoxContainer.new()
@@ -106,6 +103,7 @@ func _build_logo(parent: Control) -> void:
 	logo.texture = logo_tex
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	logo.custom_minimum_size.y = 260
 	logo.size_flags_horizontal = SIZE_EXPAND_FILL
 	logo.size_flags_vertical = SIZE_EXPAND_FILL
 	parent.add_child(logo)
@@ -185,7 +183,8 @@ func _build_panel() -> PanelContainer:
 	_asc_desc = Label.new()
 	_asc_desc.text = "Normal — the first descent."
 	_asc_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_asc_desc.add_theme_font_size_override("font_size", 20)
+	_asc_desc.add_theme_font_size_override("font_size", 26)
+	_asc_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_asc_desc.add_theme_color_override("font_color", C_INK_MUTE)
 	v.add_child(_asc_desc)
 
@@ -224,11 +223,13 @@ func _build_panel() -> PanelContainer:
 	region_inner.add_theme_constant_override("separation", 4)
 	region_box.add_child(region_inner)
 
-	_region_sub = _lbl("", 14, C_V_BRIGHT)
+	_region_sub = _lbl("", 24, C_INK_MUTE)
+	_region_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_region_sub.uppercase = true
 	region_inner.add_child(_region_sub)
 
-	_region_name = _lbl("DEFAULT", 28, C_SILVER)
+	_region_name = _lbl("DEFAULT", 34, C_SILVER)
+	_region_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_region_name.uppercase = true
 	region_inner.add_child(_region_name)
 
@@ -240,8 +241,8 @@ func _build_panel() -> PanelContainer:
 	_region_desc = Label.new()
 	_region_desc.text = ""
 	_region_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_region_desc.add_theme_font_size_override("font_size", 18)
-	_region_desc.add_theme_color_override("font_color", C_INK_LOW)
+	_region_desc.add_theme_font_size_override("font_size", 26)
+	_region_desc.add_theme_color_override("font_color", C_INK_MUTE)
 	_region_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_region_desc)
 
@@ -288,13 +289,13 @@ func _build_actions(parent: Control) -> void:
 
 	var unlocks := _make_ghost("◇  UNLOCKS")
 	unlocks.size_flags_horizontal = SIZE_EXPAND_FILL
-	unlocks.custom_minimum_size.y = 64
+	unlocks.custom_minimum_size.y = 84
 	unlocks.pressed.connect(func() -> void: unlocks_pressed.emit())
 	row.add_child(unlocks)
 
 	var codex := _make_ghost("◇  CODEX")
 	codex.size_flags_horizontal = SIZE_EXPAND_FILL
-	codex.custom_minimum_size.y = 64
+	codex.custom_minimum_size.y = 84
 	codex.pressed.connect(func() -> void: codex_pressed.emit())
 	row.add_child(codex)
 
@@ -323,7 +324,7 @@ func _row_label(text: String) -> Label:
 	var l := Label.new()
 	l.text = "◇  %s  ◇" % text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_font_size_override("font_size", 26)
 	l.add_theme_color_override("font_color", C_V_BRIGHT)
 	l.uppercase = true
 	return l
@@ -341,13 +342,11 @@ func _flex() -> Control:
 func _make_diamond_btn(text: String) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(50, 50)
-	b.add_theme_font_size_override("font_size", 28)
+	b.custom_minimum_size = Vector2(84, 84)
+	b.add_theme_font_size_override("font_size", 36)
 	b.add_theme_color_override("font_color", C_V_BRIGHT)
 	b.add_theme_color_override("font_hover_color", C_SILVER)
 	b.add_theme_color_override("font_disabled_color", C_INK_FAINT)
-	b.pivot_offset = Vector2(25, 25)
-	b.rotation = deg_to_rad(45)
 
 	var ns := StyleBoxFlat.new()
 	ns.bg_color = Color(0.10, 0.06, 0.19)
@@ -386,9 +385,9 @@ func _make_diamond_btn(text: String) -> Button:
 func _make_arrow(text: String) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(48, 0)
+	b.custom_minimum_size = Vector2(80, 80)
 	b.size_flags_vertical = SIZE_EXPAND_FILL
-	b.add_theme_font_size_override("font_size", 30)
+	b.add_theme_font_size_override("font_size", 40)
 	b.add_theme_color_override("font_color", C_V_BRIGHT)
 	b.add_theme_color_override("font_hover_color", C_SILVER)
 
@@ -418,8 +417,9 @@ func _make_arrow(text: String) -> Button:
 func _make_cta(text: String) -> Button:
 	var b := Button.new()
 	b.text = "◢◣  %s  ◢◣" % text
-	b.custom_minimum_size.y = 70
-	b.add_theme_font_size_override("font_size", 28)
+	b.custom_minimum_size.y = 96
+	b.text = text
+	b.add_theme_font_size_override("font_size", 34)
 	b.add_theme_color_override("font_color", C_SILVER)
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
 
@@ -455,8 +455,8 @@ func _make_cta(text: String) -> Button:
 func _make_ghost(text: String) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size.y = 64
-	b.add_theme_font_size_override("font_size", 24)
+	b.custom_minimum_size.y = 84
+	b.add_theme_font_size_override("font_size", 28)
 	b.add_theme_color_override("font_color", C_SILVER_D)
 	b.add_theme_color_override("font_hover_color", C_V_BRIGHT)
 
@@ -513,6 +513,17 @@ func _refresh_ascension() -> void:
 		_asc_desc.text = "Sovereign — kneel, or break."
 	else:
 		_asc_desc.text = "Eternal — there is no morning."
+	var scaling := MetaProgression.get_ascension_scaling(level)
+	_asc_desc.text = "Enemy HP +%d%% | Damage +%d%% | Speed +%d%%" % [roundi((float(scaling.hp_mult) - 1.0) * 100), roundi((float(scaling.damage_mult) - 1.0) * 100), roundi((float(scaling.speed_mult) - 1.0) * 100)]
+	var rules := PackedStringArray()
+	if level >= 5:
+		rules.append("Elite patrol")
+	if level >= 10:
+		rules.append("Extra denial caster")
+	if level >= 15:
+		rules.append("Extra shield support")
+	if not rules.is_empty():
+		_asc_desc.text += "\n" + " / ".join(rules)
 
 func _change_region(delta: int) -> void:
 	_region_index = wrapi(_region_index + delta, 0, _region_ids.size())

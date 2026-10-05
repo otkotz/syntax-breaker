@@ -39,6 +39,7 @@ func _spawn_zone(nova: bool) -> void:
 	zone.zone_group = "elite_hazards"
 	zone.target = enemy._target
 	zone.source_id = "elite:" + ("nova" if nova else "trail")
+	zone.damage_context = enemy.get_damage_context()
 	zone.radius = 100.0 if nova else 32.0
 	zone.color = Color(1.0, 0.15, 0.25) if nova else Color(1.0, 0.9, 0.15)
 	zone.damage = enemy.contact_damage * (1.2 if nova else 0.5)

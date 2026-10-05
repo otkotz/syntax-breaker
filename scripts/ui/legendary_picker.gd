@@ -47,6 +47,7 @@ func _build_ui(choices: Array[PassiveResource]) -> void:
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 		btn.text = "★ %s\n%s" % [passive.name, passive.description]
 		UITheme.style_button(btn, 26)
+		UITheme.apply_item_icon(btn, passive, 96)
 		btn.pressed.connect(func():
 			RunManager.owned_passives.append(passive)
 			GameBus.passive_acquired.emit(passive)

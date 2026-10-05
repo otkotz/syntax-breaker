@@ -2,6 +2,7 @@ class_name MiniBoss
 extends EnemyBase
 
 const ENEMY_PROJECTILE_SCENE := preload("res://scenes/enemies/enemy_projectile.tscn")
+const HazardVisual = preload("res://scripts/util/hazard_visual.gd")
 
 enum Phase { CHASE, TELEGRAPH, ATTACK, COOLDOWN }
 enum Attack { CHARGE, SLAM, VOLLEY }
@@ -44,7 +45,9 @@ static var _boss_variants_by_type: Dictionary = {}
 static var _projectile_pool: ObjectPool
 
 const SLAM_RADIUS := 120.0
-const SLAM_DAMAGE_MULT := 1.5
+const SLAM_WARNING := 1.25
+const SLAM_BASE_DAMAGE := 28.0
+var _slam_damage: float = SLAM_BASE_DAMAGE
 const VOLLEY_COUNT := 8
 const VOLLEY_SPEED := 180.0
 
@@ -58,6 +61,15 @@ func _setup_sprite() -> void:
 	super._setup_sprite()
 	var s: float = BOSS_SCALE.get(_boss_type(), 0.8)
 	_sprite.scale = Vector2(s, s)
+
+func apply_scaling(hp_mult: float, speed_mult: float, damage_mult: float, gold_mult: float) -> void:
+	super.apply_scaling(hp_mult, speed_mult, damage_mult, gold_mult)
+	# Big threats already have stronger base attacks. Diminishing damage scaling
+	# preserves Elite/Deadly/region/Ascension ordering without multiplying them
+	# into an A0 full-HP kill. Slam has its own budget, not contact * 1.5.
+	var attack_scale := sqrt(maxf(0.0, damage_mult))
+	contact_damage = _base_contact_damage * attack_scale
+	_slam_damage = SLAM_BASE_DAMAGE * attack_scale
 
 # Region boss — built once per type, three corruption accents each.
 func _get_body_variants() -> Array:
@@ -85,7 +97,7 @@ func set_as_boss() -> void:
 func _draw_health_bar() -> void:
 	var bar_width := 72.0 if _is_boss_mode else 48.0
 	var bar_height := 5.0 if _is_boss_mode else 4.0
-	var bar_y := -85.0 if _is_boss_mode else -80.0
+	var bar_y := minf(-85.0 if _is_boss_mode else -80.0, _get_health_bar_y())
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height)), Color(0.2, 0.2, 0.2))
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
 	var bar_color := Color(1.0, 0.75, 0.1) if _is_boss_mode else Color(0.85, 0.15, 0.15)
@@ -152,11 +164,15 @@ func _begin_telegraph() -> void:
 			_charge_dir = global_position.direction_to(_target.global_position)
 			modulate = Color(1.5, 0.3, 0.3)
 		Attack.SLAM:
-			_phase_timer = 1.0
+			_phase_timer = SLAM_WARNING
 			_slam_target = _target.global_position
 			_slam_origin = global_position
 			modulate = Color(1.5, 0.8, 0.2)
 			_spawn_slam_indicator()
+			var warning := get_damage_context()
+			warning.merge({"source": get_enemy_id() + ":slam", "warning_seconds": SLAM_WARNING,
+				"x": _slam_target.x, "y": _slam_target.y, "radius": SLAM_RADIUS}, true)
+			RunTelemetry.record("hazard_warning", warning)
 		Attack.VOLLEY:
 			_phase_timer = 0.9
 			modulate = Color(0.6, 0.3, 1.5)
@@ -166,10 +182,13 @@ func _telegraph(delta: float) -> void:
 	queue_redraw()
 
 	if _current_attack == Attack.SLAM:
-		var t := 1.0 - _phase_timer
+		var t := 1.0 - _phase_timer / SLAM_WARNING
 		var lift := sin(t * PI) * 8.0
 		if _sprite:
 			_sprite.position.y = -lift
+		if is_instance_valid(_telegraph_indicator):
+			_telegraph_indicator.remaining = maxf(0.0, _phase_timer)
+			_telegraph_indicator.queue_redraw()
 
 	if _phase_timer <= 0.0:
 		_phase = Phase.ATTACK
@@ -219,6 +238,7 @@ func _spawn_slam_indicator() -> void:
 	_remove_slam_indicator()
 	_telegraph_indicator = _SlamIndicator.new()
 	(_telegraph_indicator as _SlamIndicator).radius = SLAM_RADIUS
+	(_telegraph_indicator as _SlamIndicator).remaining = SLAM_WARNING
 	get_parent().add_child(_telegraph_indicator)
 	_telegraph_indicator.global_position = _slam_target
 
@@ -228,12 +248,12 @@ func _remove_slam_indicator() -> void:
 		_telegraph_indicator = null
 
 func _slam_hit() -> void:
-	var damage: float = contact_damage * SLAM_DAMAGE_MULT
+	var damage := _slam_damage
 	var players := get_tree().get_nodes_in_group("player")
 	for p: Node2D in players:
 		if p.global_position.distance_to(_slam_target) <= SLAM_RADIUS:
 			if p.has_method("take_damage"):
-				Player.hurt(p, damage, get_enemy_id() + ":slam")
+				Player.hurt(p, damage, get_enemy_id() + ":slam", get_damage_context())
 	_spawn_slam_shockwave()
 
 func _spawn_slam_shockwave() -> void:
@@ -255,7 +275,7 @@ func _fire_volley() -> void:
 		var proj := _projectile_pool.get_instance() as EnemyProjectile
 		if proj:
 			var dmg := contact_damage * 0.6
-			proj.initialize(dir, VOLLEY_SPEED, dmg, global_position, _projectile_pool, get_enemy_id() + ":volley")
+			proj.initialize(dir, VOLLEY_SPEED, dmg, global_position, _projectile_pool, get_enemy_id() + ":volley", get_damage_context())
 
 # --- Draw telegraph indicators on boss ---
 
@@ -279,6 +299,7 @@ func _draw() -> void:
 
 func reset() -> void:
 	super.reset()
+	_slam_damage = SLAM_BASE_DAMAGE
 	remove_from_group("bosses")
 	_phase = Phase.CHASE
 	_phase_timer = 0.0
@@ -306,23 +327,24 @@ func _die() -> void:
 
 class _SlamIndicator extends Node2D:
 	var radius: float = 120.0
-	var _timer: float = 0.0
+	var remaining: float = SLAM_WARNING
 
-	func _process(delta: float) -> void:
-		_timer += delta
-		queue_redraw()
+	func _ready() -> void:
+		z_index = 2
 
 	func _draw() -> void:
-		var pulse := 0.5 + 0.3 * sin(_timer * 10.0)
-		draw_arc(Vector2.ZERO, radius, 0, TAU, 24, Color(1.0, 0.5, 0.1, pulse), 2.0)
-		var inner := radius * (0.3 + 0.15 * sin(_timer * 8.0))
-		draw_arc(Vector2.ZERO, inner, 0, TAU, 16, Color(1.0, 0.8, 0.2, pulse * 0.6), 1.5)
-		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.9, 0.3, pulse))
+		var color := Color(1.0, 0.4, 0.08)
+		draw_circle(Vector2.ZERO, radius, HazardVisual.fill_color(color, remaining, 0.0))
+		HazardVisual.outline(self, HazardVisual.circle_points(radius), remaining, SLAM_WARNING, color)
+		HazardVisual.badge(self, Vector2.ZERO, remaining)
 
 class _Shockwave extends Node2D:
 	var max_radius: float = 120.0
 	var _timer: float = 0.0
 	const DURATION := 0.35
+
+	func _ready() -> void:
+		z_index = 2
 
 	func _process(delta: float) -> void:
 		_timer += delta
@@ -334,6 +356,9 @@ class _Shockwave extends Node2D:
 		var t := _timer / DURATION
 		var r := max_radius * t
 		var fade := 1.0 - t
+		# Damage is immediate across the disk; the expanding ring is decorative.
+		draw_circle(Vector2.ZERO, max_radius, Color(1.0, 0.5, 0.15, fade * 0.3))
+		draw_arc(Vector2.ZERO, max_radius, 0, TAU, 48, Color(1.0, 0.9, 0.6, fade), 4.0)
 		draw_arc(Vector2.ZERO, r, 0, TAU, 24, Color(1.0, 0.6, 0.1, fade * 0.8), 3.0)
 		if r > 10.0:
 			draw_arc(Vector2.ZERO, r * 0.6, 0, TAU, 20, Color(1.0, 0.8, 0.3, fade * 0.4), 2.0)

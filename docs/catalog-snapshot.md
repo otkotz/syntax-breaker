@@ -10,7 +10,7 @@ oraz zgodność plików z rejestrem eksportu na Androida. Liczba zasobów nie oz
 | --- | ---: |
 | skills | 7 |
 | supports | 25 |
-| passives | 55 |
+| passives | 58 |
 | unlocks | 40 |
 | regions | 3 |
 | consumables | 8 |

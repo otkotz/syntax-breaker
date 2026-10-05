@@ -176,6 +176,11 @@ func _create_card(offering: Dictionary) -> Control:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
 	panel.add_child(hbox)
+	if not is_upgrade:
+		var item: Resource = offering["resource"]
+		var icon := UITheme.item_thumbnail(item)
+		if icon:
+			hbox.add_child(icon)
 
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL

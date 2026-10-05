@@ -3,7 +3,7 @@ extends EnemyBase
 
 # Mote sprites are authored at full enemy resolution; shrink them so the
 # swarm still reads as tiny, fast cannon-fodder. Tune to taste.
-const SPRITE_SCALE := 0.5
+const SPRITE_SCALE := 0.85
 
 static var _mote_variants: Array = []
 
@@ -22,7 +22,7 @@ func _get_body_variants() -> Array:
 func _draw_health_bar() -> void:
 	var bar_width := 12.0
 	var bar_height := 2.0
-	var bar_y := -16.0
+	var bar_y := _get_health_bar_y()
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width, bar_height)), Color(0.2, 0.2, 0.2))
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height)), Color(0.3, 0.9, 0.3))

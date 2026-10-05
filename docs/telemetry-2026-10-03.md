@@ -1,5 +1,19 @@
 # Lokalna telemetria runów — 2026-10-03
 
+Aktualizacja 2026-10-05: `player_damage` zachowuje `amount` jako faktyczną stratę
+HP, a dodaje `raw_amount`, `mitigated_amount`, `max_hp` i kontekst instancji/roli
+napastnika dla ataków wrogów. Umożliwia to odróżnienie overkill i dobicia od
+full-HP one-shota. Slam zapisuje `hazard_warning` z promieniem i rolą; strefy
+bossów/castera/affixów zapisują `hazard_active` raz przy rozpoczęciu aktywności.
+Pola są dodatkiem zgodnym ze starym raportem, a nie danymi dopisanymi do starych
+logów. ID instancji jest lokalne dla uruchomienia gry. Szczegóły w
+[raporcie poprawek](combat-readability-fixes-2026-10-05.md).
+
+Osłona: `player_damage.amount` nadal oznacza wyłącznie utratę HP. Nowe pola
+`shield_absorbed`, `shield_before`, `shield_after` opisują pochłonięcie ciosu.
+`mitigated_amount` pozostaje siłą ciosu po redukcji obrażeń, przed osłoną.
+Suma `shield_absorbed` w `run_stats` jest osobna od `damage_taken` (utrata HP).
+
 Rejestrator `RunTelemetry` zapisuje jeden JSON na run w `user://telemetry` (katalog danych
 użytkownika Godota). Nie wysyła danych przez sieć, nie zapisuje identyfikatorów kont ani
 modelu urządzenia. Losowy `run_id` identyfikuje przebieg, a nie osobę. Log zawiera datę UTC,

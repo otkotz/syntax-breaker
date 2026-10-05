@@ -2,6 +2,9 @@ class_name HUD
 extends Control
 
 @onready var hp_bar: ProgressBar = $TopBar/HPBar
+@onready var hp_label: Label = $TopBar/HPBar/HPLabel
+@onready var shield_bar: ProgressBar = $TopBar/ShieldBar
+@onready var shield_label: Label = $TopBar/ShieldBar/ShieldLabel
 @onready var gold_label: Label = $InfoPanel/GoldLabel
 @onready var stage_label: Label = $InfoPanel/StageLabel
 @onready var cooldown_container: HBoxContainer = $BottomBar/CooldownContainer
@@ -36,8 +39,16 @@ const MODIFIER_SYMBOLS := {
 
 func setup(player: Player) -> void:
 	_player = player
+	var hp_fill := StyleBoxFlat.new()
+	hp_fill.bg_color = Color(0.18, 0.55, 0.25)
+	hp_bar.add_theme_stylebox_override("fill", hp_fill)
 	_player.hp_changed.connect(_on_hp_changed)
 	_on_hp_changed(player.current_hp, player.max_hp)
+	var shield_fill := StyleBoxFlat.new()
+	shield_fill.bg_color = Color(0.12, 0.55, 0.75)
+	shield_bar.add_theme_stylebox_override("fill", shield_fill)
+	_player.shield_changed.connect(_on_shield_changed)
+	_on_shield_changed(player.current_shield, player.max_shield)
 	_on_gold_changed(RunManager.gold)
 	GameBus.gold_changed.connect(_on_gold_changed)
 	_update_stage()
@@ -119,6 +130,9 @@ func _on_synergy(synergy_name: String) -> void:
 	_synergy_cooldown = 2.0
 
 func _process(delta: float) -> void:
+	if is_instance_valid(_player):
+		var recharge_text := " | RECHARGE %.1fs" % _player._shield_recharge_remaining if _player._shield_recharge_remaining > 0.0 else ""
+		shield_label.text = "SHIELD %d / %d%s" % [ceili(_player.current_shield), ceili(_player.max_shield), recharge_text]
 	_modifier_timer = maxf(0.0, _modifier_timer - delta)
 	if _modifier_details and _modifier_timer == 0.0:
 		_modifier_details.text = ""
@@ -177,9 +191,14 @@ func _show_modifier(description: String) -> void:
 	_modifier_details.text = description
 	_modifier_timer = 5.0
 
+func _on_shield_changed(current: float, maximum: float) -> void:
+	shield_bar.max_value = maxf(1.0, maximum)
+	shield_bar.value = current
+
 func _on_hp_changed(current: float, maximum: float) -> void:
 	hp_bar.max_value = maximum
 	hp_bar.value = current
+	hp_label.text = "HP %d / %d" % [ceili(current), ceili(maximum)]
 
 func _on_gold_changed(amount: int) -> void:
 	gold_label.text = "Gold: %d" % amount

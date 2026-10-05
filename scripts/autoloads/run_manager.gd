@@ -5,6 +5,8 @@ var gold: int = 0
 var gold_fraction: float = 0.0
 var current_hp: float = 100.0
 var max_hp: float = 100.0
+var current_shield: float = 20.0
+var shield_recharge_remaining: float = 0.0
 signal consumables_changed
 var skill_slots_unlocked: int = 1
 var equipped_skills: Array = []
@@ -25,6 +27,8 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	gold_fraction = 0.0
 	current_hp = 100.0
 	max_hp = 100.0
+	current_shield = 20.0
+	shield_recharge_remaining = 0.0
 	skill_slots_unlocked = 1
 	equipped_skills = []
 	owned_supports = []
@@ -184,6 +188,8 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"gold_fraction": gold_fraction,
 		"current_hp": current_hp,
 		"max_hp": max_hp,
+		"current_shield": current_shield,
+		"shield_recharge_remaining": shield_recharge_remaining,
 		"skill_slots_unlocked": skill_slots_unlocked,
 		"shop_bonuses": shop_bonuses,
 		"reroll_cost": reroll_cost,
@@ -221,6 +227,8 @@ func restore_from_save(data: Dictionary) -> void:
 	gold = int(data.get("gold", 0))
 	gold_fraction = float(data.get("gold_fraction", 0.0))
 	sync_health(float(data.get("current_hp", 100.0)), float(data.get("max_hp", 100.0)))
+	current_shield = maxf(0.0, float(data.get("current_shield", 20.0)))
+	shield_recharge_remaining = maxf(0.0, float(data.get("shield_recharge_remaining", 0.0)))
 	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
 	shop_bonuses = data.get("shop_bonuses", {})
 	reroll_cost = int(data.get("reroll_cost", 2))

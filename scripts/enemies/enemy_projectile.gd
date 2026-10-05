@@ -7,16 +7,19 @@ var damage: float = 5.0
 var _distance_traveled: float = 0.0
 var max_range: float = 600.0
 var source_id: String = "enemy_projectile"
+var damage_context: Dictionary = {}
 
 static var _orb_texture: ImageTexture
 static var _orb_offset: Vector2
 
 func _ready() -> void:
+	z_index = 20
 	if not _orb_texture:
 		var data := _build_orb_texture()
 		_orb_texture = data["texture"]
 		_orb_offset = data["offset"]
 	var sprite := Sprite2D.new()
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.texture = _orb_texture
 	sprite.offset = _orb_offset
 	add_child(sprite)
@@ -24,27 +27,24 @@ func _ready() -> void:
 static func _build_orb_texture() -> Dictionary:
 	const CORE := Color(1.0, 0.85, 0.7)
 	const MID := Color(1.0, 0.3, 0.15)
-	const EDGE := Color(0.85, 0.15, 0.1)
+	const EDGE := Color(0.12, 0.035, 0.025)
 	const GLOW := Color(1.0, 0.2, 0.1, 0.3)
 
-	var r: Array = []
-	var c: Array = []
-	var _r := func(x: float, y: float, w: float, h: float, col: Color) -> void:
-		r.append({"rect": Rect2(x, y, w, h), "color": col})
-
-	c.append({"pos": Vector2.ZERO, "radius": 8.0, "color": GLOW})
-	_r.call(-4, 0, 1, 1, EDGE); _r.call(4, 0, 1, 1, EDGE)
-	_r.call(0, -4, 1, 1, EDGE); _r.call(0, 4, 1, 1, EDGE)
-	_r.call(-3, -1, 7, 3, MID); _r.call(-1, -3, 3, 7, MID)
-	_r.call(-2, -2, 5, 5, MID)
-	_r.call(-1, -1, 3, 3, CORE); _r.call(0, 0, 1, 1, Color.WHITE)
-
-	return PixelSprite.build_texture(r, c)
+	# PixelSprite paints circles after rectangles. Use ordered concentric layers
+	# so the glow is underneath the opaque body rather than erasing its core.
+	return PixelSprite.build_texture([], [
+		{"pos": Vector2.ZERO, "radius": 10.0, "color": GLOW},
+		{"pos": Vector2.ZERO, "radius": 8.0, "color": EDGE},
+		{"pos": Vector2.ZERO, "radius": 6.5, "color": MID},
+		{"pos": Vector2.ZERO, "radius": 4.0, "color": CORE},
+		{"pos": Vector2.ZERO, "radius": 2.0, "color": Color.WHITE},
+	])
 
 var _pool_ref: ObjectPool
 
-func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile") -> void:
+func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile", context: Dictionary = {}) -> void:
 	source_id = source
+	damage_context = context.duplicate()
 	direction = dir
 	speed = spd
 	damage = dmg
@@ -61,7 +61,7 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("take_damage"):
-		Player.hurt(body, damage, source_id)
+		Player.hurt(body, damage, source_id, damage_context)
 	_return_to_pool()
 
 func _return_to_pool() -> void:
@@ -72,5 +72,6 @@ func _return_to_pool() -> void:
 
 func reset() -> void:
 	source_id = "enemy_projectile"
+	damage_context.clear()
 	_distance_traveled = 0.0
 	_pool_ref = null

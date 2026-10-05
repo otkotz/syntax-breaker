@@ -131,9 +131,13 @@ Stat-and-behavior modules linked into skill slots. Includes:
 
 Stat-only supports have an empty `behavior_key`; the rest reference one of the 20 behaviors.
 
-### Passives (55)
+### Passives (58)
 
 Grouped into:
+- **Rechargeable shield passives** — `ward_capacity` adds 15 capacity,
+  `ward_recovery` adds 50% recharge rate, and `ward_reflex` removes 1 second
+  of recharge delay (minimum 1 second). Base shield: 20, 5/sec after 5 seconds
+  without an accepted hit. Capacity and delay persist between stages/saves.
 - **Base stat passives** — e.g. `thick_skin`, `swift_feet`, `sharp_eyes`, `heavy_hitter`,
   `rapid_fire`, `iron_will`, `extra_shot`, `wide_impact`.
 - **Tag/element masteries** — `fire_mastery`, `storm_conduit`, `toxic_resilience`, `conduction`,
@@ -361,7 +365,7 @@ scripts/
               object_pool, spatial_grid, resource_listing, pixel_sprite + procedural *_sprite builders
 
 resources/
-  skills/ (7)   supports/ (25)   passives/ (55)   unlocks/ (40)
+  skills/ (7)   supports/ (25)   passives/ (58)   unlocks/ (40)
   regions/ (3)  consumables/ (8) config/ (game_balance, default_theme)
 
 scenes/

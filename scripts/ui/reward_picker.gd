@@ -43,6 +43,7 @@ func _build_rewards(high_quality: bool, treasure: bool = false) -> void:
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 		btn.text = _format_reward(reward)
 		UITheme.style_button(btn, 26)
+		UITheme.apply_item_icon(btn, reward.get("resource"), 96)
 		btn.pressed.connect(_on_reward_pressed.bind(reward))
 		reward_container.add_child(btn)
 

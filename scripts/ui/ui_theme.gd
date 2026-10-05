@@ -80,3 +80,49 @@ static func style_label_title(lbl: Label, font_size: int = 48) -> void:
 static func style_label_body(lbl: Label, font_size: int = 26) -> void:
 	lbl.add_theme_font_size_override("font_size", font_size)
 	lbl.add_theme_color_override("font_color", C_INK_MUTE)
+
+static func apply_item_icon(button: Button, item: Resource, width: int = 64) -> void:
+	if item == null or not "icon" in item or item.icon == null:
+		return
+	button.icon = item.icon
+	button.expand_icon = true
+	button.add_theme_constant_override("icon_max_width", width)
+	button.add_theme_constant_override("h_separation", 16)
+	if item is PassiveResource and item.id.ends_with("_mastery"):
+		var badge := _mastery_badge(20)
+		badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		badge.offset_left = -140
+		badge.offset_right = -16
+		badge.offset_top = 8
+		badge.offset_bottom = 36
+		button.add_child(badge)
+
+static func item_thumbnail(item: Resource, width: int = 96) -> TextureRect:
+	if item == null or not "icon" in item or item.icon == null:
+		return null
+	var icon := TextureRect.new()
+	icon.texture = item.icon
+	icon.custom_minimum_size = Vector2(width, width)
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if item is PassiveResource and item.id.ends_with("_mastery"):
+		var badge := _mastery_badge(16)
+		badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		badge.offset_top = -24
+		icon.add_child(badge)
+	return icon
+
+static func _mastery_badge(font_size: int) -> Label:
+	var badge := Label.new()
+	badge.text = "MASTERY"
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.add_theme_font_size_override("font_size", font_size)
+	badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	var backing := StyleBoxFlat.new()
+	backing.bg_color = Color(0.06, 0.04, 0.01, 0.95)
+	badge.add_theme_stylebox_override("normal", backing)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return badge

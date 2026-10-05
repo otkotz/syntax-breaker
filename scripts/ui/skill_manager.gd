@@ -439,6 +439,7 @@ func _build_slot_row(filled: bool, support: SupportResource, _skill_color: Color
 
 	if filled:
 		btn.text = support.name
+		UITheme.apply_item_icon(btn, support, 40)
 		btn.add_theme_font_size_override("font_size", 20)
 		btn.add_theme_color_override("font_color", color)
 		btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
@@ -476,6 +477,8 @@ func _build_inv_item(support: SupportResource) -> Button:
 
 	var color := _get_support_color(support)
 	btn.text = support.name + "\n" + support.description
+	UITheme.apply_item_icon(btn, support, 64)
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.add_theme_font_size_override("font_size", 18)
 	btn.add_theme_color_override("font_color", color)
 	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
@@ -545,7 +548,14 @@ func _build_passives_section(parent: Control) -> void:
 
 		var vbox := VBoxContainer.new()
 		vbox.add_theme_constant_override("separation", 2)
-		card.add_child(vbox)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 14)
+		card.add_child(row)
+		var icon := UITheme.item_thumbnail(passive, 64)
+		if icon:
+			row.add_child(icon)
+		vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+		row.add_child(vbox)
 
 		var name_lbl := Label.new()
 		var rarity_prefix := "★ " if passive.rarity == "legendary" else ""
@@ -705,6 +715,8 @@ func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	var color := _get_support_color(support)
 	var current_marker := "  [current]" if is_current else ""
 	btn.text = support.name + current_marker + "\n" + support.description
+	UITheme.apply_item_icon(btn, support, 64)
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_font_size_override("font_size", 20)
 	btn.add_theme_color_override("font_color", color)

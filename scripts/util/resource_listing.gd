@@ -17,6 +17,7 @@ const _REGISTRY := {
 		"toxic_burst", "void_rift",
 	],
 	"res://resources/passives/": [
+		"ward_capacity", "ward_recovery", "ward_reflex",
 		"arc_burst_mastery", "arcane_tempo", "blast_radius", "brutal_precision",
 		"cast_on_kill_mastery", "chain_mastery", "chain_reaction", "conduction",
 		"corpse_bloom_mastery", "crit_cascade_mastery", "crit_explosion_mastery",

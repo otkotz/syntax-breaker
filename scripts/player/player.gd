@@ -5,6 +5,11 @@ extends CharacterBody2D
 @export var max_hp: float = 100.0
 
 var current_hp: float
+var max_shield: float = 20.0
+var current_shield: float = 20.0
+var shield_recharge_rate: float = 5.0
+var shield_recharge_delay: float = 5.0
+var _shield_recharge_remaining: float = 0.0
 var _damage_cooldown: float = 0.0
 var _base_move_speed: float
 var _speed_mult: float = 1.0
@@ -21,6 +26,7 @@ const CAST_ANIM_DURATION := 0.3
 const FACE_RANGE := 1200.0
 
 signal hp_changed(current: float, maximum: float)
+signal shield_changed(current: float, maximum: float)
 signal died
 
 func _ready() -> void:
@@ -29,6 +35,9 @@ func _ready() -> void:
 	current_hp = clampf(RunManager.current_hp / maxf(RunManager.max_hp, 1.0) * max_hp, 0.0, max_hp)
 	hp_changed.connect(RunManager.sync_health)
 	hp_changed.emit(current_hp, max_hp)
+	current_shield = clampf(RunManager.current_shield, 0.0, max_shield)
+	_shield_recharge_remaining = clampf(RunManager.shield_recharge_remaining, 0.0, shield_recharge_delay)
+	_sync_shield()
 	add_to_group("player")
 	_setup_animated_sprite()
 	_connect_caster()
@@ -36,19 +45,30 @@ func _ready() -> void:
 func _apply_run_passives() -> void:
 	var hp_bonus := 0.0
 	var speed_bonus := 0.0
+	var shield_capacity_bonus := 0.0
+	var shield_rate_bonus := 0.0
+	var shield_delay_reduction := 0.0
 	for res: Resource in RunManager.owned_passives:
 		if not res is PassiveResource:
 			continue
 		var modifiers: Dictionary = res.stat_modifiers
 		hp_bonus += float(modifiers.get("max_hp_mult", 1.0)) - 1.0
+		shield_capacity_bonus += float(modifiers.get("shield_capacity", 0.0))
+		shield_rate_bonus += float(modifiers.get("shield_recharge_mult", 1.0)) - 1.0
+		shield_delay_reduction += float(modifiers.get("shield_delay_reduction", 0.0))
 		# Other speed modifiers affect projectiles through StatCalculator.
 		if res.id == "swift_feet":
 			speed_bonus += float(modifiers.get("speed_mult", 1.0)) - 1.0
 	max_hp *= maxf(0.1, 1.0 + hp_bonus)
 	_passive_speed_mult = maxf(0.1, 1.0 + speed_bonus)
 	move_speed = _base_move_speed * _passive_speed_mult
+	max_shield = maxf(0.0, 20.0 + shield_capacity_bonus)
+	shield_recharge_rate = 5.0 * maxf(0.1, 1.0 + shield_rate_bonus)
+	shield_recharge_delay = maxf(1.0, 5.0 - shield_delay_reduction)
 
 func _draw() -> void:
+	if current_shield > 0.0:
+		draw_arc(Vector2.ZERO, 21.0, -PI / 2, -PI / 2 + TAU * current_shield / maxf(max_shield, 1.0), 48, Color(0.25, 0.85, 1.0, 0.65), 2.0, true)
 	var bar_width := 40.0
 	var bar_height := 4.0
 	var bar_y := -36.0
@@ -56,9 +76,17 @@ func _draw() -> void:
 	var hp_ratio: float = clampf(current_hp / max_hp, 0.0, 1.0)
 	var bar_color := Color(0.1, 0.85, 0.2) if hp_ratio > 0.3 else Color(0.9, 0.15, 0.1)
 	draw_rect(Rect2(Vector2(-bar_width / 2, bar_y), Vector2(bar_width * hp_ratio, bar_height)), bar_color)
+	if max_shield > 0.0:
+		draw_rect(Rect2(Vector2(-bar_width / 2, bar_y - 6.0), Vector2(bar_width, 3)), Color(0.05, 0.15, 0.22))
+		draw_rect(Rect2(Vector2(-bar_width / 2, bar_y - 6.0), Vector2(bar_width * current_shield / max_shield, 3)), Color(0.25, 0.85, 1.0))
 
 func _process(delta: float) -> void:
 	_damage_cooldown = max(_damage_cooldown - delta, 0.0)
+	if current_hp > 0.0:
+		var recharge_time := maxf(0.0, delta - _shield_recharge_remaining)
+		_shield_recharge_remaining = maxf(0.0, _shield_recharge_remaining - delta)
+		current_shield = minf(max_shield, current_shield + shield_recharge_rate * recharge_time)
+		_sync_shield()
 	if _cast_timer > 0.0:
 		_cast_timer -= delta
 
@@ -133,15 +161,15 @@ func _connect_caster() -> void:
 func _on_spell_cast() -> void:
 	_cast_timer = CAST_ANIM_DURATION
 
-static func hurt(target: Node2D, amount: float, source: String) -> void:
+static func hurt(target: Node2D, amount: float, source: String, context: Dictionary = {}) -> void:
 	if not is_instance_valid(target) or not target.has_method("take_damage"):
 		return
 	if target is Player:
-		target.take_damage(amount, source)
+		target.take_damage(amount, source, context)
 	else:
 		target.take_damage(amount)
 
-func take_damage(amount: float, source: String = "unknown") -> void:
+func take_damage(amount: float, source: String = "unknown", context: Dictionary = {}) -> void:
 	if current_hp <= 0.0 or amount <= 0.0:
 		return
 	if _damage_cooldown > 0.0:
@@ -150,12 +178,23 @@ func take_damage(amount: float, source: String = "unknown") -> void:
 		return
 	_damage_cooldown = IFRAME_DURATION
 	var final_amount := amount * _get_damage_taken_mult()
+	var shield_before := current_shield
+	var absorbed := minf(current_shield, final_amount)
+	current_shield -= absorbed
+	var hp_damage := final_amount - absorbed
+	_shield_recharge_remaining = shield_recharge_delay
+	_sync_shield()
 	var before := current_hp
 	RunManager.run_stats["last_damage_source"] = source
-	RunTelemetry.record("player_damage", {"source": source, "amount": minf(current_hp, final_amount),
-		"hp_before": before, "hp_after": maxf(0.0, before - final_amount), "x": global_position.x, "y": global_position.y})
-	RunManager.record_stat("damage_taken", minf(current_hp, final_amount))
-	current_hp = max(current_hp - final_amount, 0.0)
+	var hit := context.duplicate()
+	hit.merge({"source": source, "amount": minf(current_hp, hp_damage),
+		"raw_amount": amount, "mitigated_amount": final_amount, "max_hp": max_hp,
+		"shield_absorbed": absorbed, "shield_before": shield_before, "shield_after": current_shield,
+		"hp_before": before, "hp_after": maxf(0.0, before - hp_damage), "x": global_position.x, "y": global_position.y}, true)
+	RunTelemetry.record("player_damage", hit)
+	RunManager.record_stat("damage_taken", minf(current_hp, hp_damage))
+	RunManager.run_stats["shield_absorbed"] = float(RunManager.run_stats.get("shield_absorbed", 0.0)) + absorbed
+	current_hp = max(current_hp - hp_damage, 0.0)
 	hp_changed.emit(current_hp, max_hp)
 	queue_redraw()
 	_spawn_damage_number(final_amount)
@@ -175,6 +214,12 @@ func _get_damage_taken_mult() -> float:
 	if nodes.size() > 0:
 		return (nodes[0] as ConsumableManager).get_damage_taken_mult()
 	return 1.0
+
+func _sync_shield() -> void:
+	RunManager.current_shield = current_shield
+	RunManager.shield_recharge_remaining = _shield_recharge_remaining
+	shield_changed.emit(current_shield, max_shield)
+	queue_redraw()
 
 func _try_auto_revive() -> bool:
 	var nodes := get_tree().get_nodes_in_group("consumable_manager")

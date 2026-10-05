@@ -7,7 +7,7 @@ var save_path: String = SAVE_PATH
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
 	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning", "hypothermia"],
-	"passives": ["thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact", "fortune",
+	"passives": ["ward_capacity", "ward_recovery", "ward_reflex", "thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact", "fortune",
 		"pierce_mastery", "returning_mastery", "chain_mastery", "split_mastery", "shotgun_mastery",
 		"increased_area_mastery", "faster_casting_mastery", "crit_explosion_mastery", "poison_on_hit_mastery",
 		"elemental_proliferation_mastery", "glass_cannon_mastery", "overcharge_mastery", "spell_echo_mastery",
@@ -90,8 +90,8 @@ func set_ascension(level: int, region: String = "") -> void:
 	ascension_level = clampi(level, 0, get_max_ascension(region))
 	save_progress()
 
-func get_ascension_scaling() -> Dictionary:
-	var a := float(RunManager.ascension_level)
+func get_ascension_scaling(level: int = -1) -> Dictionary:
+	var a := float(RunManager.ascension_level if level < 0 else level)
 	return {
 		"hp_mult": 1.0 + a * 0.15,
 		"damage_mult": 1.0 + a * 0.10,
@@ -157,3 +157,9 @@ func load_progress() -> void:
 			if data.has("codex_entries"):
 				codex_entries = data["codex_entries"]
 			_sync_contract_supports()
+			# New defensive passives are baseline content, including for existing profiles.
+			if not unlocked_items.has("passives"):
+				unlocked_items["passives"] = []
+			for passive_id in ["ward_capacity", "ward_recovery", "ward_reflex"]:
+				if not unlocked_items.passives.has(passive_id):
+					unlocked_items.passives.append(passive_id)

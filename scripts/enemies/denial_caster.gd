@@ -23,6 +23,7 @@ func _physics_process(delta: float) -> void:
 		var zone := Zone.new()
 		zone.target = _target
 		zone.source_id = get_enemy_id() + ":zone"
+		zone.damage_context = get_damage_context()
 		zone.damage = contact_damage * 0.6
 		get_parent().add_child(zone)
 		zone.global_position = _target.global_position
