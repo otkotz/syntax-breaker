@@ -15,8 +15,10 @@ var _skill_id: String = ""
 var _cosmetic_style: String = "projectile_default"
 
 var _trail_positions: Array[Vector2] = []
-var _trail_timer: float = 0.0
-const TRAIL_INTERVAL := 0.016
+var _last_trail_position: Vector2 = Vector2.ZERO
+var _return_target: Node2D
+var _counted_active: bool = false
+const TRAIL_MIN_DISTANCE := 12.0
 const MAX_TRAIL := 12
 
 var _bolt_segments: Array[Vector2] = []
@@ -48,11 +50,14 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
 	_skill_id = si.base.id
 	_cosmetic_style = CosmeticStyles.selected("projectile")
 	_trail_positions.clear()
-	_trail_timer = 0.0
+	_last_trail_position = global_position
+	_return_target = null
 	_bolt_segments.clear()
 	if _skill_id == "lightning_bolt":
 		_generate_bolt_segments()
-	active_count += 1
+	if not _counted_active:
+		active_count += 1
+		_counted_active = true
 
 func _generate_bolt_segments() -> void:
 	_bolt_segments.clear()
@@ -66,7 +71,7 @@ func _generate_bolt_segments() -> void:
 
 func _physics_process(delta: float) -> void:
 	if get_meta("is_returning", false):
-		var owner_node: Node2D = get_meta("return_target", null)
+		var owner_node := _return_target
 		if owner_node and is_instance_valid(owner_node):
 			direction = global_position.direction_to(owner_node.global_position)
 			rotation = direction.angle()
@@ -78,17 +83,18 @@ func _physics_process(delta: float) -> void:
 	global_position += direction * move_dist
 	_distance_traveled += move_dist
 
-	_trail_timer += delta
-	if _trail_timer >= TRAIL_INTERVAL:
-		_trail_timer = 0.0
+	var sampled_trail := false
+	if global_position.distance_to(_last_trail_position) >= TRAIL_MIN_DISTANCE:
 		_trail_positions.push_back(global_position)
-		if _trail_positions.size() > MAX_TRAIL:
-			_trail_positions.pop_front()
+		_last_trail_position = global_position
+		_trim_trail()
+		sampled_trail = true
 
 	if _skill_id == "lightning_bolt":
 		_bolt_flicker = 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.06)
 
-	queue_redraw()
+	if sampled_trail or not _trail_positions.is_empty() or _skill_id == "lightning_bolt":
+		queue_redraw()
 
 	if _distance_traveled >= _max_range and not get_meta("is_returning", false):
 		if get_meta("pierce_return", false):
@@ -244,11 +250,15 @@ func _apply_elemental_effects(body: Node2D) -> void:
 func set_pierce_count(count: int) -> void:
 	pierce_remaining = count
 
+func _trim_trail() -> void:
+	while _trail_positions.size() > MAX_TRAIL:
+		_trail_positions.pop_front()
+
 func _start_return() -> void:
 	var tree := get_tree()
 	var players := tree.get_nodes_in_group("player") if tree else []
 	var player: Node2D = players[0] if players.size() > 0 else null
-	set_meta("return_target", player)
+	_return_target = player
 	if player:
 		direction = global_position.direction_to(player.global_position)
 	else:
@@ -268,16 +278,20 @@ func reset() -> void:
 	_hit_targets.clear()
 	_distance_traveled = 0.0
 	_trail_positions.clear()
-	_trail_timer = 0.0
+	_last_trail_position = Vector2.ZERO
+	_return_target = null
 	_bolt_segments.clear()
 	_skill_id = ""
 	_cosmetic_style = "projectile_default"
+	_counted_active = false
 	scale = Vector2.ONE
 	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:
 		if has_meta(key):
 			remove_meta(key)
 
 func _return_to_pool() -> void:
-	active_count = maxi(0, active_count - 1)
+	if _counted_active:
+		active_count = maxi(0, active_count - 1)
+		_counted_active = false
 	if pool_ref:
 		pool_ref.release(self)
