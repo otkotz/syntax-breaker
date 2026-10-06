@@ -71,7 +71,7 @@ func _try_cast(si: SkillInstance) -> bool:
 	var target := Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
 	if target == null:
 		return false
-	if ProjectileBase.active_count >= QualitySettings.projectile_cap:
+	if not si.get_all_tags().has("beam") and ProjectileBase.active_count >= QualitySettings.projectile_cap:
 		return false
 
 	var count: int = si.computed_stats.get("projectile_count", 1)
@@ -125,6 +125,10 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 
 func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> void:
 	if si.base.scene_path.is_empty():
+		return
+	if si.get_all_tags().has("beam"):
+		RunManager.record_challenge_cast(false)
+		SkillLaser.fire(self, si, direction)
 		return
 	if si.base.has_tag("projectile") and ProjectileBase.active_count >= QualitySettings.projectile_cap:
 		return

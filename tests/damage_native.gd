@@ -31,6 +31,34 @@ func run_checks() -> void:
 	RunManager.start_run()
 	var fire := load("res://resources/skills/fireball.tres") as SkillResource
 	var lightning := load("res://resources/skills/lightning_bolt.tres") as SkillResource
+	var laser_support := load("res://resources/supports/laser.tres") as SupportResource
+	var chain_support := load("res://resources/supports/chain.tres") as SupportResource
+	check(laser_support != null and BehaviorRegistry.has_behavior("laser"), "Laser support resource and behavior are registered")
+	var laser_first := SkillInstance.new(fire)
+	check(laser_first.link_support(laser_support), "Laser links to projectile skills")
+	check(not laser_first.link_support(chain_support), "Chain cannot be attached after laser")
+	var chain_first := SkillInstance.new(fire)
+	check(chain_first.link_support(chain_support), "Chain setup is valid before conflict check")
+	check(not chain_first.link_support(laser_support), "Laser cannot be attached after chain")
+	var laser_target := dummy()
+	laser_target.global_position = Vector2(100, 0)
+	laser_target.collision_layer = 2
+	var laser_shape := CollisionShape2D.new()
+	var laser_circle := CircleShape2D.new()
+	laser_circle.radius = 12.0
+	laser_shape.shape = laser_circle
+	laser_target.add_child(laser_shape)
+	var emitter := Node2D.new()
+	add_child(emitter)
+	await get_tree().physics_frame
+	check(SkillLaser.fire(emitter, laser_first, Vector2.RIGHT), "Laser ray hits the first enemy in its path")
+	check(laser_target.current_hp == 90.0, "Laser applies the projectile skill's full base damage")
+	check(laser_target._dots.has("burn"), "Laser preserves elemental on-hit effects")
+	check(not SkillLaser.fire(emitter, laser_first, Vector2.UP), "Laser reports a miss when no target crosses the ray")
+	check(laser_target.current_hp == 90.0, "A missed laser ray deals no damage")
+	emitter.queue_free()
+	laser_target.queue_free()
+	RunManager.start_run()
 	var enemy := dummy()
 	enemy.take_damage(25.0, false, fire)
 	enemy.apply_dot("burn", 10.0, 3.0, 0.5, fire)

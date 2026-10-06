@@ -40,6 +40,10 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _detonate() -> void:
 	_detonated = true
+	if skill_instance and skill_instance.get_all_tags().has("beam"):
+		_fire_laser_payload()
+		queue_free()
+		return
 	var enemies := Targeting.find_enemies_in_range(global_position, _radius, 20)
 	for enemy: Node2D in enemies:
 		if enemy.has_method("take_damage"):
@@ -53,6 +57,21 @@ func _detonate() -> void:
 	if skill_instance:
 		CombatLog.interaction("Mine", "", "detonated %.1f in radius %.0f, hit %d" % [_damage, _radius, enemies.size()])
 	queue_free()
+
+func _fire_laser_payload() -> void:
+	var target := Targeting.find_nearest_enemy(global_position, skill_instance.computed_stats.get("range", 400.0))
+	if not target:
+		return
+	var direction := global_position.direction_to(target.global_position)
+	var count: int = skill_instance.computed_stats.get("projectile_count", 1)
+	if count <= 1:
+		SkillLaser.fire(self, skill_instance, direction)
+	else:
+		var spread := deg_to_rad(15.0) * (count - 1)
+		for i in count:
+			var offset := -spread / 2.0 + spread / (count - 1) * i
+			SkillLaser.fire(self, skill_instance, direction.rotated(offset))
+	CombatLog.skill_cast(skill_instance.base.name + " (Mine Laser)", count)
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, 10.0, _color * Color(1, 1, 1, 0.6))

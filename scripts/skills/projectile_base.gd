@@ -178,34 +178,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if _hit_targets.has(body):
 		return
 	_hit_targets.append(body)
-
-	var hit_damage := damage
-	var is_crit := false
-	if skill_instance:
-		var roll := CombatUtils.roll_damage(damage, skill_instance)
-		hit_damage = roll["damage"]
-		is_crit = roll["is_crit"]
-
-	var skill_name := skill_instance.base.name if skill_instance else "unknown"
-	if body.has_method("take_damage"):
-		body.take_damage(hit_damage, is_crit, skill_instance.base if skill_instance else null)
-		CombatLog.hit(skill_name, body.name, hit_damage, is_crit)
-		if is_crit:
-			RunManager.record_stat("crits_landed", 1)
-		GameBus.enemy_hit.emit(body, hit_damage, skill_instance.base if skill_instance else null)
-
-	_spawn_hit_effect(body.global_position)
-	_spawn_aftermath(body.global_position)
-
-	if skill_instance:
-		_apply_elemental_effects(body)
-		TagInteractions.process_hit(body, hit_damage, skill_instance.get_all_tags(), self, skill_instance.base)
-		skill_instance.notify_hit(body, self)
-		if is_crit:
-			skill_instance.notify_crit(body, self)
-		if body.has_method("is_alive") and not body.is_alive():
-			CombatLog.kill(skill_name, body.name)
-			skill_instance.notify_kill(body, self)
+	resolve_skill_hit(skill_instance, body, self, damage)
 
 	if get_meta("chain_redirected", false):
 		remove_meta("chain_redirected")
@@ -214,25 +187,53 @@ func _on_body_entered(body: Node2D) -> void:
 	else:
 		pierce_remaining -= 1
 
-func _spawn_hit_effect(pos: Vector2) -> void:
+static func resolve_skill_hit(si: SkillInstance, body: Node2D, hit_source: Node2D, raw_damage: float) -> void:
+	if not is_instance_valid(body) or not body.has_method("take_damage"):
+		return
+	var hit_damage := raw_damage
+	var is_crit := false
+	if si:
+		var roll := CombatUtils.roll_damage(raw_damage, si)
+		hit_damage = roll["damage"]
+		is_crit = roll["is_crit"]
+	var skill_name := si.base.name if si else "unknown"
+	body.take_damage(hit_damage, is_crit, si.base if si else null)
+	CombatLog.hit(skill_name, body.name, hit_damage, is_crit)
+	if is_crit:
+		RunManager.record_stat("crits_landed", 1)
+	GameBus.enemy_hit.emit(body, hit_damage, si.base if si else null)
+	_spawn_resolved_hit_effect(hit_source, body.global_position, si)
+	_spawn_resolved_aftermath(hit_source, body.global_position, si)
+	if not si:
+		return
+	_apply_resolved_elemental_effects(body, si, raw_damage)
+	TagInteractions.process_hit(body, hit_damage, si.get_all_tags(), hit_source, si.base)
+	si.notify_hit(body, hit_source)
+	if is_crit:
+		si.notify_crit(body, hit_source)
+	if body.has_method("is_alive") and not body.is_alive():
+		CombatLog.kill(skill_name, body.name)
+		si.notify_kill(body, hit_source)
+
+static func _spawn_resolved_hit_effect(hit_source: Node2D, pos: Vector2, si: SkillInstance) -> void:
 	var element := "fire"
-	if skill_instance:
-		var tags := skill_instance.get_all_tags()
+	if si:
+		var tags := si.get_all_tags()
 		if tags.has("lightning"):
 			element = "lightning"
 		elif tags.has("poison"):
 			element = "poison"
 		elif tags.has("fire"):
 			element = "fire"
-	var parent_node := get_tree().current_scene
+	var parent_node := hit_source.get_tree().current_scene if is_instance_valid(hit_source) else null
 	if parent_node:
 		HitEffect.spawn(parent_node, pos, element, 60.0)
 
-func _spawn_aftermath(pos: Vector2) -> void:
-	var parent_node := get_tree().current_scene
-	if not parent_node or not skill_instance:
+static func _spawn_resolved_aftermath(hit_source: Node2D, pos: Vector2, si: SkillInstance) -> void:
+	var parent_node := hit_source.get_tree().current_scene if is_instance_valid(hit_source) else null
+	if not parent_node or not si:
 		return
-	var tags := skill_instance.get_all_tags()
+	var tags := si.get_all_tags()
 	if tags.has("fire"):
 		AftermathEffect.spawn(parent_node, pos, "scorch", 30.0, 1.5)
 	elif tags.has("poison"):
@@ -240,18 +241,18 @@ func _spawn_aftermath(pos: Vector2) -> void:
 	elif tags.has("lightning"):
 		AftermathEffect.spawn(parent_node, pos, "static_crackle", 30.0, 1.5)
 
-func _apply_elemental_effects(body: Node2D) -> void:
+static func _apply_resolved_elemental_effects(body: Node2D, si: SkillInstance, raw_damage: float) -> void:
 	if not body.has_method("apply_dot"):
 		return
-	var tags := skill_instance.get_all_tags()
+	var tags := si.get_all_tags()
 	if tags.has("fire"):
-		body.apply_dot("burn", damage * 0.3, 3.0, 0.5, skill_instance.base)
-		CombatLog.dot_applied("burn", body.name, damage * 0.3, 3.0)
-		skill_instance.notify_status_apply(body, "burn")
+		body.apply_dot("burn", raw_damage * 0.3, 3.0, 0.5, si.base)
+		CombatLog.dot_applied("burn", body.name, raw_damage * 0.3, 3.0)
+		si.notify_status_apply(body, "burn")
 	if tags.has("poison") and randf() <= 0.8:
-		body.apply_dot("poison", damage * 0.4, 4.0, 0.5, skill_instance.base)
-		skill_instance.notify_status_apply(body, "poison")
-		CombatLog.dot_applied("poison", body.name, damage * 0.4, 4.0)
+		body.apply_dot("poison", raw_damage * 0.4, 4.0, 0.5, si.base)
+		si.notify_status_apply(body, "poison")
+		CombatLog.dot_applied("poison", body.name, raw_damage * 0.4, 4.0)
 
 func set_pierce_count(count: int) -> void:
 	pierce_remaining = count

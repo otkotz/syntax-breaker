@@ -23,6 +23,7 @@ func _ready() -> void:
 	register("crit_cascade", preload("res://scripts/behaviors/crit_cascade_behavior.gd"))
 	register("returning", preload("res://scripts/behaviors/returning_behavior.gd"))
 	register("hypothermia", preload("res://scripts/behaviors/hypothermia_behavior.gd"))
+	register("laser", preload("res://scripts/behaviors/laser_behavior.gd"))
 
 func register(key: String, behavior_script: GDScript) -> void:
 	_behaviors[key] = behavior_script

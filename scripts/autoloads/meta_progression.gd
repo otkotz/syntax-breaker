@@ -6,7 +6,7 @@ var save_path: String = SAVE_PATH
 
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
-	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning", "hypothermia"],
+	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning", "hypothermia", "laser"],
 	"passives": ["ward_capacity", "ward_recovery", "ward_reflex", "thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact", "fortune",
 		"pierce_mastery", "returning_mastery", "chain_mastery", "split_mastery", "shotgun_mastery",
 		"increased_area_mastery", "faster_casting_mastery", "crit_explosion_mastery", "poison_on_hit_mastery",
@@ -192,3 +192,7 @@ func load_progress() -> void:
 			for passive_id in ["ward_capacity", "ward_recovery", "ward_reflex"]:
 				if not unlocked_items.passives.has(passive_id):
 					unlocked_items.passives.append(passive_id)
+			if not unlocked_items.has("supports"):
+				unlocked_items["supports"] = []
+			if not unlocked_items.supports.has("laser"):
+				unlocked_items.supports.append("laser")

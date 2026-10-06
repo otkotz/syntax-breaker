@@ -47,6 +47,9 @@ func _try_cast() -> void:
 	CombatLog.skill_cast(skill_instance.base.name + " (Totem)", count)
 
 func _spawn_one(direction: Vector2) -> void:
+	if skill_instance.get_all_tags().has("beam"):
+		SkillLaser.fire(self, skill_instance, direction)
+		return
 	if ProjectileBase.active_count >= QualitySettings.projectile_cap:
 		return
 	var proj := pool_ref.get_instance()

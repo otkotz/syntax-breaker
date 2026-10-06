@@ -11,7 +11,7 @@ const _REGISTRY := {
 	"res://resources/supports/": [
 		"arc_burst", "cast_on_kill", "chain", "corpse_bloom", "crit_cascade",
 		"crit_explosion", "echo_trigger", "elemental_proliferation", "faster_casting",
-		"glass_cannon", "hypothermia", "increased_area", "mine", "overcharge",
+		"glass_cannon", "hypothermia", "increased_area", "laser", "mine", "overcharge",
 		"pierce", "plague_carrier", "poison_on_hit", "returning",
 		"ricochet_amplifier", "shotgun", "spell_echo", "split", "totem",
 		"toxic_burst", "void_rift",

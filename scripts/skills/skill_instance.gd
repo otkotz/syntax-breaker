@@ -46,6 +46,9 @@ func can_combine_support(support: SupportResource, replacing: SupportResource = 
 	const MINE_INCOMPATIBLE_SUPPORTS := [
 		"chain", "pierce", "returning", "ricochet_amplifier", "shotgun", "split",
 	]
+	const LASER_INCOMPATIBLE_SUPPORTS := [
+		"chain", "pierce", "returning", "ricochet_amplifier", "split",
+	]
 	for linked: SupportResource in linked_supports:
 		if linked == replacing:
 			continue
@@ -55,6 +58,10 @@ func can_combine_support(support: SupportResource, replacing: SupportResource = 
 			return false
 		if (support.id == "mine" and linked.id in MINE_INCOMPATIBLE_SUPPORTS) or (
 			linked.id == "mine" and support.id in MINE_INCOMPATIBLE_SUPPORTS
+		):
+			return false
+		if (support.id == "laser" and linked.id in LASER_INCOMPATIBLE_SUPPORTS) or (
+			linked.id == "laser" and support.id in LASER_INCOMPATIBLE_SUPPORTS
 		):
 			return false
 	return true

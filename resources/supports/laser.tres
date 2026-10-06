@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/supports/laser-v1.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "laser"
+name = "Laser"
+icon = ExtResource("2")
+required_tags = Array[String](["projectile"])
+excluded_tags = Array[String](["beam"])
+stat_modifiers = {}
+added_tags = Array[String](["beam"])
+behavior_key = "laser"
+rarity = "rare"
+description = "Converts projectiles into instant beams"
