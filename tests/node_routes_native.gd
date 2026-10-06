@@ -56,6 +56,17 @@ func run_checks() -> void:
 	seed(20261003)
 	RunManager.save_path = "res://.godot/node_routes_run_test.json"
 	MetaProgression.save_path = "res://.godot/node_routes_meta_test.json"
+	var upgrade_pool: Array[Dictionary] = [{"type": "support", "id": "upgrade"}]
+	var direction_pool: Array[Dictionary] = [{"type": "skill", "id": "direction"}]
+	var safe_pool: Array[Dictionary] = [{"type": "passive", "id": "safe"}]
+	var controlled := RewardRoller._assemble_rewards(upgrade_pool, direction_pool, safe_pool,
+		upgrade_pool + direction_pool + safe_pool, false)
+	check(controlled.size() == 3 and controlled[0].id == "upgrade", "First small-stage slot is guaranteed to improve the build")
+	var controlled_ids: Array = controlled.map(func(offer: Dictionary): return offer.get("id", ""))
+	check(controlled_ids.duplicate().all(func(id): return controlled_ids.count(id) == 1), "Controlled reward offers are unique")
+	var exhausted := RewardRoller._assemble_rewards([], [], [], [], false)
+	check(exhausted.size() == 3 and exhausted.all(func(offer: Dictionary): return offer.type == "gold"),
+		"Exhausted upgrade catalog falls back to three usable rewards")
 	for file: String in ResourceListing.get_resource_files("res://resources/passives/"):
 		var passive := load("res://resources/passives/" + file) as PassiveResource
 		if not MetaProgression.unlocked_items.passives.has(passive.id):

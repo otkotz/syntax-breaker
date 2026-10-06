@@ -59,9 +59,9 @@ static func roll(skill_instances: Array[SkillInstance], high_quality: bool) -> A
 		focused_passives = _apply_region_weight(focused_passives, region)
 		mutations = _apply_region_weight(mutations, region)
 
-	# One immediate build improvement, one new direction, and one general pick.
-	var rewards: Array[Dictionary] = []
-	var build_pool := supports + focused_passives
+	# One guaranteed build improvement, one new direction, and one general pick.
+	# Keep the guarantee explicit instead of relying on the flexible fallback.
+	var upgrade_pool := supports + focused_passives + skills + mutations
 	var direction_pool: Array[Dictionary] = []
 	if not skills.is_empty():
 		direction_pool.append_array(skills)
@@ -72,15 +72,22 @@ static func roll(skill_instances: Array[SkillInstance], high_quality: bool) -> A
 			direction_pool.append_array(mutations)
 	var safe_pool := general_passives
 	var flexible_pool := general_passives + supports + focused_passives + skills + mutations
-	for pool: Array in [build_pool, direction_pool, safe_pool]:
+	var rewards := _assemble_rewards(upgrade_pool, direction_pool, safe_pool, flexible_pool, high_quality)
+	for pick: Dictionary in rewards:
+		if pick.get("type") == "skill":
+			var skill: SkillResource = pick["resource"]
+			pick["tier"] = RarityTiers.roll_tier(skill.rarity, RunManager.get_luck())
+	return rewards
+
+static func _assemble_rewards(upgrade_pool: Array, direction_pool: Array, safe_pool: Array,
+		flexible_pool: Array, high_quality: bool) -> Array[Dictionary]:
+	var rewards: Array[Dictionary] = []
+	for pool: Array in [upgrade_pool, direction_pool, safe_pool]:
 		var pick := _take_unique(pool, rewards)
 		if pick.is_empty():
 			pick = _take_unique(flexible_pool, rewards)
 		if pick.is_empty():
 			pick = _roll_gold(high_quality)
-		if pick.get("type") == "skill":
-			var skill: SkillResource = pick["resource"]
-			pick["tier"] = RarityTiers.roll_tier(skill.rarity, RunManager.get_luck())
 		rewards.append(pick)
 	return rewards
 
