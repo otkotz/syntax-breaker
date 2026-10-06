@@ -24,7 +24,6 @@ var _facing_right: bool = true
 var _kill_source: SkillResource
 
 static var _gremlin_variants: Array = []
-const SUPPORT_GUARD_DAMAGE_MULT := 0.7
 
 signal died(enemy: EnemyBase)
 
@@ -148,6 +147,18 @@ func _has_support_guard() -> bool:
 		if guard.has_method("grants_guard") and guard.grants_guard(self):
 			return true
 	return false
+
+func _is_proximity_guard_blocking() -> bool:
+	if not is_inside_tree():
+		return false
+	var has_guard := false
+	for guard: Node in get_tree().get_nodes_in_group("shield_supports"):
+		if not guard.has_method("grants_guard") or not guard.grants_guard(self):
+			continue
+		has_guard = true
+		if guard.has_method("player_inside_guard") and guard.player_inside_guard():
+			return false
+	return has_guard
 
 const STATUS_COLORS: Dictionary = {
 	"poison": Color(0.4, 0.95, 0.3),
@@ -273,10 +284,10 @@ func _process(delta: float) -> void:
 func take_damage(amount: float, crit: bool = false, source: SkillResource = null, category: String = "direct") -> void:
 	if current_hp <= 0.0 or amount <= 0.0:
 		return
+	if _is_proximity_guard_blocking():
+		_flash_guard_block()
+		return
 	amount *= EngineTracker.get_deep_freeze_mult(self)
-	# Query live guardians at impact: no persistent buff, no stacking or pool leakage.
-	if _has_support_guard():
-		amount *= SUPPORT_GUARD_DAMAGE_MULT
 	var effective := minf(current_hp, amount)
 	RunManager.record_combat_damage(source, effective, amount >= current_hp, category)
 	_kill_source = source
@@ -286,6 +297,11 @@ func take_damage(amount: float, crit: bool = false, source: SkillResource = null
 	queue_redraw()
 	if current_hp <= 0.0:
 		_die()
+
+func _flash_guard_block() -> void:
+	modulate = Color(0.35, 2.2, 2.2)
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", Color.WHITE, 0.1)
 
 func _spawn_damage_number(amount: float, crit: bool = false) -> void:
 	DamageNumber.spawn(get_parent(), global_position + Vector2(0, -36), amount, crit)

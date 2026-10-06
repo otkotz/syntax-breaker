@@ -15,7 +15,12 @@ func grants_guard(ally: EnemyBase) -> bool:
 	return is_alive() and visible and is_instance_valid(_target) \
 		and ally != self and ally.is_alive() and ally.get_parent() == get_parent() \
 		and not ally.is_in_group("shield_supports") and not ally.is_in_group("bosses") \
+		and ally.get_meta("combat_role", "") not in ["shield_support", "denial_caster"] \
 		and global_position.distance_squared_to(ally.global_position) <= GUARD_RADIUS * GUARD_RADIUS
+
+func player_inside_guard() -> bool:
+	return is_alive() and visible and is_instance_valid(_target) \
+		and global_position.distance_squared_to(_target.global_position) <= GUARD_RADIUS * GUARD_RADIUS
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_target) or global_position.distance_to(_target.global_position) > 220.0:
