@@ -85,16 +85,21 @@ func _refresh() -> void:
 		entry_list.add_child(card)
 
 	count_label.text = "%s: %d / %d discovered" % [CATEGORY_LABELS[_current_category], discovered, entries.size()]
+	if _current_category == "cosmetics":
+		count_label.text += "  •  %d points" % MetaProgression.cosmetic_points
 
 func _get_entries(category: String) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
 	match category:
 		"cosmetics":
 			for definition in CosmeticStyles.DEFINITIONS:
+				var unlocked := CosmeticStyles.is_unlocked(definition.id)
+				var price := int(definition.get("price", 0))
 				entries.append({"id": definition.id, "name": definition.name, "description": definition.description,
 					"tags": "Visual only: no stat or collision changes", "rarity": "",
-					"discovered": CosmeticStyles.is_unlocked(definition.id),
-					"unlock_hint": definition.description, "show_name": true, "cosmetic_kind": definition.kind})
+					"discovered": unlocked,
+					"unlock_hint": ("Unlock for %d cosmetic points" % price) if price > 0 else definition.description,
+					"show_name": true, "cosmetic_kind": definition.kind, "price": price})
 		"trophies":
 			for region_id in ["burning_grounds", "storm_spire", "toxic_depths"]:
 				var region := load("res://resources/regions/%s.tres" % region_id) as RegionResource
@@ -214,17 +219,26 @@ func _create_entry_card(entry: Dictionary) -> PanelContainer:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(desc)
 	if entry.has("cosmetic_kind"):
-		var equip := Button.new()
+		var action := Button.new()
 		var equipped: bool = CosmeticStyles.selected(entry.cosmetic_kind) == entry.id
-		equip.text = "EQUIPPED" if equipped else "EQUIP"
-		equip.disabled = equipped or not entry.discovered
-		equip.custom_minimum_size.y = 60
-		UITheme.style_button(equip, 24)
-		equip.pressed.connect(func():
-			if MetaProgression.equip_cosmetic(entry.id):
-				_refresh()
-		)
-		vbox.add_child(equip)
+		var price := int(entry.get("price", 0))
+		if not entry.discovered and price > 0:
+			action.text = "UNLOCK — %d POINTS" % price
+			action.disabled = MetaProgression.cosmetic_points < price
+			action.pressed.connect(func():
+				if MetaProgression.buy_cosmetic(entry.id):
+					_refresh()
+			)
+		else:
+			action.text = "EQUIPPED" if equipped else "EQUIP"
+			action.disabled = equipped or not entry.discovered
+			action.pressed.connect(func():
+				if MetaProgression.equip_cosmetic(entry.id):
+					_refresh()
+			)
+		action.custom_minimum_size.y = 60
+		UITheme.style_button(action, 24)
+		vbox.add_child(action)
 
 	return panel
 

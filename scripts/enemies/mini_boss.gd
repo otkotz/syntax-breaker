@@ -18,6 +18,7 @@ var _phase_timer: float = 0.0
 var _ability_timer: float = 0.0
 var _charge_dir: Vector2 = Vector2.ZERO
 var _is_boss_mode: bool = false
+var _meta_points_awarded: bool = false
 
 var _current_attack: Attack = Attack.CHARGE
 var _slam_target: Vector2 = Vector2.ZERO
@@ -299,6 +300,7 @@ func _draw() -> void:
 
 func reset() -> void:
 	super.reset()
+	_meta_points_awarded = false
 	_slam_damage = SLAM_BASE_DAMAGE
 	remove_from_group("bosses")
 	_phase = Phase.CHASE
@@ -320,7 +322,10 @@ func _die() -> void:
 	_remove_slam_indicator()
 	if _sprite:
 		_sprite.position.y = 0.0
-	RunManager.record_stat("mini_bosses_killed", 1)
+	if not _is_boss_mode and not _meta_points_awarded:
+		_meta_points_awarded = true
+		RunManager.record_stat("mini_bosses_killed", 1)
+		MetaProgression.add_cosmetic_points(2)
 	super._die()
 
 # --- Inner classes for visual effects ---

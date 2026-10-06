@@ -56,6 +56,8 @@ func run_checks() -> void:
 	seed(20261003)
 	RunManager.save_path = "res://.godot/node_routes_run_test.json"
 	MetaProgression.save_path = "res://.godot/node_routes_meta_test.json"
+	MetaProgression.cosmetic_points = 0
+	MetaProgression.purchased_cosmetics = []
 	var upgrade_pool: Array[Dictionary] = [{"type": "support", "id": "upgrade"}]
 	var direction_pool: Array[Dictionary] = [{"type": "skill", "id": "direction"}]
 	var safe_pool: Array[Dictionary] = [{"type": "passive", "id": "safe"}]
@@ -74,6 +76,7 @@ func run_checks() -> void:
 	var game := make_game(StageData.Type.COMBAT, 1)
 	check(game._state == GameManager.State.COMBAT and game._arena != null, "Normal node creates real arena")
 	game._arena._on_all_waves_cleared()
+	check(MetaProgression.cosmetic_points == 1, "Normal combat awards one persistent cosmetic point")
 	var picker := find_ui(game, preload("res://scripts/ui/reward_picker.gd")) as RewardPicker
 	check(picker != null and game._state == GameManager.State.REWARD, "Normal combat opens reward UI")
 	if picker:
@@ -117,7 +120,9 @@ func run_checks() -> void:
 	game.queue_free()
 	await get_tree().process_frame
 	game = make_game(StageData.Type.ELITE, 3)
+	var points_before := MetaProgression.cosmetic_points
 	game._arena._on_all_waves_cleared()
+	check(MetaProgression.cosmetic_points == points_before + 1, "Elite combat awards one persistent cosmetic point")
 	var chest := find_ui(game, preload("res://scripts/ui/chest_reward.gd")) as ChestReward
 	check(chest != null and chest._items.size() == 3 and chest._title_text == "ELITE LOOT", "Elite opens three high-quality chest choices")
 	if chest:
@@ -148,7 +153,9 @@ func run_checks() -> void:
 	game.queue_free()
 	await get_tree().process_frame
 	game = make_game(StageData.Type.BOSS, 5)
+	points_before = MetaProgression.cosmetic_points
 	game._arena._on_all_waves_cleared()
+	check(MetaProgression.cosmetic_points == points_before + 5, "Regional boss awards five persistent cosmetic points")
 	chest = find_ui(game, preload("res://scripts/ui/chest_reward.gd")) as ChestReward
 	check(chest != null and chest._title_text == "BOSS MUTATION", "Boss 5 starts with mutation choice")
 	if chest:
@@ -170,7 +177,9 @@ func run_checks() -> void:
 	game.queue_free()
 	await get_tree().process_frame
 	game = make_game(StageData.Type.BOSS, 10)
+	points_before = MetaProgression.cosmetic_points
 	game._arena._on_all_waves_cleared()
+	check(MetaProgression.cosmetic_points == points_before + 5, "Final regional boss awards five persistent cosmetic points")
 	check(game._state == GameManager.State.RUN_END and game._run_summary != null, "Final boss opens actual run summary")
 	check(RunManager.run_stats.run_completed and game._shop == null, "Final boss wins without useless shop")
 	check(not RunManager.has_saved_run(), "Final victory removes active run save")

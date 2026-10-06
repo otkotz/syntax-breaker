@@ -144,6 +144,18 @@ func run_checks() -> void:
 	ally.queue_free()
 	await get_tree().process_frame
 
+	MetaProgression.cosmetic_points = 0
+	var point_boss := preload("res://scenes/enemies/mini_boss.tscn").instantiate() as MiniBoss
+	add_child(point_boss)
+	point_boss.initialize(target)
+	point_boss.set_physics_process(false)
+	point_boss._die()
+	check(MetaProgression.cosmetic_points == 2, "Miniboss kill awards two persistent cosmetic points")
+	point_boss._die()
+	check(MetaProgression.cosmetic_points == 2, "Miniboss points can only be awarded once per spawn")
+	point_boss.queue_free()
+	await get_tree().process_frame
+
 	var spawner := Spawner.new()
 	spawner.melee_scene = preload("res://scenes/enemies/basic_melee.tscn")
 	spawner.charger_scene = preload("res://scenes/enemies/charger_enemy.tscn")

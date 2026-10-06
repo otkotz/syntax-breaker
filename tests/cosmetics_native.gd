@@ -11,12 +11,23 @@ func _ready() -> void:
 
 func run_checks() -> void:
 	MetaProgression.save_path = "res://.godot/cosmetics_meta_test.json"
+	if FileAccess.file_exists(MetaProgression.save_path):
+		DirAccess.remove_absolute(MetaProgression.save_path)
 	MetaProgression.completed_challenges = {}
 	MetaProgression.region_victories = {}
 	MetaProgression.selected_cosmetics = CosmeticStyles.DEFAULTS.duplicate()
+	MetaProgression.cosmetic_points = 5
+	MetaProgression.purchased_cosmetics = []
 	RunManager.start_run()
 	check(not MetaProgression.equip_cosmetic("silver_cloak"), "Locked style cannot be equipped")
 	check(not MetaProgression.equip_cosmetic("not_a_style"), "Unknown style cannot be equipped")
+	check(not MetaProgression.buy_cosmetic("void_trails") and MetaProgression.cosmetic_points == 5,
+		"Insufficient points leave the cosmetic balance unchanged")
+	check(MetaProgression.buy_cosmetic("ember_trails") and MetaProgression.cosmetic_points == 0,
+		"Affordable skill style is purchased atomically")
+	check(MetaProgression.buy_cosmetic("ember_trails") and MetaProgression.cosmetic_points == 0,
+		"Buying an owned style is idempotent and free")
+	check(MetaProgression.equip_cosmetic("ember_trails"), "Purchased skill style can be equipped")
 	var baseline := RunManager.run_stats.duplicate(true)
 	MetaProgression.completed_challenges = {"no_healing": {}, "mine_only": {}, "two_elements": {}}
 	check(MetaProgression.equip_cosmetic("silver_cloak"), "Achievement unlocks cloak")
@@ -63,11 +74,22 @@ func run_checks() -> void:
 	check(codex.entry_list.get_child_count() == 3 and codex.count_label.text.contains("1 / 3"), "Codex displays three regional trophies")
 	codex._select_category("cosmetics")
 	await get_tree().process_frame
-	check(codex.entry_list.get_child_count() == 5, "Codex exposes default and unlocked styles")
+	check(codex.entry_list.get_child_count() == 7, "Codex exposes defaults, challenge styles, and purchasable skill styles")
 	codex.queue_free()
 	await get_tree().process_frame
+	var old_profile_path := "res://.godot/cosmetics_old_profile_test.json"
+	var old_file := FileAccess.open(old_profile_path, FileAccess.WRITE)
+	old_file.store_string(JSON.stringify({"unlocked_items": MetaProgression.unlocked_items,
+		"selected_cosmetics": CosmeticStyles.DEFAULTS}))
+	old_file.close()
+	MetaProgression.cosmetic_points = 99
+	MetaProgression.purchased_cosmetics = ["ember_trails"]
+	MetaProgression.save_path = old_profile_path
+	MetaProgression.load_progress()
+	check(MetaProgression.cosmetic_points == 0 and MetaProgression.purchased_cosmetics.is_empty(),
+		"Profiles from before cosmetic points load with safe defaults")
 	if failures.is_empty():
-		print("PASS: cosmetic unlocks, profile selection, cloak-only palette, projectile mechanics invariance, pool reset and regional trophies")
+		print("PASS: cosmetic points, purchases, migration, selection, invariance, pool reset and trophies")
 	else:
 		for failure in failures:
 			push_error(failure)

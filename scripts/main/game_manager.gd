@@ -154,6 +154,8 @@ func _advance_to_combat(stage_data: StageData) -> void:
 
 func _on_stage_completed() -> void:
 	RunManager.heal_between_stages()
+	var stage_points := 5 if _current_stage_data and _current_stage_data.type == StageData.Type.BOSS else 1
+	MetaProgression.add_cosmetic_points(stage_points)
 	if _current_stage_data and _current_stage_data.type == StageData.Type.ELITE:
 		RunManager.record_stat("elites_cleared", 1)
 

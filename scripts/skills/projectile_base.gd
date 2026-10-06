@@ -163,6 +163,12 @@ func _draw_trail_dot(center: Vector2, radius: float, color: Color) -> void:
 	if _cosmetic_style == "faceted_trails":
 		draw_colored_polygon(PackedVector2Array([center + Vector2(-radius, 0), center + Vector2(0, -radius),
 			center + Vector2(radius, 0), center + Vector2(0, radius)]), color)
+	elif _cosmetic_style == "ember_trails":
+		draw_colored_polygon(PackedVector2Array([center + Vector2(-radius, 0), center + Vector2(-radius * 0.25, -radius * 0.25),
+			center + Vector2(0, -radius), center + Vector2(radius * 0.25, -radius * 0.25), center + Vector2(radius, 0),
+			center + Vector2(radius * 0.25, radius * 0.25), center + Vector2(0, radius), center + Vector2(-radius * 0.25, radius * 0.25)]), color)
+	elif _cosmetic_style == "void_trails":
+		draw_arc(center, radius, 0, TAU, 12, color, maxf(1.0, radius * 0.35))
 	else:
 		draw_circle(center, radius, color)
 

@@ -22,6 +22,28 @@ var region_victories: Dictionary = {}
 var codex_entries: Dictionary = {}
 var completed_challenges: Dictionary = {}
 var selected_cosmetics: Dictionary = {"player": "player_default", "projectile": "projectile_default"}
+var cosmetic_points: int = 0
+var purchased_cosmetics: Array[String] = []
+
+func add_cosmetic_points(amount: int) -> void:
+	if amount <= 0:
+		return
+	cosmetic_points += amount
+	save_progress()
+
+func buy_cosmetic(id: String) -> bool:
+	var entry := CosmeticStyles.definition(id)
+	if entry.is_empty():
+		return false
+	if CosmeticStyles.is_unlocked(id):
+		return true
+	var price := int(entry.get("price", 0))
+	if price <= 0 or cosmetic_points < price:
+		return false
+	cosmetic_points -= price
+	purchased_cosmetics.append(id)
+	save_progress()
+	return true
 
 func equip_cosmetic(id: String) -> bool:
 	var entry := CosmeticStyles.definition(id)
@@ -129,6 +151,8 @@ func save_progress() -> void:
 		"codex_entries": codex_entries,
 		"completed_challenges": completed_challenges,
 		"selected_cosmetics": selected_cosmetics,
+		"cosmetic_points": cosmetic_points,
+		"purchased_cosmetics": purchased_cosmetics,
 	}
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file:
@@ -142,6 +166,11 @@ func load_progress() -> void:
 		var json := JSON.new()
 		if json.parse(file.get_as_text()) == OK:
 			var data: Dictionary = json.data
+			cosmetic_points = maxi(0, int(data.get("cosmetic_points", 0)))
+			purchased_cosmetics.clear()
+			for id: Variant in data.get("purchased_cosmetics", []):
+				if id is String and not purchased_cosmetics.has(id):
+					purchased_cosmetics.append(id)
 			highest_ascension_unlocked = data.get("highest_ascension_unlocked", {})
 			region_victories = data.get("region_victories", {})
 			completed_challenges = data.get("completed_challenges", {})
