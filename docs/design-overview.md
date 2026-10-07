@@ -39,7 +39,8 @@ Main Menu → (pick Region) → Skill Picker → Stage Map ⇄ Stages → Run Su
   shop. Treasure offers gear, 40% max-HP healing or 35 gold. Boss 5 grants a **mutation**,
   a **legendary passive**, a normal boss reward and a guaranteed shop; boss 10 ends the run.
   Combat checkpoints at 35% and 70% pause the arena for a temporary build choice or skip.
-  Reward screens offer a compatible build improvement, a new direction, and a flexible option.
+  Reward screens guarantee a compatible build improvement in the first slot, then offer a new
+  direction and a flexible option; an exhausted catalog falls back safely to gold.
   Shops reserve a slot for a compatible support or focused passive when one is available.
 - **Run end**: victory at depth 10 or on death. Unlock conditions are checked against `run_stats`;
   newly satisfied unlocks persist (meta-progression).
@@ -57,8 +58,8 @@ Run auto-saves on every stage-map visit (`user://active_run.json`) and can be re
 | **GameBus** | Global signal bus — `enemy_killed`, `enemy_hit`, `stage_cleared`, `gold_changed`, `player_died`, `run_ended`, `skill_acquired`, `support_acquired`, `passive_acquired` |
 | **RunManager** | Run state — stage tree, gold, equipped skills, owned supports/passives/consumables, skill slots, region, ascension, run-stat tracking, save/resume |
 | **InputManager** | Touch/keyboard abstraction — exposes `movement_vector` |
-| **BehaviorRegistry** | Maps behavior keys → GDScript classes. **20 registered behaviors** (see Behavior System) |
-| **MetaProgression** | Persistent unlocks, regional wins/Ascension ladder, challenges, cosmetics, codex discovery. Saved to JSON |
+| **BehaviorRegistry** | Maps behavior keys → GDScript classes. **21 registered behaviors** (see Behavior System) |
+| **MetaProgression** | Persistent unlocks, cosmetic points/purchases, regional wins/Ascension ladder, challenges, cosmetics, codex discovery. Saved to JSON |
 | **QualitySettings** | Mobile/perf quality tier (particle/effect density, shake) |
 | **RunTelemetry** | Local per-run decisions, clocks, damage sources and frame statistics; headless runs marked synthetic |
 
@@ -234,6 +235,7 @@ Procedurally drawn sprites (see `scripts/util/*_sprite.gd`) — no PNG assets.
 | Swarm | Fast, fragile, spawns in numbers |
 | Tank | Slow, high HP |
 | Basic Ranged | Fires enemy projectiles |
+| Shield Support | 150px cyan aura; protected ordinary enemies reject damage until the player enters an active protecting aura |
 | Mini-boss | Appears on depth-4 / depth-7 density curves; multi-phase patterns |
 | Bosses | Fixed at depth 5 & 10 (distinct sprites: oracle, monarch, overseer, brute, demon, breaker, mote) |
 
@@ -283,14 +285,16 @@ Only unlocked content appears. Prices scale by item type and rarity.
 
 ## Meta-Progression
 
-- **Starter pool**: 3 skills (`fireball`, `lightning_bolt`, `blade_spin`), 10 supports, and a broad
+- **Starter pool**: 3 skills (`fireball`, `lightning_bolt`, `blade_spin`), 11 supports, and a broad
   set of base + mastery passives. Remaining content unlocks via `UnlockConditionResource` checks
   against `run_stats` at run end (40 unlock resources; see the checked catalog snapshot).
 - **Ascension** (0–20): per-level scaling — `hp_mult +15%`, `damage_mult +10%`, `speed_mult +3%`,
   `gold_mult −2%` (floor 0.5×) per level.
   Only unlocked levels can be selected, separately per region; victory unlocks the next level.
   Ascension 5/10/15 adds elite/caster/shield reinforcements after the opening stage.
-- **Codex**: discovery, archetype challenges, cosmetic equipment and regional boss trophies.
+- **Cosmetic points**: +1 after a normal/elite combat stage, +2 once per miniboss, +5 after a
+  regional boss. Points save immediately and buy visual-only projectile styles in the Codex.
+- **Codex**: discovery, archetype challenges, cosmetic purchase/equipment and regional boss trophies.
   Contracts unlock after wins; rewards do not add permanent combat stats. Daily seeds/history
   remain deferred until combat balance is verified.
 - Persisted to `user://meta_progression.json`. Active run persisted to `user://active_run.json`.
@@ -348,7 +352,7 @@ Per-stage difficulty is the product of `game_balance` base × depth scaling (`St
 ```
 scripts/
   autoloads/  game_bus, run_manager, input_manager, behavior_registry, meta_progression, quality_settings
-  behaviors/  behavior_base + 20 behaviors + passive_behaviors
+  behaviors/  behavior_base + 21 behaviors + passive_behaviors
   combat/     engine_tracker, combo_tracker, synergy_tracker, mutation_data, consumable_manager,
               skill_totem, skill_mine, trigger_guard
   enemies/    enemy_base, basic_ranged, swarm_enemy, tank_enemy, mini_boss, spawner, enemy_projectile
@@ -365,7 +369,7 @@ scripts/
               object_pool, spatial_grid, resource_listing, pixel_sprite + procedural *_sprite builders
 
 resources/
-  skills/ (7)   supports/ (25)   passives/ (58)   unlocks/ (40)
+  skills/ (7)   supports/ (26)   passives/ (58)   unlocks/ (40)
   regions/ (3)  consumables/ (8) config/ (game_balance, default_theme)
 
 scenes/

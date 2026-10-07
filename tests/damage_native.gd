@@ -36,6 +36,7 @@ func run_checks() -> void:
 	check(laser_support != null and BehaviorRegistry.has_behavior("laser"), "Laser support resource and behavior are registered")
 	var laser_first := SkillInstance.new(fire)
 	check(laser_first.link_support(laser_support), "Laser links to projectile skills")
+	laser_first.computed_stats["crit_chance"] = 0.0
 	check(not laser_first.link_support(chain_support), "Chain cannot be attached after laser")
 	var chain_first := SkillInstance.new(fire)
 	check(chain_first.link_support(chain_support), "Chain setup is valid before conflict check")
