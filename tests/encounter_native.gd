@@ -97,6 +97,11 @@ func run_checks() -> void:
 	support.set_physics_process(false)
 	support._refresh_links()
 	check(support.linked_allies.has(ally) and ally._has_support_guard(), "Nearby ally has visible support link")
+	ally.set_meta("spawn_role", "denial_caster")
+	support._refresh_links()
+	check(not support.linked_allies.has(ally) and not support.grants_guard(ally), "Spawner-role denial casters are never shielded")
+	ally.remove_meta("spawn_role")
+	support._refresh_links()
 	var fireball := load("res://resources/skills/fireball.tres") as SkillResource
 	target.global_position = Vector2(151, 0)
 	ally.take_damage(10.0, false, fireball)
@@ -168,6 +173,15 @@ func run_checks() -> void:
 		for i in 4:
 			spawner._spawn_enemy_at(Vector2.ZERO, role)
 		check(spawner.get_active_role_count(role) == int(Spawner.ROLE_LIMITS[role]), "Special enemy cap: " + role)
+	var spawned_support: EnemyBase
+	var spawned_denial: EnemyBase
+	for child: Node in spawner.get_children():
+		if child is EnemyBase and child.get_meta("spawn_role", "") == "shield_support":
+			spawned_support = child
+		elif child is EnemyBase and child.get_meta("spawn_role", "") == "denial_caster":
+			spawned_denial = child
+	check(spawned_support != null and spawned_denial != null and not spawned_support.grants_guard(spawned_denial),
+		"An actual spawner-created denial caster is excluded from shielding")
 	var pooled: EnemyBase = spawner.get_child(0)
 	pooled.current_hp = 0.0
 	spawner._on_enemy_died(pooled)

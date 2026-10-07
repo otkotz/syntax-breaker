@@ -41,6 +41,11 @@ func run_checks() -> void:
 	var chain_first := SkillInstance.new(fire)
 	check(chain_first.link_support(chain_support), "Chain setup is valid before conflict check")
 	check(not chain_first.link_support(laser_support), "Laser cannot be attached after chain")
+	var piercing: Dictionary = MutationData.POOL.filter(func(m): return m.id == "piercing")[0]
+	check(not MutationData.can_apply(piercing, laser_first), "Laser rejects ineffective Piercing mutation")
+	var mutated_first := SkillInstance.new(fire)
+	mutated_first.add_mutation(piercing)
+	check(not mutated_first.link_support(laser_support), "Laser cannot replace an acquired Piercing mutation")
 	var laser_target := dummy()
 	laser_target.global_position = Vector2(100, 0)
 	laser_target.collision_layer = 2
@@ -57,6 +62,16 @@ func run_checks() -> void:
 	check(laser_target._dots.has("burn"), "Laser preserves elemental on-hit effects")
 	check(not SkillLaser.fire(emitter, laser_first, Vector2.UP), "Laser reports a miss when no target crosses the ray")
 	check(laser_target.current_hp == 90.0, "A missed laser ray deals no damage")
+	var production_target := preload("res://scenes/enemies/basic_melee.tscn").instantiate() as EnemyBase
+	add_child(production_target)
+	production_target.global_position = Vector2(100, 0)
+	production_target.set_process(false)
+	production_target.set_physics_process(false)
+	await get_tree().physics_frame
+	var production_aim: Vector2 = Targeting.combat_aim_position(production_target)
+	check(production_aim == Vector2(100, -13), "Aim point follows the production enemy hitbox")
+	check(SkillLaser.fire(emitter, laser_first, emitter.global_position.direction_to(production_aim)),
+		"Laser aimed through Targeting hits an offset production collider")
 	emitter.queue_free()
 	laser_target.queue_free()
 	RunManager.start_run()

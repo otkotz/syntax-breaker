@@ -85,9 +85,10 @@ static func can_apply(mutation: Dictionary, target: Variant) -> bool:
 	match mutation.get("id", ""):
 		"piercing", "scatter":
 			# Mines explode as an area and neither pierce nor create projectiles.
+			var tags: Array[String] = target.get_all_tags() if target is SkillInstance else skill.tags
 			return skill.has_tag("projectile") and not (
 				target is SkillInstance and target.computed_stats.get("is_mine", 0) > 0
-			)
+			) and (mutation.get("id", "") != "piercing" or not tags.has("beam"))
 		"concentrated":
 			return skill.has_tag("aoe")
 		"close_quarters":

@@ -20,6 +20,7 @@ var _return_target: Node2D
 var _counted_active: bool = false
 const TRAIL_MIN_DISTANCE := 12.0
 const MAX_TRAIL := 12
+const MAX_RETURN_HITS := 8
 
 var _bolt_segments: Array[Vector2] = []
 var _bolt_flicker: float = 1.0
@@ -132,7 +133,7 @@ func _draw_lightning() -> void:
 		var from := _bolt_segments[i]
 		var to := _bolt_segments[i + 1]
 		draw_line(from, to, Color(0.63, 0.85, 1.0, 0.35 * _bolt_flicker), 8.0)
-		if _cosmetic_style == "faceted_trails" and i % 2 == 0:
+		if lightning_uses_trail_style() and i % 2 == 0:
 			_draw_trail_dot(from, 4.0, Color(0.63, 0.85, 1.0, 0.2 * _bolt_flicker))
 	for i in _bolt_segments.size() - 1:
 		var from := _bolt_segments[i]
@@ -171,6 +172,9 @@ func _draw_trail_dot(center: Vector2, radius: float, color: Color) -> void:
 		draw_arc(center, radius, 0, TAU, 12, color, maxf(1.0, radius * 0.35))
 	else:
 		draw_circle(center, radius, color)
+
+func lightning_uses_trail_style() -> bool:
+	return _skill_id == "lightning_bolt" and _cosmetic_style != "projectile_default"
 
 func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("enemies"):
@@ -276,7 +280,7 @@ func _start_return() -> void:
 	damage *= get_meta("return_damage_mult", 0.6)
 	set_meta("is_returning", true)
 	set_meta("pierce_return", false)
-	pierce_remaining = 999
+	pierce_remaining = MAX_RETURN_HITS
 
 func reset() -> void:
 	top_level = false

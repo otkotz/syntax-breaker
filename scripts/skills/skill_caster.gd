@@ -81,7 +81,7 @@ func _try_cast(si: SkillInstance) -> bool:
 			var angle := randf() * TAU
 			_spawn_skill(si, Vector2.from_angle(angle), target)
 	else:
-		var direction := global_position.direction_to(target.global_position)
+		var direction := global_position.direction_to(Targeting.combat_aim_position(target))
 		if count <= 1:
 			_spawn_skill(si, direction, target)
 		else:
@@ -93,7 +93,7 @@ func _try_cast(si: SkillInstance) -> bool:
 
 	CombatLog.skill_cast(si.base.name, count)
 	RunManager.record_stat("projectiles_fired", count)
-	var aim_dir := global_position.direction_to(target.global_position)
+	var aim_dir := global_position.direction_to(Targeting.combat_aim_position(target))
 	_schedule_echoes(si, aim_dir, target)
 	return true
 
@@ -112,7 +112,7 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 			else:
 				var echo_target := target if is_instance_valid(target) else Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
 				if echo_target:
-					var echo_dir := global_position.direction_to(echo_target.global_position)
+					var echo_dir := global_position.direction_to(Targeting.combat_aim_position(echo_target))
 					var count: int = si.computed_stats.get("projectile_count", 1)
 					if count <= 1:
 						_spawn_skill(si, echo_dir, echo_target)
@@ -218,7 +218,7 @@ func _on_death_recast(si: SkillInstance, dead_enemy: Node2D) -> void:
 	var target := Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
 	if target == null:
 		return
-	var dir := global_position.direction_to(target.global_position)
+	var dir := global_position.direction_to(Targeting.combat_aim_position(target))
 	_spawn_skill(si, dir, target)
 
 func _redistribute_orbit_offsets(pool: ObjectPool) -> void:

@@ -55,6 +55,16 @@ func run_checks() -> void:
 	var mechanics := [projectile.damage, projectile.speed, projectile._max_range, projectile.scale, projectile._color,
 		projectile.collision_layer, projectile.collision_mask, projectile.pierce_remaining]
 	check(projectile._cosmetic_style == "faceted_trails", "Projectile reads equipped style at spawn")
+	var lightning := SkillInstance.new(load("res://resources/skills/lightning_bolt.tres"))
+	for style_id: String in ["ember_trails", "void_trails"]:
+		MetaProgression.purchased_cosmetics.append(style_id)
+		MetaProgression.selected_cosmetics.projectile = style_id
+		projectile.reset()
+		projectile.initialize(lightning, Vector2.RIGHT, null)
+		check(projectile.lightning_uses_trail_style(), "Lightning visibly applies paid style " + style_id)
+		var beam := SkillLaser.create_visual(Vector2(40, 0), Color.WHITE)
+		check(beam._cosmetic_style == style_id and beam.uses_cosmetic_style(), "Laser visibly applies paid style " + style_id)
+		beam.queue_free()
 	projectile._return_to_pool()
 	projectile.reset()
 	check(projectile._cosmetic_style == "projectile_default", "Pool reset clears style")

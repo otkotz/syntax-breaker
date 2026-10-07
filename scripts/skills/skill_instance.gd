@@ -49,6 +49,10 @@ func can_combine_support(support: SupportResource, replacing: SupportResource = 
 	const LASER_INCOMPATIBLE_SUPPORTS := [
 		"chain", "pierce", "returning", "ricochet_amplifier", "split",
 	]
+	if support.id == "laser":
+		for mutation: Dictionary in mutations:
+			if mutation.get("id", "") == "piercing":
+				return false
 	for linked: SupportResource in linked_supports:
 		if linked == replacing:
 			continue

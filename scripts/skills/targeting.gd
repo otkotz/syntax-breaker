@@ -14,6 +14,16 @@ static func unregister(entity: Node2D) -> void:
 	if _grid:
 		_grid.remove_entity(entity)
 
+static func combat_aim_position(target: Node2D) -> Vector2:
+	if not is_instance_valid(target):
+		return Vector2.ZERO
+	var shapes := target.find_children("*", "CollisionShape2D", true, false)
+	for child: Node in shapes:
+		var collision := child as CollisionShape2D
+		if collision and not collision.disabled and collision.shape != null:
+			return collision.global_position
+	return target.global_position
+
 static func find_nearest_enemy(from: Vector2, max_range: float, _enemies_group: String = "enemies") -> Node2D:
 	if _grid:
 		return _grid.query_nearest(from, max_range)

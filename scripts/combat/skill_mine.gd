@@ -62,7 +62,7 @@ func _fire_laser_payload() -> void:
 	var target := Targeting.find_nearest_enemy(global_position, skill_instance.computed_stats.get("range", 400.0))
 	if not target:
 		return
-	var direction := global_position.direction_to(target.global_position)
+	var direction := global_position.direction_to(Targeting.combat_aim_position(target))
 	var count: int = skill_instance.computed_stats.get("projectile_count", 1)
 	if count <= 1:
 		SkillLaser.fire(self, skill_instance, direction)

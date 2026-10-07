@@ -1,5 +1,10 @@
 extends Node
 
+class HitDummy extends Node2D:
+	var damage_received := 0.0
+	func take_damage(amount: float, _crit: bool = false, _source: Resource = null) -> void:
+		damage_received += amount
+
 var failures: Array[String] = []
 
 func check(condition: bool, message: String) -> void:
@@ -28,6 +33,41 @@ func run_checks() -> void:
 	first.initialize(fire, Vector2.RIGHT, null)
 	second.initialize(fire, Vector2.RIGHT, null)
 	check(ProjectileBase.active_count == 2, "Each initialized projectile increments the active count once")
+	var pool := ObjectPool.new(preload("res://scenes/skills/fireball.tscn"), 24, self)
+	var pooled: Array[ProjectileBase] = []
+	for i in 24:
+		var projectile := pool.get_instance() as ProjectileBase
+		projectile.global_position = Vector2(40 + i * 4, 20)
+		projectile.initialize(fire, Vector2.RIGHT, pool)
+		projectile.set_meta("pierce_return", true)
+		projectile._start_return()
+		pooled.append(projectile)
+	check(pool.active_count() == 24 and ProjectileBase.active_count == 26, "Real pool supports many simultaneous returning projectiles")
+	for projectile in pooled:
+		projectile._return_to_pool()
+	check(pool.active_count() == 0 and pool.pool_count() == 24, "Real pool releases the full returning workload")
+	var reused := pool.get_instance() as ProjectileBase
+	reused.global_position = Vector2.ZERO
+	reused.initialize(fire, Vector2.RIGHT, pool)
+	check(reused._hit_targets.is_empty() and not reused.get_meta("is_returning", false), "Real pool reuse clears hits and returning state")
+	var hit_target := HitDummy.new()
+	hit_target.add_to_group("enemies")
+	add_child(hit_target)
+	reused.set_meta("pierce_return", true)
+	reused.pierce_remaining = 1
+	reused._on_body_entered(hit_target)
+	var outbound_damage := hit_target.damage_received
+	check(outbound_damage > 0.0 and reused._hit_targets.has(hit_target), "Pooled projectile records a real outbound hit")
+	reused._start_return()
+	reused._on_body_entered(hit_target)
+	check(hit_target.damage_received > outbound_damage, "Return leg clears hit history and damages the same target again")
+	reused._return_to_pool()
+	var after_hits := pool.get_instance() as ProjectileBase
+	after_hits.global_position = Vector2.ZERO
+	after_hits.initialize(fire, Vector2.RIGHT, pool)
+	check(after_hits._hit_targets.is_empty(), "Pool reacquisition clears real collision history")
+	after_hits._return_to_pool()
+	hit_target.queue_free()
 
 	# A frame-rate trail sampler would add a point after these two tiny moves.
 	# Distance sampling must wait until the projectile has moved at least 12 px.
@@ -42,6 +82,7 @@ func run_checks() -> void:
 	first._start_return()
 	check(first.get_meta("is_returning", false), "Returning state starts at maximum range")
 	check(first.get("_return_target") == player, "Return target is cached on the projectile")
+	check(first.pierce_remaining == ProjectileBase.MAX_RETURN_HITS, "Returning collision work has a finite hit budget")
 	for i in 100:
 		first._trail_positions.append(Vector2(i, 0))
 		first._trim_trail()
