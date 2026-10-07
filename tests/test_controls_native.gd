@@ -11,6 +11,10 @@ func _ready() -> void:
 	run_checks.call_deferred()
 
 func run_checks() -> void:
+	var export_config := ConfigFile.new()
+	check(export_config.load("res://export_presets.cfg") == OK, "Android export preset is readable")
+	var android_features := str(export_config.get_value("preset.0", "custom_features", ""))
+	check(not android_features.contains("phone_test_controls"), "Default Android export keeps test arrows disabled")
 	var joystick := preload("res://scenes/ui/virtual_joystick.tscn").instantiate() as VirtualJoystick
 	# In combat the joystick inherits pausable processing from Arena, while the
 	# test runner must stay active to inspect the paused state.
