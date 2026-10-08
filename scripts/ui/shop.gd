@@ -6,6 +6,7 @@ signal skill_purchased(si: SkillInstance)
 signal skill_swapped(old_si: SkillInstance, new_si: SkillInstance)
 
 const OFFERING_COUNT := 4
+const SHOP_UPGRADE_ICONS = preload("res://scripts/ui/shop_upgrade_icons.gd")
 const RARITY_COSTS := {
 	"skill": {"common": 15, "uncommon": 20, "rare": 25, "legendary": 35},
 	"support": {"common": 8, "uncommon": 12, "rare": 15},
@@ -184,7 +185,15 @@ func _create_card(offering: Dictionary) -> Button:
 	hbox.add_theme_constant_override("separation", 12)
 	card.add_child(hbox)
 	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	if not is_upgrade:
+	if is_upgrade:
+		var upgrade_icon := TextureRect.new()
+		upgrade_icon.texture = SHOP_UPGRADE_ICONS.get_icon(str(offering["upgrade"]["key"]))
+		upgrade_icon.custom_minimum_size = Vector2(96, 96)
+		upgrade_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		upgrade_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		upgrade_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		hbox.add_child(upgrade_icon)
+	else:
 		var item: Resource = offering["resource"]
 		var icon := UITheme.item_thumbnail(item)
 		if icon:
