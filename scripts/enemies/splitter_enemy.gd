@@ -1,7 +1,14 @@
 extends EnemyBase
 
+const SPLITTER_TEXTURE := preload("res://assets/sprites/enemies/splitter-v1.png")
+
 func _setup_sprite() -> void:
-	pass
+	_sprite = Sprite2D.new()
+	_sprite.texture = SPLITTER_TEXTURE
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * 0.055
+	_sprite.position = Vector2(0, -17)
+	add_child(_sprite)
 
 func _die() -> void:
 	# Register offspring before the death signal can complete the arena.

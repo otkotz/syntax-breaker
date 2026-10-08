@@ -1,11 +1,18 @@
 extends EnemyBase
 
+const DENIAL_TEXTURE := preload("res://assets/sprites/enemies/denial-caster-v1.png")
+
 const Zone = preload("res://scripts/enemies/denial_zone.gd")
 const MAX_ZONES := 6
 var cast_timer: float = 2.0
 
 func _setup_sprite() -> void:
-	pass
+	_sprite = Sprite2D.new()
+	_sprite.texture = DENIAL_TEXTURE
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * 0.055
+	_sprite.position = Vector2(0, -18)
+	add_child(_sprite)
 
 func reset() -> void:
 	super.reset()

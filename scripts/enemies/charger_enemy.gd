@@ -1,5 +1,7 @@
 extends EnemyBase
 
+const CHARGER_TEXTURE := preload("res://assets/sprites/charger-v1.png")
+
 const WINDUP := 1.0
 const CHARGE_TIME := 0.6
 const CHARGE_SPEED := 360.0
@@ -8,7 +10,12 @@ var attack_timer: float = 2.0
 var charge_direction := Vector2.RIGHT
 
 func _setup_sprite() -> void:
-	pass
+	_sprite = Sprite2D.new()
+	_sprite.texture = CHARGER_TEXTURE
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * 0.055
+	_sprite.position = Vector2(0, -16)
+	add_child(_sprite)
 
 func get_contact_source() -> String:
 	return get_enemy_id() + ":" + attack_state

@@ -20,6 +20,7 @@ func run_checks() -> void:
 	RunManager.start_run()
 	_check_projectile()
 	_check_silhouettes()
+	_check_all_enemy_art()
 	await _check_slam_budget()
 	_check_warning_activation()
 	_check_boss_ground_opacity()
@@ -64,6 +65,38 @@ func _check_silhouettes() -> void:
 		var reused_size: Vector2 = enemy._sprite.texture.get_size() * enemy._sprite.scale
 		check(reused_size.y >= fixture[2], "Pool reuse preserves readable silhouette: " + fixture[0])
 		enemy.queue_free()
+
+func _check_all_enemy_art() -> void:
+	var scenes := [
+		"basic_melee", "basic_ranged", "tank_enemy", "swarm_enemy", "charger_enemy",
+		"denial_caster", "shield_support", "splitter_enemy", "split_fragment", "mini_boss",
+		"burning_boss", "storm_boss", "toxic_boss",
+	]
+	var textures: Dictionary = {}
+	for scene_name: String in scenes:
+		var enemy := load("res://scenes/enemies/%s.tscn" % scene_name).instantiate() as EnemyBase
+		add_child(enemy)
+		enemy.set_process(false)
+		enemy.set_physics_process(false)
+		check(enemy.has_method("get_visual_texture"), "Enemy exposes production art: " + scene_name)
+		var texture: Texture2D = enemy.call("get_visual_texture") if enemy.has_method("get_visual_texture") else null
+		var rendered_size := texture.get_size() * enemy._sprite.scale if texture else Vector2.ZERO
+		var min_width := 12.0 if scene_name == "swarm_enemy" else 16.0
+		check(texture != null and rendered_size.x >= min_width and rendered_size.y >= 16,
+			"Production enemy has readable texture: " + scene_name)
+		if texture:
+			textures[scene_name] = texture
+		var collision_scale: Vector2 = enemy.get_node("CollisionShape2D").scale
+		enemy.reset()
+		enemy.set_physics_process(false)
+		enemy.initialize(null)
+		enemy.set_physics_process(false)
+		var reused: Texture2D = enemy.call("get_visual_texture") if enemy.has_method("get_visual_texture") else null
+		check(reused != null and enemy.get_node("CollisionShape2D").scale == collision_scale,
+			"Pool reuse preserves art without changing hitbox: " + scene_name)
+		enemy.queue_free()
+	check(textures.values().duplicate().all(func(texture): return textures.values().count(texture) == 1),
+		"Every production enemy role has distinct art")
 
 # Real spawner + Player: full-HP deaths caused by Elite/Deadly/role multiplier stacking.
 func _check_slam_budget() -> void:

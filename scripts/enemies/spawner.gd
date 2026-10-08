@@ -91,6 +91,7 @@ func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> v
 	_active_role_counts.clear()
 	_pending_split_fragments = 0
 	_pending_boss_add_requests.clear()
+	_suppress_split_spawns = false
 	_spawn_generation += 1
 	_elite_spawn_count = 0
 	_scripted_pulses.clear()

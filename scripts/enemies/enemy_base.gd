@@ -30,6 +30,9 @@ signal died(enemy: EnemyBase)
 func get_enemy_id() -> String:
 	return scene_file_path.get_file().get_basename() if not scene_file_path.is_empty() else get_class()
 
+func get_visual_texture() -> Texture2D:
+	return _sprite.texture if is_instance_valid(_sprite) else null
+
 func _ready() -> void:
 	_base_max_hp = max_hp
 	_base_move_speed = move_speed

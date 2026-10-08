@@ -3,6 +3,7 @@ extends EnemyBase
 
 const ENEMY_PROJECTILE_SCENE := preload("res://scenes/enemies/enemy_projectile.tscn")
 const HazardVisual = preload("res://scripts/util/hazard_visual.gd")
+const MINI_BOSS_TEXTURE := preload("res://assets/sprites/enemies/mini-boss-v1.png")
 
 enum Phase { CHASE, TELEGRAPH, ATTACK, COOLDOWN }
 enum Attack { CHARGE, SLAM, VOLLEY }
@@ -59,6 +60,14 @@ func get_contact_source() -> String:
 	return get_enemy_id() + (":charge" if _phase == Phase.ATTACK and _current_attack == Attack.CHARGE else ":contact")
 
 func _setup_sprite() -> void:
+	if not has_method("configure_encounter"):
+		_sprite = Sprite2D.new()
+		_sprite.texture = MINI_BOSS_TEXTURE
+		_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_sprite.scale = Vector2.ONE * 0.065
+		_sprite.position = Vector2(0, -28)
+		add_child(_sprite)
+		return
 	super._setup_sprite()
 	var s: float = BOSS_SCALE.get(_boss_type(), 0.8)
 	_sprite.scale = Vector2(s, s)
