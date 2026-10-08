@@ -125,6 +125,44 @@ func run_checks() -> void:
 		target.queue_free()
 		await get_tree().process_frame
 	check(notices[0] == 3, "Three regional final-phase notices")
+
+	var final_target := TargetDummy.new()
+	add_child(final_target)
+	final_target.position = Vector2(500, 875)
+	var final_spawner := Spawner.new()
+	final_spawner.melee_scene = preload("res://scenes/enemies/basic_melee.tscn")
+	final_spawner.split_fragment_scene = preload("res://scenes/enemies/split_fragment.tscn")
+	add_child(final_spawner)
+	var final_stage := StageData.new()
+	final_stage.type = StageData.Type.BOSS
+	final_stage.depth = 10
+	final_stage.region = load("res://resources/regions/burning_grounds.tres")
+	final_spawner.setup(final_target, Rect2(0, 0, 1000, 1750), final_stage)
+	var final_completions := [0]
+	final_spawner.all_waves_cleared.connect(func() -> void: final_completions[0] += 1)
+	check(final_spawner.has_method("is_final_boss_encounter") and final_spawner.is_final_boss_encounter(),
+		"Depth ten boss stage is a dedicated final encounter")
+	final_spawner.start_next_wave()
+	final_spawner._process(20.0)
+	var final_boss: EnemyBase
+	var ordinary_count := 0
+	for child: Node in final_spawner.get_children():
+		if child is EnemyBase and child.visible:
+			if child.get_meta("combat_role", "") == "boss":
+				final_boss = child
+			else:
+				ordinary_count += 1
+	check(final_spawner._spawned_count == 0 and ordinary_count == 0,
+		"Final boss stage never spawns ordinary waves")
+	check(final_boss != null, "Final encounter starts with exactly one boss")
+	if final_boss:
+		final_spawner._spawn_enemy_at(Vector2(300, 300), "split_fragment", false, true)
+		final_boss.take_damage(final_boss.current_hp + 1.0)
+		check(final_completions[0] == 1, "Boss death immediately completes final map")
+		check(final_spawner.get_remaining_enemies() == 0, "Mechanic adds do not gate final victory")
+	final_spawner.queue_free()
+	final_target.queue_free()
+	await get_tree().process_frame
 	if failures.is_empty():
 		print("PASS: three regional bosses, telegraphs, safe areas, cleanse adds and final phases")
 	else:

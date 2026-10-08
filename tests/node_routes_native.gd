@@ -185,5 +185,12 @@ func run_checks() -> void:
 	check(not RunManager.has_saved_run(), "Final victory removes active run save")
 	game.queue_free()
 	await get_tree().process_frame
+	game = make_game(StageData.Type.BOSS, 10)
+	game._on_player_died()
+	game._on_stage_completed()
+	check(game._state == GameManager.State.RUN_END and not bool(RunManager.run_stats.get("run_completed", false)),
+		"An accepted player death cannot be overwritten by same-frame boss completion")
+	game.queue_free()
+	await get_tree().process_frame
 	print(JSON.stringify({"failures": failures, "node_routes": 10, "synthetic": true}))
 	get_tree().quit(0 if failures.is_empty() else 1)

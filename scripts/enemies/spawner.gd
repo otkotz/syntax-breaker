@@ -49,6 +49,7 @@ var _formations_per_pulse: int = 1
 var _has_mini_boss: bool = false
 var _mini_boss_spawned: bool = false
 var _is_boss_stage: bool = false
+var _is_final_boss_stage: bool = false
 var _elite_interval: int = 999
 var _pulses_since_elite: int = 0
 var _power_pulse_interval: int = 5
@@ -117,10 +118,12 @@ func _apply_stage_data(stage_data: StageData) -> void:
 		_gold_mult = 1.0
 		_has_mini_boss = false
 		_is_boss_stage = false
+		_is_final_boss_stage = false
 		_configure_phase()
 		return
 
 	_is_boss_stage = stage_data.type == StageData.Type.BOSS
+	_is_final_boss_stage = _is_boss_stage and stage_data.depth >= 10
 	_phase = stage_data.get_run_phase()
 
 	var depth_scale := StageGenerator.get_depth_scaling(stage_data.depth)
@@ -182,6 +185,8 @@ func _process(delta: float) -> void:
 		return
 
 	_stage_timer -= delta
+	if _is_final_boss_stage:
+		return
 	_pulse_cooldown -= delta
 
 	var can_spawn := _stage_timer > 0.0 and _spawned_count < _total_budget
@@ -342,7 +347,8 @@ func spawn_boss_adds(source: EnemyBase) -> void:
 func _reserve_fragments(source: EnemyBase, cleansing: bool) -> void:
 	if _suppress_split_spawns or _completed or source.get_parent() != self or not split_fragment_scene:
 		return
-	var available := int(ROLE_LIMITS["split_fragment"]) - get_active_role_count("split_fragment") - _pending_split_fragments
+	var role_cap := 4 if cleansing else int(ROLE_LIMITS["split_fragment"])
+	var available := role_cap - get_active_role_count("split_fragment") - _pending_split_fragments
 	var count := mini(2, maxi(0, available))
 	if count == 0:
 		return
@@ -415,6 +421,8 @@ func _spawn_boss() -> void:
 		return
 	var boss := scene.instantiate() as EnemyBase
 	boss.died.connect(_on_enemy_died)
+	if _is_final_boss_stage and boss.has_signal("final_defeated"):
+		boss.connect("final_defeated", _on_final_boss_died, CONNECT_ONE_SHOT)
 	add_child(boss)
 	boss.set_meta("combat_role", "boss")
 	if boss is MiniBoss:
@@ -515,6 +523,9 @@ func _on_enemy_died(enemy: EnemyBase) -> void:
 	if not role.is_empty():
 		_active_role_counts[role] = maxi(0, get_active_role_count(role) - 1)
 		enemy.remove_meta("spawn_role")
+	if _is_final_boss_stage and enemy.get_meta("combat_role", "") == "boss":
+		_enemies_alive = maxi(0, _enemies_alive - 1)
+		return
 	_return_to_pool(enemy)
 	_enemies_alive -= 1
 	var can_spawn := _stage_timer > 0.0 and _spawned_count < _total_budget
@@ -524,10 +535,18 @@ func _on_enemy_died(enemy: EnemyBase) -> void:
 func get_stage_timer() -> float:
 	return maxf(_stage_timer, 0.0)
 
+func is_final_boss_encounter() -> bool:
+	return _is_final_boss_stage
+
+func _on_final_boss_died(_boss: EnemyBase) -> void:
+	complete_encounter("boss_defeated", true)
+
 func get_active_role_count(role: String) -> int:
 	return int(_active_role_counts.get(role, 0))
 
 func get_remaining_enemies() -> int:
+	if _completed:
+		return 0
 	return _enemies_alive + _pending_split_fragments + (maxi(0, _total_budget - _spawned_count) if _stage_timer > 0.0 else 0)
 
 func get_stage_progress() -> float:

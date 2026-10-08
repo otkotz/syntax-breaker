@@ -1,5 +1,7 @@
 extends MiniBoss
 
+signal final_defeated(boss: EnemyBase)
+
 const Hazard = preload("res://scripts/enemies/boss_hazard.gd")
 const MAX_HAZARDS := 12
 @export var boss_region: String = "burning_grounds"
@@ -125,6 +127,8 @@ func _clear_hazards() -> void:
 func _die() -> void:
 	_clear_hazards()
 	super._die()
+	if final_encounter:
+		final_defeated.emit(self)
 
 func reset() -> void:
 	_clear_hazards()
