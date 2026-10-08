@@ -159,9 +159,11 @@ func _refresh_ui() -> void:
 	for offering: Dictionary in _offerings:
 		item_list.add_child(_create_card(offering))
 
-func _create_card(offering: Dictionary) -> Control:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size.y = 130.0
+func _create_card(offering: Dictionary) -> Button:
+	var card := Button.new()
+	card.custom_minimum_size.y = 130.0
+	card.flat = true
+	card.focus_mode = Control.FOCUS_NONE
 
 	var is_upgrade: bool = offering["type"] == "stat_upgrade"
 	var rarity: String = "rare" if is_upgrade else offering.get("tier", (offering["resource"].rarity if "rarity" in offering["resource"] else "common"))
@@ -172,10 +174,16 @@ func _create_card(offering: Dictionary) -> Control:
 	sb.set_border_width_all(1)
 	sb.border_width_left = 3
 	sb.set_content_margin_all(14)
-	panel.add_theme_stylebox_override("panel", sb)
+	card.add_theme_stylebox_override("normal", sb)
+	var hover := sb.duplicate() as StyleBoxFlat
+	hover.bg_color = UITheme.C_CARD_BG.lightened(0.04)
+	card.add_theme_stylebox_override("hover", hover)
+	card.add_theme_stylebox_override("pressed", hover)
+	card.add_theme_stylebox_override("disabled", sb)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
-	panel.add_child(hbox)
+	card.add_child(hbox)
+	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if not is_upgrade:
 		var item: Resource = offering["resource"]
 		var icon := UITheme.item_thumbnail(item)
@@ -218,14 +226,37 @@ func _create_card(offering: Dictionary) -> Control:
 	info.add_child(desc)
 	hbox.add_child(info)
 
-	var buy_btn := Button.new()
-	buy_btn.text = "%dg" % offering["cost"]
-	buy_btn.custom_minimum_size.x = 120.0
-	UITheme.style_button(buy_btn, 26)
-	buy_btn.pressed.connect(_on_buy.bind(offering))
-	hbox.add_child(buy_btn)
+	var price := Label.new()
+	price.text = "%dg" % offering["cost"]
+	price.custom_minimum_size.x = 120.0
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	price.add_theme_font_size_override("font_size", 26)
+	price.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
+	hbox.add_child(price)
 
-	return panel
+	_set_visuals_input_transparent(card)
+	_set_card_affordability(card, offering)
+	card.pressed.connect(func() -> void:
+		if offering in _offerings and RunManager.gold >= int(offering["cost"]):
+			_on_buy(offering)
+	)
+	return card
+
+func _set_visuals_input_transparent(card: Button) -> void:
+	for child: Node in card.get_children():
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_visuals_input_transparent_in(child)
+
+func _set_visuals_input_transparent_in(node: Node) -> void:
+	for child: Node in node.get_children():
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_visuals_input_transparent_in(child)
+
+func _set_card_affordability(card: Button, offering: Dictionary) -> void:
+	card.disabled = RunManager.gold < int(offering["cost"])
 
 func _on_buy(offering: Dictionary) -> void:
 	if offering not in _offerings:
