@@ -89,13 +89,12 @@ static func apply_item_icon(button: Button, item: Resource, width: int = 64) -> 
 	button.add_theme_constant_override("icon_max_width", width)
 	button.add_theme_constant_override("h_separation", 16)
 	if item is PassiveResource and item.id.ends_with("_mastery"):
-		var badge := _mastery_badge(20)
+		var badge := add_mastery_badge(button, 20)
 		badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		badge.offset_left = -140
 		badge.offset_right = -16
 		badge.offset_top = 8
 		badge.offset_bottom = 36
-		button.add_child(badge)
 
 static func item_thumbnail(item: Resource, width: int = 96) -> TextureRect:
 	if item == null or not "icon" in item or item.icon == null:
@@ -109,13 +108,12 @@ static func item_thumbnail(item: Resource, width: int = 96) -> TextureRect:
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if item is PassiveResource and item.id.ends_with("_mastery"):
-		var badge := _mastery_badge(16)
+		var badge := add_mastery_badge(icon, 16)
 		badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 		badge.offset_top = -24
-		icon.add_child(badge)
 	return icon
 
-static func _mastery_badge(font_size: int) -> Label:
+static func add_mastery_badge(host: Control, font_size: int = 16) -> Label:
 	var badge := Label.new()
 	badge.text = "MASTERY"
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -125,4 +123,5 @@ static func _mastery_badge(font_size: int) -> Label:
 	backing.bg_color = Color(0.06, 0.04, 0.01, 0.95)
 	badge.add_theme_stylebox_override("normal", backing)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(badge)
 	return badge
