@@ -432,7 +432,9 @@ func _spawn_boss() -> void:
 	boss.initialize(_player)
 	if boss.has_method("configure_encounter"):
 		boss.configure_encounter(_stage_depth)
-	boss.apply_scaling(_hp_mult * 3.0, _speed_mult * 0.8, _damage_mult * 1.5, _gold_mult * 3.0)
+	var hp_scale := 5.0 if _is_final_boss_stage else 3.0
+	var speed_scale := 1.0 if _is_final_boss_stage else 0.8
+	boss.apply_scaling(_hp_mult * hp_scale, _speed_mult * speed_scale, _damage_mult * 1.5, _gold_mult * 3.0)
 	_enemies_alive += 1
 	RunTelemetry.enemy_spawned("boss:" + _boss_region)
 

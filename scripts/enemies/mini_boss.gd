@@ -91,8 +91,9 @@ func _build_boss_variants(boss_type: String) -> Array:
 func set_as_boss() -> void:
 	_is_boss_mode = true
 	add_to_group("bosses")
-	scale = Vector2(1.8, 1.8)
+	scale = Vector2.ONE
 	if _sprite:
+		_sprite.scale *= 1.2
 		_sprite.modulate = Color(1.3, 1.0, 0.7)
 
 func _draw_health_bar() -> void:

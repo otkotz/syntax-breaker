@@ -22,6 +22,7 @@ func run_checks() -> void:
 	_check_silhouettes()
 	await _check_slam_budget()
 	_check_warning_activation()
+	_check_boss_ground_opacity()
 	_check_damage_telemetry()
 	if failures.is_empty():
 		print("PASS: opaque hostile projectiles, readable silhouettes, A0 boss damage budget, warning/activation phases and uncapped damage telemetry")
@@ -169,6 +170,15 @@ func _check_warning_activation() -> void:
 	boss._remove_slam_indicator()
 	boss.queue_free()
 	player.queue_free()
+
+func _check_boss_ground_opacity() -> void:
+	var script := load("res://scripts/enemies/boss_hazard.gd")
+	var active_fill = script.get("ACTIVE_FILL_ALPHA")
+	var active_border = script.get("ACTIVE_BORDER_ALPHA")
+	var warning_fill = script.get("WARNING_FILL_ALPHA")
+	check(active_fill is float and active_fill <= 0.20, "Persistent boss ground fill stays translucent")
+	check(active_border is float and active_border >= 0.70, "Reduced ground fill keeps a strong active border")
+	check(warning_fill is float and warning_fill >= 0.20, "Warnings remain clearly visible")
 
 # Catches clipped-overkill-only logs, missing max HP and rejected-hit logging.
 func _check_damage_telemetry() -> void:
