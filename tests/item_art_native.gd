@@ -32,6 +32,31 @@ func run_checks() -> void:
 	MetaProgression.save_path = "res://.godot/art_test_meta.json"
 	RunTelemetry.enabled = false
 	RunManager.start_run()
+	for file_name: String in ResourceListing.get_resource_files("res://resources/passives/"):
+		var passive := load("res://resources/passives/" + file_name) as PassiveResource
+		check(passive != null, "Passive loads: " + file_name)
+		if not passive:
+			continue
+		check(passive.icon != null, "Passive has artwork: " + file_name)
+		if file_name.ends_with("_mastery.tres"):
+			var support_name := file_name.trim_suffix("_mastery.tres")
+			var support_path := "res://resources/supports/" + support_name + ".tres"
+			if ResourceLoader.exists(support_path):
+				var matching_support := load(support_path) as SupportResource
+				check(matching_support != null and passive.icon == matching_support.icon,
+					"Mastery maps to matching support art: " + file_name)
+	for file_name: String in ResourceListing.get_resource_files("res://resources/skills/"):
+		var skill := load("res://resources/skills/" + file_name) as SkillResource
+		check(skill != null and skill.icon != null, "Skill has artwork: " + file_name)
+	for file_name: String in ResourceListing.get_resource_files("res://resources/supports/"):
+		var support := load("res://resources/supports/" + file_name) as SupportResource
+		check(support != null and support.icon != null, "Support has artwork: " + file_name)
+	for upgrade_icon_path: String in [
+		"res://assets/icons/upgrades/damage-v1.png",
+		"res://assets/icons/upgrades/haste-v1.png",
+		"res://assets/icons/upgrades/critical-v1.png",
+	]:
+		check(ResourceLoader.exists(upgrade_icon_path), "Shop upgrade has artwork: " + upgrade_icon_path)
 	RunManager.skill_slots_unlocked = 0
 	MetaProgression.unlocked_items = {"skills": [], "supports": [], "passives": ["ward_capacity"]}
 	var ward := load("res://resources/passives/ward_capacity.tres") as PassiveResource
