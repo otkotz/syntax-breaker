@@ -429,29 +429,54 @@ func _spawn_boss() -> void:
 	RunTelemetry.enemy_spawned("boss:" + _boss_region)
 
 func force_complete() -> void:
+	_spawned_count = _total_budget
+	_stage_timer = 0.0
+	complete_encounter("forced")
+
+func _complete_stage() -> void:
+	complete_encounter("cleared")
+
+func complete_encounter(_reason: String, _boss_killed: bool = false) -> bool:
+	if _completed:
+		return false
+	_completed = true
+	_active = false
 	_suppress_split_spawns = true
 	_spawn_generation += 1
 	_pending_split_fragments = 0
 	_pending_boss_add_requests.clear()
-	_spawned_count = _total_budget
-	_stage_timer = 0.0
-	for e: Node in get_tree().get_nodes_in_group("enemies"):
-		if e.get_parent() != self:
-			continue
-		if e.has_method("is_alive") and e.is_alive() and e.has_method("take_damage"):
-			e.take_damage(99999.0)
-	_spawned_count = _total_budget
-	_stage_timer = 0.0
-	_enemies_alive = 0
-	_suppress_split_spawns = false
-	_complete_stage()
-
-func _complete_stage() -> void:
-	if _completed:
-		return
-	_completed = true
-	_active = false
+	clear_transients()
 	all_waves_cleared.emit()
+	return true
+
+func clear_transients() -> void:
+	for child: Node in get_children().duplicate():
+		if child is ObjectPool:
+			(child as ObjectPool).release_all()
+		elif child is EnemyBase and child.visible:
+			_release_enemy_without_rewards(child as EnemyBase)
+		elif child.is_in_group("boss_hazards") or child.is_in_group("elite_hazards") or child.is_in_group("denial_zones"):
+			child.queue_free()
+	_enemies_alive = 0
+	_active_role_counts.clear()
+
+func _release_enemy_without_rewards(enemy: EnemyBase) -> void:
+	Targeting.unregister(enemy)
+	var role: String = enemy.get_meta("spawn_role", "")
+	if not role.is_empty():
+		enemy.remove_meta("spawn_role")
+	enemy.set_process(false)
+	enemy.set_physics_process(false)
+	enemy.collision_layer = 0
+	enemy.collision_mask = 0
+	enemy.hide()
+	var scene_path := enemy.scene_file_path
+	if not scene_path.is_empty() and _pools.has(scene_path):
+		var pool: Array = _pools[scene_path]
+		if not pool.has(enemy):
+			pool.append(enemy)
+	else:
+		enemy.queue_free()
 
 func _get_from_pool(scene: PackedScene) -> EnemyBase:
 	var path := scene.resource_path

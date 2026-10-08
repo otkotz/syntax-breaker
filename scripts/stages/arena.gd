@@ -165,18 +165,22 @@ func _on_enemy_killed(_enemy: Node2D, _killer_skill: Resource) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
 		Engine.time_scale = 1.0
-		HitEffect.clear_all()
-		AftermathEffect.clear_all()
-		DeathEffect.clear_all()
-		DamageNumber.clear_all()
+		_clear_transient_effects()
 
 func skip_stage() -> void:
 	spawner.force_complete()
 
 func _on_all_waves_cleared() -> void:
+	_clear_transient_effects()
 	RunTelemetry.end_stage("cleared", {"normal_spawned": spawner._spawned_count, "normal_budget": spawner._total_budget, "seconds_remaining": spawner.get_stage_timer()})
 	for skill: SkillInstance in (player.get_node("SkillCaster") as SkillCaster).skill_instances:
 		skill.stage_overrides.clear()
 		skill.recompute(RunManager.owned_passives)
 	GameBus.stage_cleared.emit()
 	stage_completed.emit()
+
+func _clear_transient_effects() -> void:
+	HitEffect.clear_all()
+	AftermathEffect.clear_all()
+	DeathEffect.clear_all()
+	DamageNumber.clear_all()

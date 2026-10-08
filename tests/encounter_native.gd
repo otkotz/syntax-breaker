@@ -233,6 +233,22 @@ func run_checks() -> void:
 	check(is_equal_approx(target.damage_received, damage_before + nova_damage), "Nova hits only once")
 	nova._process(0.1)
 	check(nova.is_queued_for_deletion(), "Nova expires after one pulse")
+
+	var completions := [0]
+	spawner.all_waves_cleared.connect(func() -> void: completions[0] += 1)
+	spawner.split_fragment_scene = preload("res://scenes/enemies/split_fragment.tscn")
+	spawner._pending_split_fragments = 2
+	var old_generation := spawner._spawn_generation
+	var gold_before_cleanup := RunManager.gold
+	check(spawner.has_method("complete_encounter"), "Spawner exposes one encounter completion boundary")
+	if spawner.has_method("complete_encounter"):
+		check(spawner.complete_encounter("test_cleanup"), "First completion owns the transition")
+		check(not spawner.complete_encounter("test_cleanup"), "Repeated completion is ignored")
+		spawner._materialize_split_fragments(Vector2.ZERO, 2, old_generation, false, 0)
+		check(completions[0] == 1 and spawner._pending_split_fragments == 0,
+			"Completion emits once and invalidates deferred fragments")
+		check(spawner.get_remaining_enemies() == 0, "Completion leaves no active encounter entities")
+		check(RunManager.gold == gold_before_cleanup, "Forced cleanup grants no enemy rewards")
 	spawner.queue_free()
 	target.queue_free()
 	await get_tree().process_frame
