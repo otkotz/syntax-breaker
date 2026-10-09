@@ -6,6 +6,14 @@ func check(condition: bool, message: String) -> void:
 	if not condition:
 		failures.append(message)
 
+func has_texture(node: Node, texture: Texture2D) -> bool:
+	if node is TextureRect and (node as TextureRect).texture == texture:
+		return true
+	for child: Node in node.get_children():
+		if has_texture(child, texture):
+			return true
+	return false
+
 func _ready() -> void:
 	call_deferred("run_checks")
 
@@ -22,6 +30,8 @@ func run_checks() -> void:
 	await get_tree().process_frame
 	check(picker._skill_grid.columns == 1, "Starting skill cards form a readable vertical list")
 	var card: Control = picker._skill_grid.get_child(0)
+	var first_skill := load("res://resources/skills/blade_spin.tres") as SkillResource
+	check(has_texture(card, first_skill.icon), "Starting skill card renders its production artwork")
 	check(card.size.y >= 300.0, "Skill card has room for legible text and a large touch target")
 	var scroller := picker._skill_grid.get_parent().get_parent() as ScrollContainer
 	check(scroller.get_v_scroll_bar().max_value > scroller.size.y, "Long skill list can scroll beyond the first screen")
