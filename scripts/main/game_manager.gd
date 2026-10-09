@@ -153,8 +153,12 @@ func _advance_to_combat(stage_data: StageData) -> void:
 	_arena.start_stage(RunManager.current_stage, _skill_instances, stage_data)
 
 func _on_stage_completed() -> void:
+	if _state != State.COMBAT:
+		return
 	RunManager.heal_between_stages()
-	var stage_points := 5 if _current_stage_data and _current_stage_data.type == StageData.Type.BOSS else 1
+	var is_boss_stage := _current_stage_data and _current_stage_data.type == StageData.Type.BOSS
+	var boss_killed := _arena != null and _arena.spawner != null and _arena.spawner.completion_boss_killed
+	var stage_points := (5 if boss_killed else 0) if is_boss_stage else 1
 	MetaProgression.add_cosmetic_points(stage_points)
 	if _current_stage_data and _current_stage_data.type == StageData.Type.ELITE:
 		RunManager.record_stat("elites_cleared", 1)
@@ -236,6 +240,7 @@ func _show_legendary_picker() -> void:
 			"title": passive.name,
 			"desc": passive.description,
 			"color": UITheme.C_RARITY_LEGENDARY,
+			"resource": passive,
 		})
 
 	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
@@ -370,6 +375,7 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"title": res.name,
 				"desc": "%s  [%s]" % [res.description, ", ".join(res.tags)],
 				"color": UITheme.get_rarity_color(reward.get("tier", res.rarity)),
+				"resource": res,
 			}
 		"support":
 			var res: SupportResource = reward["resource"]
@@ -378,6 +384,7 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"title": res.name,
 				"desc": res.description,
 				"color": UITheme.get_rarity_color(res.rarity),
+				"resource": res,
 			}
 		"passive":
 			var res: PassiveResource = reward["resource"]
@@ -386,6 +393,7 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"title": res.name,
 				"desc": res.description,
 				"color": UITheme.get_rarity_color(res.rarity),
+				"resource": res,
 			}
 		"mutation":
 			var m: Dictionary = reward["mutation"]

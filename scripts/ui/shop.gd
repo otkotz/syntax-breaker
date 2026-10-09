@@ -6,6 +6,7 @@ signal skill_purchased(si: SkillInstance)
 signal skill_swapped(old_si: SkillInstance, new_si: SkillInstance)
 
 const OFFERING_COUNT := 4
+const SHOP_UPGRADE_ICONS = preload("res://scripts/ui/shop_upgrade_icons.gd")
 const RARITY_COSTS := {
 	"skill": {"common": 15, "uncommon": 20, "rare": 25, "legendary": 35},
 	"support": {"common": 8, "uncommon": 12, "rare": 15},
@@ -27,6 +28,7 @@ var _pending_skill_instance: SkillInstance = null
 
 var _skill_manager: SkillManagerUI
 var _decision_id: int = 0
+var _offer_generation: int = 0
 
 func _ready() -> void:
 	reroll_button.pressed.connect(_on_reroll)
@@ -146,6 +148,7 @@ func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
 
 func _refresh_ui() -> void:
+	_offer_generation += 1
 	gold_label.text = "Gold: %d" % RunManager.gold
 	gold_label.add_theme_color_override("font_color", UITheme.C_SILVER)
 	reroll_button.text = "Reroll (%dg)" % RunManager.reroll_cost
@@ -159,9 +162,12 @@ func _refresh_ui() -> void:
 	for offering: Dictionary in _offerings:
 		item_list.add_child(_create_card(offering))
 
-func _create_card(offering: Dictionary) -> Control:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size.y = 130.0
+func _create_card(offering: Dictionary) -> Button:
+	var card_generation := _offer_generation
+	var card := Button.new()
+	card.custom_minimum_size.y = 130.0
+	card.flat = true
+	card.focus_mode = Control.FOCUS_NONE
 
 	var is_upgrade: bool = offering["type"] == "stat_upgrade"
 	var rarity: String = "rare" if is_upgrade else offering.get("tier", (offering["resource"].rarity if "rarity" in offering["resource"] else "common"))
@@ -172,11 +178,25 @@ func _create_card(offering: Dictionary) -> Control:
 	sb.set_border_width_all(1)
 	sb.border_width_left = 3
 	sb.set_content_margin_all(14)
-	panel.add_theme_stylebox_override("panel", sb)
+	card.add_theme_stylebox_override("normal", sb)
+	var hover := sb.duplicate() as StyleBoxFlat
+	hover.bg_color = UITheme.C_CARD_BG.lightened(0.04)
+	card.add_theme_stylebox_override("hover", hover)
+	card.add_theme_stylebox_override("pressed", hover)
+	card.add_theme_stylebox_override("disabled", sb)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
-	panel.add_child(hbox)
-	if not is_upgrade:
+	card.add_child(hbox)
+	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if is_upgrade:
+		var upgrade_icon := TextureRect.new()
+		upgrade_icon.texture = SHOP_UPGRADE_ICONS.get_icon(str(offering["upgrade"]["key"]))
+		upgrade_icon.custom_minimum_size = Vector2(96, 96)
+		upgrade_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		upgrade_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		upgrade_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		hbox.add_child(upgrade_icon)
+	else:
 		var item: Resource = offering["resource"]
 		var icon := UITheme.item_thumbnail(item)
 		if icon:
@@ -218,14 +238,37 @@ func _create_card(offering: Dictionary) -> Control:
 	info.add_child(desc)
 	hbox.add_child(info)
 
-	var buy_btn := Button.new()
-	buy_btn.text = "%dg" % offering["cost"]
-	buy_btn.custom_minimum_size.x = 120.0
-	UITheme.style_button(buy_btn, 26)
-	buy_btn.pressed.connect(_on_buy.bind(offering))
-	hbox.add_child(buy_btn)
+	var price := Label.new()
+	price.text = "%dg" % offering["cost"]
+	price.custom_minimum_size.x = 120.0
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	price.add_theme_font_size_override("font_size", 26)
+	price.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
+	hbox.add_child(price)
 
-	return panel
+	_set_visuals_input_transparent(card)
+	_set_card_affordability(card, offering)
+	card.pressed.connect(func() -> void:
+		if card_generation == _offer_generation and offering in _offerings and RunManager.gold >= int(offering["cost"]):
+			_on_buy(offering)
+	)
+	return card
+
+func _set_visuals_input_transparent(card: Button) -> void:
+	for child: Node in card.get_children():
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_visuals_input_transparent_in(child)
+
+func _set_visuals_input_transparent_in(node: Node) -> void:
+	for child: Node in node.get_children():
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_visuals_input_transparent_in(child)
+
+func _set_card_affordability(card: Button, offering: Dictionary) -> void:
+	card.disabled = RunManager.gold < int(offering["cost"])
 
 func _on_buy(offering: Dictionary) -> void:
 	if offering not in _offerings:

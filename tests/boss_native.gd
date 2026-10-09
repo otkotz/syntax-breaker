@@ -115,6 +115,10 @@ func run_checks() -> void:
 			spawner.spawn_boss_adds(boss)
 			check(spawner._pending_split_fragments > 0, "Live toxic boss can reserve further adds")
 		boss.take_damage(999999.0)
+		for child: Node in spawner.get_children().duplicate():
+			if child is EnemyBase and child != boss and child.visible:
+				(child as EnemyBase).take_damage(999999.0)
+		check(spawner.completion_boss_killed, "A real depth-five boss death preserves boss-kill credit")
 		check(spawner._pending_split_fragments == 0, "Boss death cancels pending adds")
 		check(boss.hazards.is_empty() and rule.is_queued_for_deletion(), "Boss death removes all owned hazards")
 		boss.reset()
@@ -125,6 +129,81 @@ func run_checks() -> void:
 		target.queue_free()
 		await get_tree().process_frame
 	check(notices[0] == 3, "Three regional final-phase notices")
+
+	var final_target := TargetDummy.new()
+	add_child(final_target)
+	final_target.position = Vector2(500, 875)
+	var final_spawner := Spawner.new()
+	final_spawner.melee_scene = preload("res://scenes/enemies/basic_melee.tscn")
+	final_spawner.split_fragment_scene = preload("res://scenes/enemies/split_fragment.tscn")
+	add_child(final_spawner)
+	var final_stage := StageData.new()
+	final_stage.type = StageData.Type.BOSS
+	final_stage.depth = 10
+	final_stage.region = load("res://resources/regions/burning_grounds.tres")
+	final_spawner.setup(final_target, Rect2(0, 0, 1000, 1750), final_stage)
+	var final_completions := [0]
+	final_spawner.all_waves_cleared.connect(func() -> void: final_completions[0] += 1)
+	check(final_spawner.has_method("is_final_boss_encounter") and final_spawner.is_final_boss_encounter(),
+		"Depth ten boss stage is a dedicated final encounter")
+	final_spawner.start_next_wave()
+	final_spawner._process(20.0)
+	var final_boss: EnemyBase
+	var ordinary_count := 0
+	for child: Node in final_spawner.get_children():
+		if child is EnemyBase and child.visible:
+			if child.get_meta("combat_role", "") == "boss":
+				final_boss = child
+			else:
+				ordinary_count += 1
+	check(final_spawner._spawned_count == 0 and ordinary_count == 0,
+		"Final boss stage never spawns ordinary waves")
+	check(final_boss != null, "Final encounter starts with exactly one boss")
+	check(final_spawner.get_remaining_enemies() == 1,
+		"Final encounter HUD counts only its live boss, not suppressed normal waves")
+	if final_boss:
+		check("phase_index" in final_boss and final_boss.get("phase_index") == 1,
+			"Final boss starts in phase one")
+		check(final_boss.max_hp >= final_boss._base_max_hp * final_spawner._hp_mult * 4.9,
+			"Final boss receives approximately five times stage-scaled HP")
+		check(final_boss.move_speed >= final_boss._base_move_speed * final_spawner._speed_mult,
+			"Final boss keeps full stage speed instead of the legacy slowdown")
+		var old_world_scale: float = MiniBoss.BOSS_SCALE.get(final_boss._boss_type(), 0.8) * 1.8
+		check(final_boss._sprite.scale.x >= old_world_scale * 1.35 and final_boss.get_node("CollisionShape2D").scale.x <= 1.15,
+			"Final boss is at least 35 percent larger than its previous world-space footprint without hitbox inflation")
+		final_boss.current_hp = final_boss.max_hp * 0.64
+		final_boss._physics_process(0.0)
+		check(final_boss.get("phase_index") == 2, "Phase two begins below 65 percent")
+		final_boss.current_hp = final_boss.max_hp * 0.29
+		final_boss._physics_process(0.0)
+		check(final_boss.get("phase_index") == 3, "Phase three begins below 30 percent")
+		check(ResourceLoader.exists("res://scripts/enemies/boss_projectile_volley.gd"),
+			"Final boss has a dedicated projectile-volley helper")
+		var volley_script := load("res://scripts/enemies/boss_projectile_volley.gd")
+		volley_script.spawn(final_spawner, Vector2(-50, -50), final_target.global_position,
+			"fan", 50, 200.0, 5.0, "test:edge_volley")
+		var projectile_pool := final_spawner.get_node_or_null("BossProjectilePool") as ObjectPool
+		check(projectile_pool != null and projectile_pool.active_count() <= 36,
+			"Boss projectile population is hard capped")
+		if projectile_pool:
+			for projectile: EnemyProjectile in projectile_pool.get_active().duplicate():
+				check(final_spawner._arena_rect.has_point(projectile.global_position),
+					"Edge volleys start inside the readable arena")
+				var warning_origin := projectile.global_position
+				check(projectile.get("warning_remaining") is float and projectile.get("warning_remaining") > 0.0,
+					"Boss projectiles expose a harmless emission telegraph")
+				projectile._physics_process(0.2)
+				check(projectile.global_position == warning_origin,
+					"Boss projectiles remain stationary during their warning")
+				projectile._physics_process(10.0)
+			check(projectile_pool.active_count() == 0, "Every boss projectile releases after its range")
+		final_spawner._spawn_enemy_at(Vector2(300, 300), "split_fragment", false, true)
+		final_boss.take_damage(final_boss.current_hp + 1.0)
+		check(final_completions[0] == 1, "Boss death immediately completes final map")
+		check(final_spawner.get_remaining_enemies() == 0, "Mechanic adds do not gate final victory")
+	final_spawner.queue_free()
+	final_target.queue_free()
+	await get_tree().process_frame
 	if failures.is_empty():
 		print("PASS: three regional bosses, telegraphs, safe areas, cleanse adds and final phases")
 	else:

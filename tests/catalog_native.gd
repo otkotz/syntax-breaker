@@ -2,6 +2,11 @@ extends Node
 
 const CATEGORIES := ["skills", "supports", "passives", "unlocks", "regions", "consumables"]
 const DOCUMENT := "res://docs/catalog-snapshot.md"
+const PRODUCTION_ENEMY_SCENES := [
+	"basic_melee", "basic_ranged", "tank_enemy", "swarm_enemy", "charger_enemy",
+	"denial_caster", "shield_support", "splitter_enemy", "split_fragment", "mini_boss",
+	"burning_boss", "storm_boss", "toxic_boss",
+]
 var failures: Array[String] = []
 var counts: Dictionary = {}
 
@@ -29,8 +34,31 @@ func run_checks() -> void:
 			ids.append(id)
 			if not registry.has(filename.get_basename()):
 				failures.append("Missing from Android registry: %s%s" % [directory, filename])
+			if category in ["skills", "supports", "passives"]:
+				var icon: Texture2D = resource.get("icon") as Texture2D
+				if icon == null:
+					failures.append("Missing production icon: %s%s" % [directory, filename])
+				elif icon.resource_path.is_empty() or not ResourceLoader.exists(icon.resource_path):
+					failures.append("Icon source is unavailable to Android export: %s%s" % [directory, filename])
 		lines.append("| %s | %d |" % [category, files.size()])
 		counts[category] = files.size()
+	for enemy_name: String in PRODUCTION_ENEMY_SCENES:
+		var scene_path := "res://scenes/enemies/%s.tscn" % enemy_name
+		if not ResourceLoader.exists(scene_path):
+			failures.append("Missing production enemy scene: " + scene_path)
+			continue
+		var packed := load(scene_path) as PackedScene
+		var enemy := packed.instantiate() as EnemyBase if packed else null
+		if enemy == null:
+			failures.append("Enemy scene does not instantiate: " + scene_path)
+			continue
+		enemy._setup_sprite()
+		var texture := enemy.get_visual_texture()
+		if texture == null:
+			failures.append("Enemy has no production texture: " + scene_path)
+		elif not texture.resource_path.is_empty() and not ResourceLoader.exists(texture.resource_path):
+			failures.append("Enemy texture source is unavailable to Android export: " + texture.resource_path)
+		enemy.free()
 	var mutation_ids: Array[String] = []
 	for mutation: Dictionary in MutationData.POOL:
 		var id: String = mutation.get("id", "")

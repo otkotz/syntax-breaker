@@ -1,10 +1,16 @@
 extends MiniBoss
 
+signal final_defeated(boss: EnemyBase)
+
 const Hazard = preload("res://scripts/enemies/boss_hazard.gd")
+const Volley = preload("res://scripts/enemies/boss_projectile_volley.gd")
 const MAX_HAZARDS := 12
+const PHASE_COOLDOWNS := [4.0, 3.1, 2.4]
+const VOLLEY_COUNTS := [5, 7, 9]
 @export var boss_region: String = "burning_grounds"
 var final_encounter: bool = false
 var second_phase: bool = false
+var phase_index: int = 1
 var attack_cooldown: float = 2.0
 var encounter_attack_count: int = 0
 var hazards: Array[Node2D] = []
@@ -15,20 +21,26 @@ func _boss_type() -> String:
 func configure_encounter(depth: int) -> void:
 	final_encounter = depth >= 10
 	second_phase = false
+	phase_index = 1
 	attack_cooldown = 2.0
 	encounter_attack_count = 0
+	if final_encounter and _sprite:
+		var baseline_world_scale: float = BOSS_SCALE.get(_boss_type(), 0.8) * 1.8
+		_sprite.scale = Vector2.ONE * baseline_world_scale * 1.4
+		var collision := get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if collision:
+			collision.scale = Vector2.ONE
 
 func _physics_process(delta: float) -> void:
 	if not is_alive() or not is_instance_valid(_target):
 		return
 	_update_slow(delta)
 	_move_toward_target()
-	if final_encounter and not second_phase and current_hp <= max_hp * 0.5:
-		_enter_second_phase()
+	_update_phase()
 	attack_cooldown -= delta
 	if attack_cooldown <= 0.0 and global_position.distance_to(_target.global_position) <= 210.0:
 		_perform_attack()
-		attack_cooldown = 4.0
+		attack_cooldown = PHASE_COOLDOWNS[phase_index - 1] if final_encounter else 4.0
 
 func _perform_attack() -> void:
 	encounter_attack_count += 1
@@ -56,6 +68,28 @@ func _perform_attack() -> void:
 				if wedge:
 					wedge.radius = 200.0
 					wedge.angle = encounter_attack_count * PI / 2.0
+	if final_encounter and encounter_attack_count % 2 == 0 and is_instance_valid(_target):
+		var pattern := "spiral" if boss_region == "storm_spire" or phase_index >= 3 else "fan"
+		Volley.spawn(get_parent(), global_position, _target.global_position, pattern,
+			VOLLEY_COUNTS[phase_index - 1], 150.0 + phase_index * 20.0,
+			contact_damage * 0.38, get_enemy_id() + ":volley")
+
+func _update_phase() -> void:
+	if not final_encounter:
+		return
+	var ratio := current_hp / maxf(1.0, max_hp)
+	var next_phase := 3 if ratio <= 0.30 else (2 if ratio <= 0.65 else 1)
+	if next_phase == phase_index:
+		return
+	phase_index = next_phase
+	if phase_index == 2:
+		_enter_second_phase()
+	elif phase_index == 3:
+		second_phase = true
+		GameBus.boss_phase_changed.emit("PHASE III: PROJECTILE STORM")
+		if is_instance_valid(_target):
+			Volley.spawn(get_parent(), global_position, _target.global_position, "spiral",
+				VOLLEY_COUNTS[2], 210.0, contact_damage * 0.38, get_enemy_id() + ":phase_three")
 
 func _spawn_hazard(kind: String, origin: Vector2, warning: float, lifetime: float) -> Node2D:
 	for i in range(hazards.size() - 1, -1, -1):
@@ -125,12 +159,15 @@ func _clear_hazards() -> void:
 func _die() -> void:
 	_clear_hazards()
 	super._die()
+	if final_encounter:
+		final_defeated.emit(self)
 
 func reset() -> void:
 	_clear_hazards()
 	super.reset()
 	final_encounter = false
 	second_phase = false
+	phase_index = 1
 	attack_cooldown = 2.0
 	encounter_attack_count = 0
 

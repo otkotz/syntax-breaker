@@ -233,6 +233,47 @@ func run_checks() -> void:
 	check(is_equal_approx(target.damage_received, damage_before + nova_damage), "Nova hits only once")
 	nova._process(0.1)
 	check(nova.is_queued_for_deletion(), "Nova expires after one pulse")
+
+	var completions := [0]
+	spawner.all_waves_cleared.connect(func() -> void: completions[0] += 1)
+	spawner.split_fragment_scene = preload("res://scenes/enemies/split_fragment.tscn")
+	spawner._pending_split_fragments = 2
+	spawner._spawn_elite()
+	var cleanup_enemy: EnemyBase
+	for child: Node in spawner.get_children():
+		if child is EnemyBase and child.visible:
+			cleanup_enemy = child
+	var cleanup_affix = cleanup_enemy.get_node("EliteAffix") if cleanup_enemy else null
+	if cleanup_affix:
+		cleanup_affix.configure("trail")
+		cleanup_affix.cooldown = 0.0
+	if cleanup_enemy is MiniBoss:
+		(cleanup_enemy as MiniBoss)._current_attack = MiniBoss.Attack.SLAM
+		(cleanup_enemy as MiniBoss)._begin_telegraph()
+	var old_generation := spawner._spawn_generation
+	var gold_before_cleanup := RunManager.gold
+	check(spawner.has_method("complete_encounter"), "Spawner exposes one encounter completion boundary")
+	if spawner.has_method("complete_encounter"):
+		check(spawner.complete_encounter("test_cleanup"), "First completion owns the transition")
+		check(not spawner.complete_encounter("test_cleanup"), "Repeated completion is ignored")
+		spawner._materialize_split_fragments(Vector2.ZERO, 2, old_generation, false, 0)
+		check(completions[0] == 1 and spawner._pending_split_fragments == 0,
+			"Completion emits once and invalidates deferred fragments")
+		check(spawner.get_remaining_enemies() == 0, "Completion leaves no active encounter entities")
+		check(RunManager.gold == gold_before_cleanup, "Forced cleanup grants no enemy rewards")
+		if cleanup_affix and cleanup_enemy:
+			cleanup_affix._process(2.0)
+			cleanup_enemy.take_damage(999999.0)
+			check(not cleanup_enemy.is_alive() and cleanup_affix.kind.is_empty(),
+				"Forced cleanup deactivates pooled enemies and their affixes")
+			var live_cleanup_hazards := get_tree().get_nodes_in_group("elite_hazards").filter(
+				func(hazard: Node): return not hazard.is_queued_for_deletion())
+			check(live_cleanup_hazards.is_empty(), "Late callbacks after completion create no hazards")
+			check(RunManager.gold == gold_before_cleanup, "Late damage after completion grants no rewards")
+			var live_slam_indicators := spawner.get_children().filter(
+				func(node: Node): return "remaining" in node and not node.is_queued_for_deletion())
+			check(live_slam_indicators.is_empty(),
+				"Interrupted boss cleanup removes its sibling slam indicator")
 	spawner.queue_free()
 	target.queue_free()
 	await get_tree().process_frame

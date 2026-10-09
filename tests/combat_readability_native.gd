@@ -20,8 +20,10 @@ func run_checks() -> void:
 	RunManager.start_run()
 	_check_projectile()
 	_check_silhouettes()
+	_check_all_enemy_art()
 	await _check_slam_budget()
 	_check_warning_activation()
+	_check_boss_ground_opacity()
 	_check_damage_telemetry()
 	if failures.is_empty():
 		print("PASS: opaque hostile projectiles, readable silhouettes, A0 boss damage budget, warning/activation phases and uncapped damage telemetry")
@@ -63,6 +65,49 @@ func _check_silhouettes() -> void:
 		var reused_size: Vector2 = enemy._sprite.texture.get_size() * enemy._sprite.scale
 		check(reused_size.y >= fixture[2], "Pool reuse preserves readable silhouette: " + fixture[0])
 		enemy.queue_free()
+
+func _check_all_enemy_art() -> void:
+	var scenes := [
+		"basic_melee", "basic_ranged", "tank_enemy", "swarm_enemy", "charger_enemy",
+		"denial_caster", "shield_support", "splitter_enemy", "split_fragment", "mini_boss",
+		"burning_boss", "storm_boss", "toxic_boss",
+	]
+	var textures: Dictionary = {}
+	var fixed_art_paths := {
+		"charger_enemy": "res://assets/sprites/charger-v1.png",
+		"denial_caster": "res://assets/sprites/enemies/denial-caster-v1.png",
+		"shield_support": "res://assets/sprites/enemies/shield-support-v1.png",
+		"splitter_enemy": "res://assets/sprites/enemies/splitter-v1.png",
+		"split_fragment": "res://assets/sprites/enemies/split-fragment-v1.png",
+		"mini_boss": "res://assets/sprites/enemies/mini-boss-v1.png",
+	}
+	for scene_name: String in scenes:
+		var enemy := load("res://scenes/enemies/%s.tscn" % scene_name).instantiate() as EnemyBase
+		add_child(enemy)
+		enemy.set_process(false)
+		enemy.set_physics_process(false)
+		check(enemy.has_method("get_visual_texture"), "Enemy exposes production art: " + scene_name)
+		var texture: Texture2D = enemy.call("get_visual_texture") if enemy.has_method("get_visual_texture") else null
+		var rendered_size := texture.get_size() * enemy._sprite.scale if texture else Vector2.ZERO
+		var min_width := 12.0 if scene_name == "swarm_enemy" else 16.0
+		check(texture != null and rendered_size.x >= min_width and rendered_size.y >= 16,
+			"Production enemy has readable texture: " + scene_name)
+		if texture:
+			textures[scene_name] = texture
+		var collision_scale: Vector2 = enemy.get_node("CollisionShape2D").scale
+		enemy.reset()
+		enemy.set_physics_process(false)
+		enemy.initialize(null)
+		enemy.set_physics_process(false)
+		var reused: Texture2D = enemy.call("get_visual_texture") if enemy.has_method("get_visual_texture") else null
+		check(reused != null and enemy.get_node("CollisionShape2D").scale == collision_scale,
+			"Pool reuse preserves art without changing hitbox: " + scene_name)
+		if fixed_art_paths.has(scene_name):
+			check(reused == texture and reused.resource_path == fixed_art_paths[scene_name],
+				"Pool initialization preserves dedicated role artwork: " + scene_name)
+		enemy.queue_free()
+	check(textures.values().duplicate().all(func(texture): return textures.values().count(texture) == 1),
+		"Every production enemy role has distinct art")
 
 # Real spawner + Player: full-HP deaths caused by Elite/Deadly/role multiplier stacking.
 func _check_slam_budget() -> void:
@@ -169,6 +214,15 @@ func _check_warning_activation() -> void:
 	boss._remove_slam_indicator()
 	boss.queue_free()
 	player.queue_free()
+
+func _check_boss_ground_opacity() -> void:
+	var script := load("res://scripts/enemies/boss_hazard.gd")
+	var active_fill = script.get("ACTIVE_FILL_ALPHA")
+	var active_border = script.get("ACTIVE_BORDER_ALPHA")
+	var warning_fill = script.get("WARNING_FILL_ALPHA")
+	check(active_fill is float and active_fill <= 0.20, "Persistent boss ground fill stays translucent")
+	check(active_border is float and active_border >= 0.70, "Reduced ground fill keeps a strong active border")
+	check(warning_fill is float and warning_fill >= 0.20, "Warnings remain clearly visible")
 
 # Catches clipped-overkill-only logs, missing max HP and rejected-hit logging.
 func _check_damage_telemetry() -> void:

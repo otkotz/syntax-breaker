@@ -1,10 +1,20 @@
 extends EnemyBase
 
+const FRAGMENT_TEXTURE := preload("res://assets/sprites/enemies/split-fragment-v1.png")
+
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 const ACTIVATION_WARNING := 1.0
 var activation_remaining: float = ACTIVATION_WARNING
 
 func _setup_sprite() -> void:
-	pass
+	_sprite = Sprite2D.new()
+	_sprite.texture = FRAGMENT_TEXTURE
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * 0.04
+	_sprite.position = Vector2(0, -13)
+	add_child(_sprite)
 
 func initialize(target: Node2D) -> void:
 	super.initialize(target)

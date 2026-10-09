@@ -3,6 +3,7 @@ extends EnemyBase
 
 const ENEMY_PROJECTILE_SCENE := preload("res://scenes/enemies/enemy_projectile.tscn")
 const HazardVisual = preload("res://scripts/util/hazard_visual.gd")
+const MINI_BOSS_TEXTURE := preload("res://assets/sprites/enemies/mini-boss-v1.png")
 
 enum Phase { CHASE, TELEGRAPH, ATTACK, COOLDOWN }
 enum Attack { CHARGE, SLAM, VOLLEY }
@@ -55,10 +56,21 @@ const VOLLEY_SPEED := 180.0
 func _boss_type() -> String:
 	return BOSS_BY_REGION.get(RunManager.current_region, DEFAULT_BOSS)
 
+func _uses_randomized_body_variants() -> bool:
+	return has_method("configure_encounter")
+
 func get_contact_source() -> String:
 	return get_enemy_id() + (":charge" if _phase == Phase.ATTACK and _current_attack == Attack.CHARGE else ":contact")
 
 func _setup_sprite() -> void:
+	if not has_method("configure_encounter"):
+		_sprite = Sprite2D.new()
+		_sprite.texture = MINI_BOSS_TEXTURE
+		_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_sprite.scale = Vector2.ONE * 0.065
+		_sprite.position = Vector2(0, -28)
+		add_child(_sprite)
+		return
 	super._setup_sprite()
 	var s: float = BOSS_SCALE.get(_boss_type(), 0.8)
 	_sprite.scale = Vector2(s, s)
@@ -91,8 +103,9 @@ func _build_boss_variants(boss_type: String) -> Array:
 func set_as_boss() -> void:
 	_is_boss_mode = true
 	add_to_group("bosses")
-	scale = Vector2(1.8, 1.8)
+	scale = Vector2.ONE
 	if _sprite:
+		_sprite.scale *= 1.8
 		_sprite.modulate = Color(1.3, 1.0, 0.7)
 
 func _draw_health_bar() -> void:
@@ -317,6 +330,10 @@ func reset() -> void:
 		scale = Vector2.ONE
 		if _sprite:
 			_sprite.modulate = Color.WHITE
+
+func deactivate_without_rewards() -> void:
+	_remove_slam_indicator()
+	super.deactivate_without_rewards()
 
 func _die() -> void:
 	_remove_slam_indicator()

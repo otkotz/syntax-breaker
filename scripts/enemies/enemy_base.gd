@@ -30,6 +30,9 @@ signal died(enemy: EnemyBase)
 func get_enemy_id() -> String:
 	return scene_file_path.get_file().get_basename() if not scene_file_path.is_empty() else get_class()
 
+func get_visual_texture() -> Texture2D:
+	return _sprite.texture if is_instance_valid(_sprite) else null
+
 func _ready() -> void:
 	_base_max_hp = max_hp
 	_base_move_speed = move_speed
@@ -53,6 +56,9 @@ func _randomize_variant() -> void:
 	_sprite.texture = data["texture"]
 	_sprite.offset = data["offset"]
 
+func _uses_randomized_body_variants() -> bool:
+	return true
+
 # Trash-melee "Glitch Gremlin" — built once, three corruption accents.
 func _get_body_variants() -> Array:
 	if _gremlin_variants.is_empty():
@@ -66,7 +72,7 @@ func initialize(target: Node2D) -> void:
 	current_hp = max_hp
 	_dots.clear()
 	_pick_wander_dir()
-	if _sprite:
+	if _sprite and _uses_randomized_body_variants():
 		_randomize_variant()
 	show()
 	set_process(true)
@@ -354,6 +360,21 @@ func apply_scaling(hp_mult: float, speed_mult: float, damage_mult: float, gold_m
 	contact_damage = _base_contact_damage * damage_mult
 	gold_value = _base_gold_value * gold_mult
 	queue_redraw()
+
+func deactivate_without_rewards() -> void:
+	current_hp = 0.0
+	_target = null
+	_kill_source = null
+	_dots.clear()
+	velocity = Vector2.ZERO
+	var affix := get_node_or_null("EliteAffix")
+	if affix and affix.has_method("reset_affix"):
+		affix.reset_affix()
+	set_process(false)
+	set_physics_process(false)
+	collision_layer = 0
+	collision_mask = 0
+	hide()
 
 func reset() -> void:
 	_kill_source = null

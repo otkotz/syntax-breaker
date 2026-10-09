@@ -133,8 +133,8 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	head.mouse_filter = MOUSE_FILTER_IGNORE
 	content.add_child(head)
 
-	var gem := _build_gem(color)
-	head.add_child(gem)
+	var artwork := UITheme.item_thumbnail(skill, 72)
+	head.add_child(artwork if artwork else _build_gem(color))
 
 	var name_lbl := Label.new()
 	name_lbl.text = skill.name

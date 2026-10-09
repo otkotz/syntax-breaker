@@ -102,6 +102,15 @@ func run_checks() -> void:
 	first._return_to_pool()
 	second._return_to_pool()
 	check(ProjectileBase.active_count == 0, "All stress-test projectiles clean up their active count")
+	var stage_owner := Node2D.new()
+	add_child(stage_owner)
+	var interrupted := ProjectileBase.new()
+	stage_owner.add_child(interrupted)
+	interrupted.initialize(fire, Vector2.RIGHT, null)
+	check(ProjectileBase.active_count == 1, "Live stage projectile participates in the global cap")
+	stage_owner.queue_free()
+	await get_tree().process_frame
+	check(ProjectileBase.active_count == 0, "Stage teardown releases live projectile capacity")
 
 	first.queue_free()
 	second.queue_free()

@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="SkillResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SkillResource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/skill_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/skills/poison_dart-v1.png" id="2"]
 
 [resource]
 script = ExtResource("1")
 id = "poison_dart"
 name = "Poison Dart"
+icon = ExtResource("2")
 tags = Array[String](["projectile", "poison"])
 base_damage = 5.0
 base_cooldown = 1.2

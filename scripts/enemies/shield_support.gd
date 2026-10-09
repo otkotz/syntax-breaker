@@ -1,5 +1,10 @@
 extends EnemyBase
 
+const SUPPORT_TEXTURE := preload("res://assets/sprites/enemies/shield-support-v1.png")
+
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 const GUARD_RADIUS := 150.0
 var refresh_timer: float = 0.0
 var linked_allies: Array[EnemyBase] = []
@@ -9,7 +14,12 @@ func _ready() -> void:
 	add_to_group("shield_supports")
 
 func _setup_sprite() -> void:
-	pass
+	_sprite = Sprite2D.new()
+	_sprite.texture = SUPPORT_TEXTURE
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * 0.055
+	_sprite.position = Vector2(0, -18)
+	add_child(_sprite)
 
 func grants_guard(ally: EnemyBase) -> bool:
 	return is_alive() and visible and is_instance_valid(_target) \

@@ -154,6 +154,14 @@ func run_checks() -> void:
 	await get_tree().process_frame
 	game = make_game(StageData.Type.BOSS, 5)
 	points_before = MetaProgression.cosmetic_points
+	game._arena.skip_stage()
+	check(MetaProgression.cosmetic_points == points_before,
+		"Forced boss cleanup never grants boss-kill cosmetic credit")
+	game.queue_free()
+	await get_tree().process_frame
+	game = make_game(StageData.Type.BOSS, 5)
+	points_before = MetaProgression.cosmetic_points
+	game._arena.spawner.completion_boss_killed = true
 	game._arena._on_all_waves_cleared()
 	check(MetaProgression.cosmetic_points == points_before + 5, "Regional boss awards five persistent cosmetic points")
 	chest = find_ui(game, preload("res://scripts/ui/chest_reward.gd")) as ChestReward
@@ -178,11 +186,19 @@ func run_checks() -> void:
 	await get_tree().process_frame
 	game = make_game(StageData.Type.BOSS, 10)
 	points_before = MetaProgression.cosmetic_points
+	game._arena.spawner.completion_boss_killed = true
 	game._arena._on_all_waves_cleared()
 	check(MetaProgression.cosmetic_points == points_before + 5, "Final regional boss awards five persistent cosmetic points")
 	check(game._state == GameManager.State.RUN_END and game._run_summary != null, "Final boss opens actual run summary")
 	check(RunManager.run_stats.run_completed and game._shop == null, "Final boss wins without useless shop")
 	check(not RunManager.has_saved_run(), "Final victory removes active run save")
+	game.queue_free()
+	await get_tree().process_frame
+	game = make_game(StageData.Type.BOSS, 10)
+	game._on_player_died()
+	game._on_stage_completed()
+	check(game._state == GameManager.State.RUN_END and not bool(RunManager.run_stats.get("run_completed", false)),
+		"An accepted player death cannot be overwritten by same-frame boss completion")
 	game.queue_free()
 	await get_tree().process_frame
 	print(JSON.stringify({"failures": failures, "node_routes": 10, "synthetic": true}))

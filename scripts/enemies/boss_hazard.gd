@@ -1,6 +1,9 @@
 extends Node2D
 
 const Visual = preload("res://scripts/util/hazard_visual.gd")
+const ACTIVE_FILL_ALPHA := 0.18
+const ACTIVE_BORDER_ALPHA := 0.72
+const WARNING_FILL_ALPHA := 0.24
 
 var owner_boss: EnemyBase
 var target: Node2D
@@ -82,7 +85,8 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var fill := Visual.fill_color(color, warning_remaining, activation_remaining)
+	var fill := Color(Visual.WARNING_COLOR, WARNING_FILL_ALPHA) if warning_remaining > 0.0 else Color(color.lightened(activation_remaining / Visual.ACTIVATION_TIME * 0.5), ACTIVE_FILL_ALPHA)
+	var outline_color := Color(color, ACTIVE_BORDER_ALPHA)
 	var badge_position := Vector2.ZERO
 	match kind:
 		"wall", "beam":
@@ -98,7 +102,7 @@ func _draw() -> void:
 				points.append(Vector2.from_angle(theta) * radius)
 			draw_colored_polygon(points, fill)
 			points.append(Vector2.ZERO)
-			Visual.outline(self, points, warning_remaining, warning_duration, color, activation_remaining)
+			Visual.outline(self, points, warning_remaining, warning_duration, outline_color, activation_remaining)
 			Visual.safe_arrow(self, Vector2.from_angle(angle) * minf(radius * 0.45, 100.0), angle)
 			badge_position = -Vector2.from_angle(angle) * minf(radius * 0.45, 90.0)
 			if warning_remaining <= 0.0:
@@ -120,7 +124,7 @@ func _draw() -> void:
 			badge_position = target.global_position - global_position if is_instance_valid(target) else arena_rect.get_center()
 		_:
 			draw_circle(Vector2.ZERO, radius, fill)
-			Visual.outline(self, Visual.circle_points(radius), warning_remaining, warning_duration, color, activation_remaining)
+			Visual.outline(self, Visual.circle_points(radius), warning_remaining, warning_duration, outline_color, activation_remaining)
 			if warning_remaining <= 0.0:
 				for offset in [Vector2(-25, -20), Vector2(25, 20)]:
 					if threatens(global_position + offset):
@@ -132,7 +136,7 @@ func _draw() -> void:
 
 func _draw_rect_outline(rect: Rect2) -> void:
 	Visual.outline(self, PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y),
-		rect.end, Vector2(rect.position.x, rect.end.y), rect.position]), warning_remaining, warning_duration, color, activation_remaining)
+		rect.end, Vector2(rect.position.x, rect.end.y), rect.position]), warning_remaining, warning_duration, Color(color, ACTIVE_BORDER_ALPHA), activation_remaining)
 
 func _draw_strip(start: float, end: float, fill: Color) -> void:
 	var points := PackedVector2Array([
@@ -140,7 +144,7 @@ func _draw_strip(start: float, end: float, fill: Color) -> void:
 		Vector2(end, half_width).rotated(angle), Vector2(start, half_width).rotated(angle)])
 	draw_colored_polygon(points, fill)
 	points.append(points[0])
-	Visual.outline(self, points, warning_remaining, warning_duration, color, activation_remaining)
+	Visual.outline(self, points, warning_remaining, warning_duration, Color(color, ACTIVE_BORDER_ALPHA), activation_remaining)
 	if warning_remaining <= 0.0:
 		var x := start + 25.0
 		while x < end:

@@ -319,8 +319,11 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 	head.add_theme_constant_override("separation", 14)
 	vbox.add_child(head)
 
-	var gem := _build_gem_main(card_color)
-	head.add_child(gem)
+	var artwork := UITheme.item_thumbnail(si.base, 64)
+	if artwork:
+		head.add_child(artwork)
+	else:
+		head.add_child(_build_gem_main(card_color))
 
 	var info := VBoxContainer.new()
 	info.add_theme_constant_override("separation", 5)
