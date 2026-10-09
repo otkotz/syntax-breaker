@@ -9,6 +9,7 @@ var max_range: float = 600.0
 var source_id: String = "enemy_projectile"
 var damage_context: Dictionary = {}
 var warning_remaining: float = 0.0
+var _active: bool = false
 
 static var _orb_texture: ImageTexture
 static var _orb_offset: Vector2
@@ -52,6 +53,7 @@ func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: Object
 	global_position = pos
 	_distance_traveled = 0.0
 	_pool_ref = pool
+	_active = true
 	warning_remaining = maxf(0.0, warning_duration)
 	modulate.a = 0.42 if warning_remaining > 0.0 else 1.0
 
@@ -71,7 +73,7 @@ func _physics_process(delta: float) -> void:
 		_return_to_pool()
 
 func _on_body_entered(body: Node2D) -> void:
-	if warning_remaining > 0.0:
+	if not _active or not visible or warning_remaining > 0.0:
 		return
 	if body.has_method("take_damage"):
 		Player.hurt(body, damage, source_id, damage_context)
@@ -84,6 +86,7 @@ func _return_to_pool() -> void:
 		queue_free()
 
 func reset() -> void:
+	_active = false
 	source_id = "enemy_projectile"
 	damage_context.clear()
 	_distance_traveled = 0.0

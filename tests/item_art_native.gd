@@ -114,6 +114,25 @@ func run_checks() -> void:
 	legendary._build_ui(mastery_choices)
 	check(has_mastery_badge(legendary.content.get_child(-1)), "Illustrated mastery choice has a readable badge, not only shared support art")
 	legendary.queue_free()
+	var game := GameManager.new()
+	var chest := ChestReward.new()
+	for chest_reward: Dictionary in [
+		{"type": "skill", "resource": load("res://resources/skills/fireball.tres"), "tier": "common"},
+		{"type": "support", "resource": pierce},
+		{"type": "passive", "resource": ward},
+	]:
+		var formatted := game._format_reward_for_chest(chest_reward)
+		var production_card := chest._build_card(formatted, 0)
+		check(formatted.get("resource") == chest_reward.resource and has_texture(production_card, chest_reward.resource.icon),
+			"Production elite/boss chest card shows selected item artwork: " + chest_reward.type)
+		production_card.free()
+	var mastery_card := chest._build_card({"title": mastery.name, "desc": mastery.description,
+		"type_label": "LEGENDARY PASSIVE", "color": UITheme.C_RARITY_LEGENDARY, "resource": mastery}, 0)
+	check(has_texture(mastery_card, mastery.icon) and has_mastery_badge(mastery_card),
+		"Production legendary chest shows mastery artwork and identification")
+	mastery_card.free()
+	chest.free()
+	game.free()
 	var unlocks := UnlockTreeUI.new()
 	var unlock_entry: Dictionary = unlocks._get_all_items("supports").filter(func(e): return e.id == "pierce")[0]
 	card = unlocks._create_card(unlock_entry, "supports", true)

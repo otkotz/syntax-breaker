@@ -361,6 +361,21 @@ func apply_scaling(hp_mult: float, speed_mult: float, damage_mult: float, gold_m
 	gold_value = _base_gold_value * gold_mult
 	queue_redraw()
 
+func deactivate_without_rewards() -> void:
+	current_hp = 0.0
+	_target = null
+	_kill_source = null
+	_dots.clear()
+	velocity = Vector2.ZERO
+	var affix := get_node_or_null("EliteAffix")
+	if affix and affix.has_method("reset_affix"):
+		affix.reset_affix()
+	set_process(false)
+	set_physics_process(false)
+	collision_layer = 0
+	collision_mask = 0
+	hide()
+
 func reset() -> void:
 	_kill_source = null
 	if has_meta("combat_role"):

@@ -25,7 +25,8 @@ func configure_encounter(depth: int) -> void:
 	attack_cooldown = 2.0
 	encounter_attack_count = 0
 	if final_encounter and _sprite:
-		_sprite.scale = Vector2.ONE * 1.4
+		var baseline_world_scale: float = BOSS_SCALE.get(_boss_type(), 0.8) * 1.8
+		_sprite.scale = Vector2.ONE * baseline_world_scale * 1.4
 		var collision := get_node_or_null("CollisionShape2D") as CollisionShape2D
 		if collision:
 			collision.scale = Vector2.ONE

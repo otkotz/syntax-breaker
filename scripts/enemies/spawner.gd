@@ -29,6 +29,7 @@ var _active: bool = false
 var _completed: bool = false
 var completion_boss_killed: bool = false
 var completion_reason: String = ""
+var _boss_killed_this_encounter: bool = false
 
 var _hp_mult: float = 1.0
 var _speed_mult: float = 1.0
@@ -106,6 +107,7 @@ func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> v
 	_completed = false
 	completion_boss_killed = false
 	completion_reason = ""
+	_boss_killed_this_encounter = false
 	_ensure_pools()
 	_apply_stage_data(stage_data)
 
@@ -449,7 +451,7 @@ func force_complete() -> void:
 	complete_encounter("forced")
 
 func _complete_stage() -> void:
-	complete_encounter("cleared")
+	complete_encounter("cleared", _boss_killed_this_encounter)
 
 func complete_encounter(reason: String, boss_killed: bool = false) -> bool:
 	if _completed:
@@ -482,11 +484,7 @@ func _release_enemy_without_rewards(enemy: EnemyBase) -> void:
 	var role: String = enemy.get_meta("spawn_role", "")
 	if not role.is_empty():
 		enemy.remove_meta("spawn_role")
-	enemy.set_process(false)
-	enemy.set_physics_process(false)
-	enemy.collision_layer = 0
-	enemy.collision_mask = 0
-	enemy.hide()
+	enemy.deactivate_without_rewards()
 	var scene_path := enemy.scene_file_path
 	if not scene_path.is_empty() and _pools.has(scene_path):
 		var pool: Array = _pools[scene_path]
@@ -518,6 +516,8 @@ func _return_to_pool(enemy: EnemyBase) -> void:
 	_pools[scene_path].append(enemy)
 
 func _on_enemy_died(enemy: EnemyBase) -> void:
+	if _is_boss_stage and enemy.get_meta("combat_role", "") == "boss":
+		_boss_killed_this_encounter = true
 	for request in _pending_boss_add_requests.keys():
 		var pending: Dictionary = _pending_boss_add_requests[request]
 		if pending.source_id == enemy.get_instance_id():
@@ -556,6 +556,8 @@ func get_active_role_count(role: String) -> int:
 func get_remaining_enemies() -> int:
 	if _completed:
 		return 0
+	if _is_final_boss_stage:
+		return _enemies_alive + _pending_split_fragments
 	return _enemies_alive + _pending_split_fragments + (maxi(0, _total_budget - _spawned_count) if _stage_timer > 0.0 else 0)
 
 func get_stage_progress() -> float:

@@ -28,6 +28,7 @@ var _pending_skill_instance: SkillInstance = null
 
 var _skill_manager: SkillManagerUI
 var _decision_id: int = 0
+var _offer_generation: int = 0
 
 func _ready() -> void:
 	reroll_button.pressed.connect(_on_reroll)
@@ -147,6 +148,7 @@ func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
 
 func _refresh_ui() -> void:
+	_offer_generation += 1
 	gold_label.text = "Gold: %d" % RunManager.gold
 	gold_label.add_theme_color_override("font_color", UITheme.C_SILVER)
 	reroll_button.text = "Reroll (%dg)" % RunManager.reroll_cost
@@ -161,6 +163,7 @@ func _refresh_ui() -> void:
 		item_list.add_child(_create_card(offering))
 
 func _create_card(offering: Dictionary) -> Button:
+	var card_generation := _offer_generation
 	var card := Button.new()
 	card.custom_minimum_size.y = 130.0
 	card.flat = true
@@ -247,7 +250,7 @@ func _create_card(offering: Dictionary) -> Button:
 	_set_visuals_input_transparent(card)
 	_set_card_affordability(card, offering)
 	card.pressed.connect(func() -> void:
-		if offering in _offerings and RunManager.gold >= int(offering["cost"]):
+		if card_generation == _offer_generation and offering in _offerings and RunManager.gold >= int(offering["cost"]):
 			_on_buy(offering)
 	)
 	return card

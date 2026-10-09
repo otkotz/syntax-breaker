@@ -105,7 +105,7 @@ func set_as_boss() -> void:
 	add_to_group("bosses")
 	scale = Vector2.ONE
 	if _sprite:
-		_sprite.scale *= 1.2
+		_sprite.scale *= 1.8
 		_sprite.modulate = Color(1.3, 1.0, 0.7)
 
 func _draw_health_bar() -> void:
@@ -330,6 +330,10 @@ func reset() -> void:
 		scale = Vector2.ONE
 		if _sprite:
 			_sprite.modulate = Color.WHITE
+
+func deactivate_without_rewards() -> void:
+	_remove_slam_indicator()
+	super.deactivate_without_rewards()
 
 func _die() -> void:
 	_remove_slam_indicator()

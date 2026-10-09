@@ -283,6 +283,7 @@ func _start_return() -> void:
 	pierce_remaining = MAX_RETURN_HITS
 
 func reset() -> void:
+	_release_active_count()
 	top_level = false
 	skill_instance = null
 	pool_ref = null
@@ -294,15 +295,20 @@ func reset() -> void:
 	_bolt_segments.clear()
 	_skill_id = ""
 	_cosmetic_style = "projectile_default"
-	_counted_active = false
 	scale = Vector2.ONE
 	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:
 		if has_meta(key):
 			remove_meta(key)
 
 func _return_to_pool() -> void:
+	_release_active_count()
+	if pool_ref:
+		pool_ref.release(self)
+
+func _release_active_count() -> void:
 	if _counted_active:
 		active_count = maxi(0, active_count - 1)
 		_counted_active = false
-	if pool_ref:
-		pool_ref.release(self)
+
+func _exit_tree() -> void:
+	_release_active_count()

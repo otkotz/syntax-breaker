@@ -56,6 +56,15 @@ func run_checks() -> void:
 	var gold_before := RunManager.gold
 	disabled_card.pressed.emit()
 	check(RunManager.gold == gold_before, "Disabled offer never spends gold")
+	var stale_offer := {"type": "passive", "resource": passive, "cost": 10}
+	shop._offerings = [stale_offer]
+	var stale_card := shop._create_card(stale_offer)
+	shop._offer_generation += 1
+	shop._offerings = [stale_offer.duplicate(true)]
+	var gold_before_stale := RunManager.gold
+	stale_card.pressed.emit()
+	check(RunManager.gold == gold_before_stale,
+		"A stale card cannot buy an equal-valued offer from a newer refresh")
 	for key: String in ["damage", "cooldown", "crit_chance"]:
 		var icon: Texture2D = ShopUpgradeIconsScript.get_icon(key)
 		check(icon != null and icon.get_size().x >= 64.0 and icon.get_size().y >= 64.0,
@@ -67,6 +76,7 @@ func run_checks() -> void:
 		"Upgrade card renders its dedicated icon")
 	card.free()
 	disabled_card.free()
+	stale_card.free()
 	upgrade_card.free()
 	shop.free()
 

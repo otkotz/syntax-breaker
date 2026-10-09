@@ -115,6 +115,10 @@ func run_checks() -> void:
 			spawner.spawn_boss_adds(boss)
 			check(spawner._pending_split_fragments > 0, "Live toxic boss can reserve further adds")
 		boss.take_damage(999999.0)
+		for child: Node in spawner.get_children().duplicate():
+			if child is EnemyBase and child != boss and child.visible:
+				(child as EnemyBase).take_damage(999999.0)
+		check(spawner.completion_boss_killed, "A real depth-five boss death preserves boss-kill credit")
 		check(spawner._pending_split_fragments == 0, "Boss death cancels pending adds")
 		check(boss.hazards.is_empty() and rule.is_queued_for_deletion(), "Boss death removes all owned hazards")
 		boss.reset()
@@ -155,6 +159,8 @@ func run_checks() -> void:
 	check(final_spawner._spawned_count == 0 and ordinary_count == 0,
 		"Final boss stage never spawns ordinary waves")
 	check(final_boss != null, "Final encounter starts with exactly one boss")
+	check(final_spawner.get_remaining_enemies() == 1,
+		"Final encounter HUD counts only its live boss, not suppressed normal waves")
 	if final_boss:
 		check("phase_index" in final_boss and final_boss.get("phase_index") == 1,
 			"Final boss starts in phase one")
@@ -162,8 +168,9 @@ func run_checks() -> void:
 			"Final boss receives approximately five times stage-scaled HP")
 		check(final_boss.move_speed >= final_boss._base_move_speed * final_spawner._speed_mult,
 			"Final boss keeps full stage speed instead of the legacy slowdown")
-		check(final_boss._sprite.scale.x >= 1.35 and final_boss.get_node("CollisionShape2D").scale.x <= 1.15,
-			"Final boss is visibly larger without proportional hitbox inflation")
+		var old_world_scale: float = MiniBoss.BOSS_SCALE.get(final_boss._boss_type(), 0.8) * 1.8
+		check(final_boss._sprite.scale.x >= old_world_scale * 1.35 and final_boss.get_node("CollisionShape2D").scale.x <= 1.15,
+			"Final boss is at least 35 percent larger than its previous world-space footprint without hitbox inflation")
 		final_boss.current_hp = final_boss.max_hp * 0.64
 		final_boss._physics_process(0.0)
 		check(final_boss.get("phase_index") == 2, "Phase two begins below 65 percent")

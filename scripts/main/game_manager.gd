@@ -240,6 +240,7 @@ func _show_legendary_picker() -> void:
 			"title": passive.name,
 			"desc": passive.description,
 			"color": UITheme.C_RARITY_LEGENDARY,
+			"resource": passive,
 		})
 
 	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward
@@ -374,6 +375,7 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"title": res.name,
 				"desc": "%s  [%s]" % [res.description, ", ".join(res.tags)],
 				"color": UITheme.get_rarity_color(reward.get("tier", res.rarity)),
+				"resource": res,
 			}
 		"support":
 			var res: SupportResource = reward["resource"]
@@ -382,6 +384,7 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"title": res.name,
 				"desc": res.description,
 				"color": UITheme.get_rarity_color(res.rarity),
+				"resource": res,
 			}
 		"passive":
 			var res: PassiveResource = reward["resource"]
@@ -390,6 +393,7 @@ func _format_reward_for_chest(reward: Dictionary) -> Dictionary:
 				"title": res.name,
 				"desc": res.description,
 				"color": UITheme.get_rarity_color(res.rarity),
+				"resource": res,
 			}
 		"mutation":
 			var m: Dictionary = reward["mutation"]

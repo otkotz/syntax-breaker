@@ -331,9 +331,17 @@ func _build_card(item: Dictionary, index: int) -> PanelContainer:
 	sb.corner_radius_bottom_right = 6
 	card.add_theme_stylebox_override("panel", sb)
 
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 14)
+	card.add_child(hbox)
+	var resource := item.get("resource") as Resource
+	var thumbnail := UITheme.item_thumbnail(resource, 96)
+	if thumbnail:
+		hbox.add_child(thumbnail)
 	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", 4)
-	card.add_child(vbox)
+	hbox.add_child(vbox)
 
 	var type_label := Label.new()
 	type_label.text = item.get("type_label", "")
@@ -355,12 +363,19 @@ func _build_card(item: Dictionary, index: int) -> PanelContainer:
 	desc.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(desc)
+	_set_children_input_transparent(card)
 
 	card.gui_input.connect(func(event: InputEvent):
 		if event is InputEventMouseButton and event.pressed and _phase == 4:
 			_on_card_picked(index)
 	)
 	return card
+
+func _set_children_input_transparent(node: Node) -> void:
+	for child: Node in node.get_children():
+		if child is Control:
+			(child as Control).mouse_filter = MOUSE_FILTER_IGNORE
+		_set_children_input_transparent(child)
 
 func _on_card_picked(index: int) -> void:
 	_phase = 5
