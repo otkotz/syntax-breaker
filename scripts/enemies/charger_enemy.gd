@@ -2,6 +2,9 @@ extends EnemyBase
 
 const CHARGER_TEXTURE := preload("res://assets/sprites/charger-v1.png")
 
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 const WINDUP := 1.0
 const CHARGE_TIME := 0.6
 const CHARGE_SPEED := 360.0

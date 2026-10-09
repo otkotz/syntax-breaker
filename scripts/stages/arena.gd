@@ -172,7 +172,9 @@ func skip_stage() -> void:
 
 func _on_all_waves_cleared() -> void:
 	_clear_transient_effects()
-	RunTelemetry.end_stage("cleared", {"normal_spawned": spawner._spawned_count, "normal_budget": spawner._total_budget, "seconds_remaining": spawner.get_stage_timer()})
+	RunTelemetry.end_stage(spawner.completion_reason if not spawner.completion_reason.is_empty() else "cleared",
+		{"normal_spawned": spawner._spawned_count, "normal_budget": spawner._total_budget, "seconds_remaining": spawner.get_stage_timer(),
+		"boss_killed": spawner.completion_boss_killed})
 	for skill: SkillInstance in (player.get_node("SkillCaster") as SkillCaster).skill_instances:
 		skill.stage_overrides.clear()
 		skill.recompute(RunManager.owned_passives)

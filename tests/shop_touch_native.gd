@@ -69,5 +69,50 @@ func run_checks() -> void:
 	disabled_card.free()
 	upgrade_card.free()
 	shop.free()
+
+	RunManager.gold = 1000
+	var live_shop := load("res://scenes/ui/shop.tscn").instantiate() as Shop
+	live_shop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	get_tree().root.add_child(live_shop)
+	await get_tree().process_frame
+	var live_offers: Array[Dictionary] = []
+	for index: int in 20:
+		live_offers.append({"type": "passive", "resource": passive, "cost": 10 + index})
+	live_shop._offerings = live_offers
+	live_shop._refresh_ui()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var scroller := live_shop.item_list.get_parent() as ScrollContainer
+	check(scroller.get_v_scroll_bar().max_value > scroller.size.y, "Long shop inventory remains scrollable")
+	var live_card := live_shop.item_list.get_child(0) as Button
+	var gold_before_scroll := RunManager.gold
+	var wheel := InputEventMouseButton.new()
+	wheel.position = live_card.get_global_rect().get_center()
+	wheel.global_position = wheel.position
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	get_tree().root.push_input(wheel, true)
+	await get_tree().process_frame
+	check(scroller.scroll_vertical > 0, "Scrolling over the card moves the shop list")
+	check(RunManager.gold == gold_before_scroll, "Scrolling over the card does not buy it")
+	scroller.scroll_vertical = 0
+	await get_tree().process_frame
+	var padding_point := live_card.global_position + Vector2(5, 5)
+	click(padding_point)
+	await get_tree().process_frame
+	check(RunManager.gold == gold_before_scroll - 10, "Tapping card padding purchases the offer")
+	live_shop.queue_free()
+	await get_tree().process_frame
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)
+
+func click(point: Vector2) -> void:
+	var down := InputEventMouseButton.new()
+	down.position = point
+	down.global_position = point
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	get_tree().root.push_input(down, true)
+	var up := down.duplicate() as InputEventMouseButton
+	up.pressed = false
+	get_tree().root.push_input(up, true)

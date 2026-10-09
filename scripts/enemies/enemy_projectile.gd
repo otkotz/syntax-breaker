@@ -8,6 +8,7 @@ var _distance_traveled: float = 0.0
 var max_range: float = 600.0
 var source_id: String = "enemy_projectile"
 var damage_context: Dictionary = {}
+var warning_remaining: float = 0.0
 
 static var _orb_texture: ImageTexture
 static var _orb_offset: Vector2
@@ -42,7 +43,7 @@ static func _build_orb_texture() -> Dictionary:
 
 var _pool_ref: ObjectPool
 
-func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile", context: Dictionary = {}) -> void:
+func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile", context: Dictionary = {}, warning_duration: float = 0.0) -> void:
 	source_id = source
 	damage_context = context.duplicate()
 	direction = dir
@@ -51,15 +52,27 @@ func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: Object
 	global_position = pos
 	_distance_traveled = 0.0
 	_pool_ref = pool
+	warning_remaining = maxf(0.0, warning_duration)
+	modulate.a = 0.42 if warning_remaining > 0.0 else 1.0
 
 func _physics_process(delta: float) -> void:
-	var move_dist := speed * delta
+	var travel_delta := delta
+	if warning_remaining > 0.0:
+		if travel_delta <= warning_remaining:
+			warning_remaining -= travel_delta
+			return
+		travel_delta -= warning_remaining
+		warning_remaining = 0.0
+		modulate.a = 1.0
+	var move_dist := speed * travel_delta
 	position += direction * move_dist
 	_distance_traveled += move_dist
 	if _distance_traveled >= max_range:
 		_return_to_pool()
 
 func _on_body_entered(body: Node2D) -> void:
+	if warning_remaining > 0.0:
+		return
 	if body.has_method("take_damage"):
 		Player.hurt(body, damage, source_id, damage_context)
 	_return_to_pool()
@@ -75,3 +88,5 @@ func reset() -> void:
 	damage_context.clear()
 	_distance_traveled = 0.0
 	_pool_ref = null
+	warning_remaining = 0.0
+	modulate.a = 1.0

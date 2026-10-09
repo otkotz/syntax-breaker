@@ -3,6 +3,7 @@ extends Node
 
 const PROJECTILE_SCENE := preload("res://scenes/enemies/enemy_projectile.tscn")
 const MAX_ACTIVE := 36
+const TELEGRAPH_DURATION := 0.55
 
 static func spawn(parent: Node, origin: Vector2, target: Vector2, pattern: String, count: int,
 		speed: float, damage: float, source: String) -> Array[EnemyProjectile]:
@@ -32,6 +33,9 @@ static func spawn(parent: Node, origin: Vector2, target: Vector2, pattern: Strin
 		if not projectile:
 			continue
 		projectile.max_range = 900.0
-		projectile.initialize(Vector2.from_angle(angle), speed, damage, safe_origin, pool, source)
+		projectile.initialize(Vector2.from_angle(angle), speed, damage, safe_origin, pool, source, {}, TELEGRAPH_DURATION)
 		result.append(projectile)
+	if not result.is_empty():
+		RunTelemetry.record("hazard_warning", {"source": source, "warning_seconds": TELEGRAPH_DURATION,
+			"x": safe_origin.x, "y": safe_origin.y, "projectile_count": result.size()})
 	return result

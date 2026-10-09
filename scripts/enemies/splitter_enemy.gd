@@ -2,6 +2,9 @@ extends EnemyBase
 
 const SPLITTER_TEXTURE := preload("res://assets/sprites/enemies/splitter-v1.png")
 
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 func _setup_sprite() -> void:
 	_sprite = Sprite2D.new()
 	_sprite.texture = SPLITTER_TEXTURE

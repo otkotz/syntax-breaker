@@ -27,6 +27,8 @@ var _arena_rect: Rect2
 var _pools: Dictionary = {}
 var _active: bool = false
 var _completed: bool = false
+var completion_boss_killed: bool = false
+var completion_reason: String = ""
 
 var _hp_mult: float = 1.0
 var _speed_mult: float = 1.0
@@ -102,6 +104,8 @@ func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> v
 	_mini_boss_spawned = false
 	_active = false
 	_completed = false
+	completion_boss_killed = false
+	completion_reason = ""
 	_ensure_pools()
 	_apply_stage_data(stage_data)
 
@@ -447,10 +451,12 @@ func force_complete() -> void:
 func _complete_stage() -> void:
 	complete_encounter("cleared")
 
-func complete_encounter(_reason: String, _boss_killed: bool = false) -> bool:
+func complete_encounter(reason: String, boss_killed: bool = false) -> bool:
 	if _completed:
 		return false
 	_completed = true
+	completion_reason = reason
+	completion_boss_killed = boss_killed
 	_active = false
 	_suppress_split_spawns = true
 	_spawn_generation += 1

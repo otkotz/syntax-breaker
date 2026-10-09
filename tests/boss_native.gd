@@ -182,6 +182,12 @@ func run_checks() -> void:
 			for projectile: EnemyProjectile in projectile_pool.get_active().duplicate():
 				check(final_spawner._arena_rect.has_point(projectile.global_position),
 					"Edge volleys start inside the readable arena")
+				var warning_origin := projectile.global_position
+				check(projectile.get("warning_remaining") is float and projectile.get("warning_remaining") > 0.0,
+					"Boss projectiles expose a harmless emission telegraph")
+				projectile._physics_process(0.2)
+				check(projectile.global_position == warning_origin,
+					"Boss projectiles remain stationary during their warning")
 				projectile._physics_process(10.0)
 			check(projectile_pool.active_count() == 0, "Every boss projectile releases after its range")
 		final_spawner._spawn_enemy_at(Vector2(300, 300), "split_fragment", false, true)

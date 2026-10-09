@@ -73,6 +73,14 @@ func _check_all_enemy_art() -> void:
 		"burning_boss", "storm_boss", "toxic_boss",
 	]
 	var textures: Dictionary = {}
+	var fixed_art_paths := {
+		"charger_enemy": "res://assets/sprites/charger-v1.png",
+		"denial_caster": "res://assets/sprites/enemies/denial-caster-v1.png",
+		"shield_support": "res://assets/sprites/enemies/shield-support-v1.png",
+		"splitter_enemy": "res://assets/sprites/enemies/splitter-v1.png",
+		"split_fragment": "res://assets/sprites/enemies/split-fragment-v1.png",
+		"mini_boss": "res://assets/sprites/enemies/mini-boss-v1.png",
+	}
 	for scene_name: String in scenes:
 		var enemy := load("res://scenes/enemies/%s.tscn" % scene_name).instantiate() as EnemyBase
 		add_child(enemy)
@@ -94,6 +102,9 @@ func _check_all_enemy_art() -> void:
 		var reused: Texture2D = enemy.call("get_visual_texture") if enemy.has_method("get_visual_texture") else null
 		check(reused != null and enemy.get_node("CollisionShape2D").scale == collision_scale,
 			"Pool reuse preserves art without changing hitbox: " + scene_name)
+		if fixed_art_paths.has(scene_name):
+			check(reused == texture and reused.resource_path == fixed_art_paths[scene_name],
+				"Pool initialization preserves dedicated role artwork: " + scene_name)
 		enemy.queue_free()
 	check(textures.values().duplicate().all(func(texture): return textures.values().count(texture) == 1),
 		"Every production enemy role has distinct art")

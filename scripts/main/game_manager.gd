@@ -156,7 +156,9 @@ func _on_stage_completed() -> void:
 	if _state != State.COMBAT:
 		return
 	RunManager.heal_between_stages()
-	var stage_points := 5 if _current_stage_data and _current_stage_data.type == StageData.Type.BOSS else 1
+	var is_boss_stage := _current_stage_data and _current_stage_data.type == StageData.Type.BOSS
+	var boss_killed := _arena != null and _arena.spawner != null and _arena.spawner.completion_boss_killed
+	var stage_points := (5 if boss_killed else 0) if is_boss_stage else 1
 	MetaProgression.add_cosmetic_points(stage_points)
 	if _current_stage_data and _current_stage_data.type == StageData.Type.ELITE:
 		RunManager.record_stat("elites_cleared", 1)

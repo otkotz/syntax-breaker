@@ -56,6 +56,9 @@ func _randomize_variant() -> void:
 	_sprite.texture = data["texture"]
 	_sprite.offset = data["offset"]
 
+func _uses_randomized_body_variants() -> bool:
+	return true
+
 # Trash-melee "Glitch Gremlin" — built once, three corruption accents.
 func _get_body_variants() -> Array:
 	if _gremlin_variants.is_empty():
@@ -69,7 +72,7 @@ func initialize(target: Node2D) -> void:
 	current_hp = max_hp
 	_dots.clear()
 	_pick_wander_dir()
-	if _sprite:
+	if _sprite and _uses_randomized_body_variants():
 		_randomize_variant()
 	show()
 	set_process(true)

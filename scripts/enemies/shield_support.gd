@@ -2,6 +2,9 @@ extends EnemyBase
 
 const SUPPORT_TEXTURE := preload("res://assets/sprites/enemies/shield-support-v1.png")
 
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 const GUARD_RADIUS := 150.0
 var refresh_timer: float = 0.0
 var linked_allies: Array[EnemyBase] = []

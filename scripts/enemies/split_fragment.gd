@@ -2,6 +2,9 @@ extends EnemyBase
 
 const FRAGMENT_TEXTURE := preload("res://assets/sprites/enemies/split-fragment-v1.png")
 
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 const ACTIVATION_WARNING := 1.0
 var activation_remaining: float = ACTIVATION_WARNING
 

@@ -56,6 +56,9 @@ const VOLLEY_SPEED := 180.0
 func _boss_type() -> String:
 	return BOSS_BY_REGION.get(RunManager.current_region, DEFAULT_BOSS)
 
+func _uses_randomized_body_variants() -> bool:
+	return has_method("configure_encounter")
+
 func get_contact_source() -> String:
 	return get_enemy_id() + (":charge" if _phase == Phase.ATTACK and _current_attack == Attack.CHARGE else ":contact")
 

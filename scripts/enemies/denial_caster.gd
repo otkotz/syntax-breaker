@@ -2,6 +2,9 @@ extends EnemyBase
 
 const DENIAL_TEXTURE := preload("res://assets/sprites/enemies/denial-caster-v1.png")
 
+func _uses_randomized_body_variants() -> bool:
+	return false
+
 const Zone = preload("res://scripts/enemies/denial_zone.gd")
 const MAX_ZONES := 6
 var cast_timer: float = 2.0
