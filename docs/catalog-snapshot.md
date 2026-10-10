@@ -9,13 +9,13 @@ oraz zgodność plików z rejestrem eksportu na Androida. Liczba zasobów nie oz
 | Category | Count |
 | --- | ---: |
 | skills | 7 |
-| supports | 26 |
+| supports | 29 |
 | passives | 58 |
 | unlocks | 40 |
 | regions | 3 |
 | consumables | 8 |
 | mutations | 12 |
-| registered behaviors | 21 |
+| registered behaviors | 24 |
 
 Mutation IDs: `close_quarters`, `concentrated`, `crit_master`, `explosive`, `giant`, `hair_trigger`, `heavy_payload`, `piercing`, `rapid_fire`, `scatter`, `sniper`, `vampiric`.
 
@@ -25,7 +25,7 @@ RegionResource exported fields: `ambient_particle_color`, `bg_color`, `border_co
 ## Odtworzenie i aktualizacja
 
 ```powershell
-& 'D:\Pobrane\Godot_v4.6.2-stable_win64.exe\Godot_v4.6.2-stable_win64_console.exe' --headless --path . --scene res://tests/catalog_native.tscn --log-file .godot/catalog_native.log
+& 'D:\Pobrane\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --scene res://tests/catalog_native.tscn --log-file .godot/catalog_native.log
 ```
 
 Test zapisuje blok w `.godot/catalog_snapshot.md`. Po świadomej zmianie katalogu należy

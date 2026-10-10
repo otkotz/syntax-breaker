@@ -13,6 +13,7 @@ var _hit_targets: Array[Node2D] = []
 var _color: Color = Color(1.0, 0.8, 0.1)
 var _skill_id: String = ""
 var _cosmetic_style: String = "projectile_default"
+var attack_context: AttackContext
 
 var _trail_positions: Array[Vector2] = []
 var _last_trail_position: Vector2 = Vector2.ZERO
@@ -31,11 +32,12 @@ const MAX_PROJECTILES := 60
 func _ready() -> void:
 	top_level = false
 
-func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool) -> void:
+func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, context: AttackContext = null) -> void:
 	var spawn_pos := global_position
 	top_level = true
 	global_position = spawn_pos
 	skill_instance = si
+	attack_context = context if context else si.create_attack_context()
 	direction = dir.normalized()
 	speed = si.computed_stats.get("speed", 300.0)
 	damage = si.computed_stats.get("damage", 10.0)
@@ -200,6 +202,8 @@ static func resolve_skill_hit(si: SkillInstance, body: Node2D, hit_source: Node2
 		var roll := CombatUtils.roll_damage(raw_damage, si)
 		hit_damage = roll["damage"]
 		is_crit = roll["is_crit"]
+	if "attack_context" in hit_source and hit_source.attack_context and hit_source.attack_context.metadata.get("works_mode", "") == "critical":
+		is_crit = true
 	var skill_name := si.base.name if si else "unknown"
 	body.take_damage(hit_damage, is_crit, si.base if si else null)
 	CombatLog.hit(skill_name, body.name, hit_damage, is_crit)

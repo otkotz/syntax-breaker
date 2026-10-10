@@ -14,7 +14,7 @@ const _REGISTRY := {
 		"glass_cannon", "hypothermia", "increased_area", "laser", "mine", "overcharge",
 		"pierce", "plague_carrier", "poison_on_hit", "returning",
 		"ricochet_amplifier", "shotgun", "spell_echo", "split", "totem",
-		"toxic_burst", "void_rift",
+		"toxic_burst", "void_rift", "copy_paste", "spaghetti_code", "works_on_my_machine",
 	],
 	"res://resources/passives/": [
 		"ward_capacity", "ward_recovery", "ward_reflex",

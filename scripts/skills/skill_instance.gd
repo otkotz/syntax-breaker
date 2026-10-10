@@ -12,6 +12,8 @@ var _next_root_cast_id := 1
 var evolution_id := ""
 var evolution_tier := 0
 var bonus_support_slots := 0
+var request_recast: Callable = Callable()
+var last_cast_metadata: Dictionary = {}
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -160,6 +162,13 @@ func _rebuild_behaviors() -> void:
 func notify_spawn(projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.modify_spawn(self, projectile)
+
+func notify_cast(direction: Vector2, context: AttackContext, metadata: Dictionary = {}) -> Dictionary:
+	var cast := {"direction": direction, "context": context, "metadata": metadata}
+	for behavior in behaviors:
+		behavior.on_cast(self, cast)
+	last_cast_metadata = cast.metadata.duplicate(true)
+	return cast
 
 func notify_hit(target: Node2D, projectile: Node2D) -> void:
 	for behavior in behaviors:

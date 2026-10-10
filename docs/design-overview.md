@@ -121,7 +121,7 @@ the arena and supplies modifier/draft affinity. One shop slot prefers regional a
 | Frost Nova | aoe, cold | — | — | Expanding-ring AoE, applies slow + frostblight, frost-patch aftermath |
 | Blade Spin | melee, aoe, physical | 8 | 3.0s | Orbiting blades, causes bleed |
 
-### Supports (26)
+### Supports (29)
 
 Stat-and-behavior modules linked into skill slots. Includes:
 `pierce`, `chain`, `split`, `shotgun`, `returning`, `ricochet_amplifier`, `increased_area`,
@@ -130,7 +130,7 @@ Stat-and-behavior modules linked into skill slots. Includes:
 `echo_trigger`, `cast_on_kill`, `void_rift`, `totem`, `mine`, `laser` (instant beam delivery), plus tradeoff supports
 `glass_cannon` (+dmg/−speed) and `overcharge` (+dmg/+cooldown).
 
-Stat-only supports have an empty `behavior_key`; the rest reference one of the 21 behaviors.
+Stat-only supports have an empty `behavior_key`; the rest reference one of the 24 behaviors.
 
 ### Passives (58)
 
@@ -369,7 +369,7 @@ scripts/
               object_pool, spatial_grid, resource_listing, pixel_sprite + procedural *_sprite builders
 
 resources/
-  skills/ (7)   supports/ (26)   passives/ (58)   unlocks/ (40)
+  skills/ (7)   supports/ (29)   passives/ (58)   unlocks/ (40)
   regions/ (3)  consumables/ (8) config/ (game_balance, default_theme)
 
 scenes/

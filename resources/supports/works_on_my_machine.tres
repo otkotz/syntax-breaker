@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/supports/works_on_my_machine-v1.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "works_on_my_machine"
+name = "Works on My Machine"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {}
+added_tags = Array[String]([])
+behavior_key = "works_on_my_machine"
+icon = ExtResource("2")
+rarity = "rare"
+description = "Each root cast gains one random upside: size, extra projectile, guaranteed crit, or cooldown."

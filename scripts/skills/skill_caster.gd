@@ -18,6 +18,8 @@ func set_skills(instances: Array[SkillInstance]) -> void:
 	_cooldown_timers.fill(0.0)
 	_setup_pools()
 	_bind_on_death_recast()
+	for si: SkillInstance in skill_instances:
+		si.request_recast = _request_recast.bind(si)
 
 func _setup_pools() -> void:
 	for si in skill_instances:
@@ -40,7 +42,8 @@ func _physics_process(delta: float) -> void:
 		if _cooldown_timers[i] <= 0.0:
 			if _try_cast(skill_instances[i]):
 				var tempo_mult := EngineTracker.get_tempo_cooldown_mult()
-				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult * tempo_mult
+				var works_mult := 0.7 if skill_instances[i].last_cast_metadata.get("works_mode", "") == "cooldown" else 1.0
+				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult * tempo_mult * works_mult
 				EngineTracker.on_cast(skill_instances[i].base.id)
 				spell_cast.emit()
 
@@ -56,7 +59,8 @@ func _try_cast(si: SkillInstance) -> bool:
 	if si.computed_stats.get("is_mine", 0) > 0:
 		return _place_mine(si)
 
-	var is_self_cast := si.base.has_tag("aoe") or si.base.has_tag("melee")
+	var is_self_cast := (si.base.has_tag("aoe") or si.base.has_tag("melee")) and not si.base.has_tag("projectile")
+	var context := si.create_attack_context()
 
 	if is_self_cast:
 		if si.base.has_tag("melee"):
@@ -64,7 +68,8 @@ func _try_cast(si: SkillInstance) -> bool:
 			if pool and pool.active_count() >= 3:
 				return false
 		CombatLog.skill_cast(si.base.name, 1)
-		_spawn_skill(si, Vector2.ZERO, null)
+		var cast := si.notify_cast(Vector2.ZERO, context, {})
+		_spawn_skill(si, Vector2.ZERO, null, context)
 		_schedule_echoes(si, Vector2.ZERO, null)
 		return true
 
@@ -75,21 +80,24 @@ func _try_cast(si: SkillInstance) -> bool:
 		return false
 
 	var count: int = si.computed_stats.get("projectile_count", 1)
+	var direction := global_position.direction_to(Targeting.combat_aim_position(target))
+	var cast := si.notify_cast(direction, context, {})
+	if cast.metadata.get("works_mode", "") == "projectiles":
+		count += 1
 
 	if PassiveBehaviors.has_ring_of_fire() and si.base.has_tag("projectile"):
 		for i in count:
 			var angle := randf() * TAU
-			_spawn_skill(si, Vector2.from_angle(angle), target)
+			_spawn_skill(si, Vector2.from_angle(angle), target, context)
 	else:
-		var direction := global_position.direction_to(Targeting.combat_aim_position(target))
 		if count <= 1:
-			_spawn_skill(si, direction, target)
+			_spawn_skill(si, direction, target, context)
 		else:
 			var spread := deg_to_rad(15.0) * (count - 1)
 			for i in count:
 				var angle_offset := -spread / 2.0 + spread / (count - 1) * i
 				var dir := direction.rotated(angle_offset)
-				_spawn_skill(si, dir, target)
+				_spawn_skill(si, dir, target, context)
 
 	CombatLog.skill_cast(si.base.name, count)
 	RunManager.record_stat("projectiles_fired", count)
@@ -106,7 +114,7 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 		get_tree().create_timer(delay).timeout.connect(func():
 			if not is_instance_valid(self):
 				return
-			var is_self_cast := si.base.has_tag("aoe") or si.base.has_tag("melee")
+			var is_self_cast := (si.base.has_tag("aoe") or si.base.has_tag("melee")) and not si.base.has_tag("projectile")
 			if is_self_cast:
 				_spawn_skill(si, Vector2.ZERO, null)
 			else:
@@ -123,7 +131,7 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 							_spawn_skill(si, echo_dir.rotated(offset), echo_target)
 		)
 
-func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> void:
+func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D, context: AttackContext = null) -> void:
 	if si.base.scene_path.is_empty():
 		return
 	if si.get_all_tags().has("beam"):
@@ -142,8 +150,10 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> voi
 
 	if projectile.has_method("initialize"):
 		if projectile is Rollback:
-			projectile.initialize(si, direction, pool, si.create_attack_context())
+			projectile.initialize(si, direction, pool, context if context else si.create_attack_context())
 			projectile.set_owner_node(get_parent())
+		elif projectile is ProjectileBase:
+			projectile.initialize(si, direction, pool, context if context else si.create_attack_context())
 		else:
 			projectile.initialize(si, direction, pool)
 
@@ -152,6 +162,14 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> voi
 		_redistribute_orbit_offsets(pool)
 
 	si.notify_spawn(projectile)
+
+func _request_recast(direction: Vector2, context: AttackContext, metadata: Dictionary, si: SkillInstance) -> void:
+	if not AttackContext.can_spawn_child("projectile", ProjectileBase.active_count, QualitySettings.projectile_cap):
+		return
+	var cast := si.notify_cast(direction, context, metadata)
+	var count := 2 if cast.metadata.get("works_mode", "") == "projectiles" else 1
+	for i in count:
+		_spawn_skill(si, direction.rotated((i - (count - 1) * 0.5) * 0.18), null, context)
 
 func _place_totem(si: SkillInstance) -> bool:
 	var pool: ObjectPool = _pools.get(si.base.scene_path)

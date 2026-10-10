@@ -7,6 +7,7 @@ var root_cast_id: int
 var skill_id: String
 var source_chain: Array[String] = []
 var flags: Dictionary = {}
+var metadata: Dictionary = {}
 var generation := 0
 
 static func root(id: String, cast_id: int) -> AttackContext:
@@ -28,6 +29,7 @@ func duplicate_context() -> AttackContext:
 	copy.skill_id = skill_id
 	copy.source_chain = source_chain.duplicate()
 	copy.flags = flags.duplicate()
+	copy.metadata = metadata.duplicate(true)
 	copy.generation = generation
 	return copy
 

@@ -12,6 +12,9 @@ func is_mastered() -> bool:
 func modify_spawn(_skill_instance, _projectile: Node2D) -> void:
 	pass
 
+func on_cast(_skill_instance, _cast: Dictionary) -> void:
+	pass
+
 func on_hit(_skill_instance, _target: Node2D, _projectile: Node2D) -> void:
 	pass
 
