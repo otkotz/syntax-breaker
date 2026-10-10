@@ -9,6 +9,7 @@ var mutations: Array[Dictionary] = []
 var rarity_tier: String = ""
 var stage_overrides: Array[Dictionary] = []
 var runtime_overrides: Array[Dictionary] = []
+var _next_root_cast_id := 1
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -19,6 +20,12 @@ func _init(skill_resource: SkillResource) -> void:
 func set_rarity_tier(tier: String, passives: Array = []) -> void:
 	rarity_tier = tier
 	recompute(passives)
+
+
+func create_attack_context() -> AttackContext:
+	var context := AttackContext.root(base.id, _next_root_cast_id)
+	_next_root_cast_id += 1
+	return context
 
 func link_support(support: SupportResource) -> bool:
 	if not support_rejection_reason(support).is_empty():

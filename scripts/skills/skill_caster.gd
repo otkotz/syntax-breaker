@@ -152,7 +152,11 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 	projectile.global_position = spawn_position if spawn_position is Vector2 else global_position
 
 	if projectile.has_method("initialize"):
-		projectile.initialize(si, direction, pool)
+		if projectile is Rollback:
+			projectile.initialize(si, direction, pool, si.create_attack_context())
+			projectile.set_owner_node(get_parent())
+		else:
+			projectile.initialize(si, direction, pool)
 		if projectile is ProjectileBase:
 			projectile.artifact_hooks = artifact_hooks
 			projectile.artifact_origin_flags = origin_flags.duplicate()
