@@ -30,6 +30,13 @@ func _ready() -> void:
 	register("lag_spike", preload("res://scripts/behaviors/lag_spike_behavior.gd"))
 	register("alt_f4", preload("res://scripts/behaviors/alt_f4_behavior.gd"))
 	register("rubber_duck", preload("res://scripts/behaviors/rubber_duck_behavior.gd"))
+	register("firewall", preload("res://scripts/behaviors/firewall_behavior.gd"))
+	register("reply_all", preload("res://scripts/behaviors/reply_all_behavior.gd"))
+	register("frozen_process", preload("res://scripts/behaviors/frozen_process_behavior.gd"))
+	register("wifi_extender", preload("res://scripts/behaviors/wifi_extender_behavior.gd"))
+	register("malware", preload("res://scripts/behaviors/malware_behavior.gd"))
+	register("background_process", preload("res://scripts/behaviors/background_process_behavior.gd"))
+	register("undo_history", preload("res://scripts/behaviors/undo_history_behavior.gd"))
 
 func register(key: String, behavior_script: GDScript) -> void:
 	_behaviors[key] = behavior_script

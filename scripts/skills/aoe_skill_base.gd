@@ -12,6 +12,8 @@ var _color: Color = Color(1.0, 0.9, 0.6, 0.35)
 var _skill_id: String = ""
 var _kill_count: int = 0
 var _detonation_mult: float = 1.0
+var attack_context: AttackContext
+var _expire_notified := false
 
 var _arc_data: Array = []
 var _wave_hit_set: Array = []
@@ -20,9 +22,10 @@ const ARC_COUNT := 6
 func _ready() -> void:
 	pass
 
-func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> void:
+func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool, context: AttackContext = null) -> void:
 	skill_instance = si
-	damage = si.computed_stats.get("damage", 10.0)
+	attack_context = context if context else si.create_attack_context()
+	damage = si.computed_stats.get("damage", 10.0) * float(attack_context.metadata.get("damage_mult", 1.0))
 	area_radius = si.computed_stats.get("range", 100.0) * si.computed_stats.get("area_mult", 1.0)
 	pool_ref = pool
 	_timer = 0.0
@@ -31,6 +34,7 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool) -> voi
 	_color = TagColors.get_color_faded(si.base.tags)
 	_wave_hit_set.clear()
 	_kill_count = 0
+	_expire_notified = false
 	scale = Vector2.ONE
 
 	match _skill_id:
@@ -68,6 +72,9 @@ func _physics_process(delta: float) -> void:
 	if _timer >= _lifetime:
 		if _skill_id == "flame_wave" or _skill_id == "frost_nova":
 			_spawn_aftermath()
+		if not _expire_notified and skill_instance:
+			_expire_notified = true
+			skill_instance.notify_expire(self)
 		_return_to_pool()
 
 func _draw() -> void:
@@ -267,6 +274,8 @@ func reset() -> void:
 	_skill_id = ""
 	_kill_count = 0
 	_detonation_mult = 1.0
+	attack_context = null
+	_expire_notified = false
 	_arc_data.clear()
 	_wave_hit_set.clear()
 	scale = Vector2.ONE

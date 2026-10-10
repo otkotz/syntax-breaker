@@ -154,6 +154,8 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D, contex
 			projectile.set_owner_node(get_parent())
 		elif projectile is ProjectileBase:
 			projectile.initialize(si, direction, pool, context if context else si.create_attack_context())
+		elif projectile is AoeSkillBase:
+			projectile.initialize(si, direction, pool, context if context else si.create_attack_context())
 		else:
 			projectile.initialize(si, direction, pool)
 

@@ -9,13 +9,13 @@ oraz zgodność plików z rejestrem eksportu na Androida. Liczba zasobów nie oz
 | Category | Count |
 | --- | ---: |
 | skills | 7 |
-| supports | 32 |
+| supports | 39 |
 | passives | 58 |
 | unlocks | 40 |
 | regions | 3 |
 | consumables | 8 |
 | mutations | 12 |
-| registered behaviors | 27 |
+| registered behaviors | 34 |
 
 Mutation IDs: `close_quarters`, `concentrated`, `crit_master`, `explosive`, `giant`, `hair_trigger`, `heavy_payload`, `piercing`, `rapid_fire`, `scatter`, `sniper`, `vampiric`.
 

@@ -16,6 +16,8 @@ const _REGISTRY := {
 		"ricochet_amplifier", "shotgun", "spell_echo", "split", "totem",
 		"toxic_burst", "void_rift", "copy_paste", "spaghetti_code", "works_on_my_machine",
 		"lag_spike", "alt_f4", "rubber_duck",
+		"firewall", "reply_all", "frozen_process", "wifi_extender", "malware",
+		"background_process", "undo_history",
 	],
 	"res://resources/passives/": [
 		"ward_capacity", "ward_recovery", "ward_reflex",

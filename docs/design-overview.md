@@ -58,7 +58,7 @@ Run auto-saves on every stage-map visit (`user://active_run.json`) and can be re
 | **GameBus** | Global signal bus — `enemy_killed`, `enemy_hit`, `stage_cleared`, `gold_changed`, `player_died`, `run_ended`, `skill_acquired`, `support_acquired`, `passive_acquired` |
 | **RunManager** | Run state — stage tree, gold, equipped skills, owned supports/passives/consumables, skill slots, region, ascension, run-stat tracking, save/resume |
 | **InputManager** | Touch/keyboard abstraction — exposes `movement_vector` |
-| **BehaviorRegistry** | Maps behavior keys → GDScript classes. **27 registered behaviors** (see Behavior System) |
+| **BehaviorRegistry** | Maps behavior keys → GDScript classes. **34 registered behaviors** (see Behavior System) |
 | **MetaProgression** | Persistent unlocks, cosmetic points/purchases, regional wins/Ascension ladder, challenges, cosmetics, codex discovery. Saved to JSON |
 | **QualitySettings** | Mobile/perf quality tier (particle/effect density, shake) |
 | **RunTelemetry** | Local per-run decisions, clocks, damage sources and frame statistics; headless runs marked synthetic |
@@ -121,7 +121,7 @@ the arena and supplies modifier/draft affinity. One shop slot prefers regional a
 | Frost Nova | aoe, cold | — | — | Expanding-ring AoE, applies slow + frostblight, frost-patch aftermath |
 | Blade Spin | melee, aoe, physical | 8 | 3.0s | Orbiting blades, causes bleed |
 
-### Supports (32)
+### Supports (39)
 
 Stat-and-behavior modules linked into skill slots. Includes:
 `pierce`, `chain`, `split`, `shotgun`, `returning`, `ricochet_amplifier`, `increased_area`,
@@ -129,9 +129,10 @@ Stat-and-behavior modules linked into skill slots. Includes:
 `plague_carrier`, `toxic_burst`, `corpse_bloom`, `elemental_proliferation`, `hypothermia`,
 `echo_trigger`, `cast_on_kill`, `void_rift`, `totem`, `mine`, `laser` (instant beam delivery),
 `copy_paste`, `spaghetti_code`, `works_on_my_machine`, `lag_spike`, `alt_f4`, `rubber_duck`,
+`firewall`, `reply_all`, `frozen_process`, `wifi_extender`, `malware`, `background_process`, `undo_history`,
 plus tradeoff supports `glass_cannon` (+dmg/−speed) and `overcharge` (+dmg/+cooldown).
 
-Stat-only supports have an empty `behavior_key`; the rest reference one of the 27 behaviors.
+Stat-only supports have an empty `behavior_key`; the rest reference one of the 34 behaviors.
 
 ### Passives (58)
 
@@ -186,11 +187,13 @@ Base: 5% crit chance, 1.5× crit multiplier. Extra computed keys: `echo_count`, 
 
 ### Behavior System
 `BehaviorBase` interface: `modify_spawn()`, `on_hit()`, `on_kill()`, `modify_stats()`.
-**27 behaviors** registered in `BehaviorRegistry`: `pierce`, `chain`, `split`, `increased_area`,
+**34 behaviors** registered in `BehaviorRegistry`: `pierce`, `chain`, `split`, `increased_area`,
 `faster_casting`, `crit_explosion`, `poison_on_hit`, `elemental_proliferation`, `shotgun`,
 `cast_on_kill`, `void_rift`, `corpse_bloom`, `toxic_burst`, `arc_burst`, `echo_trigger`,
 `plague_carrier`, `ricochet_amplifier`, `crit_cascade`, `returning`, `hypothermia`, `laser`,
 `copy_paste`, `spaghetti_code`, `works_on_my_machine`, `lag_spike`, `alt_f4`, `rubber_duck`.
+Signature behaviors: `firewall`, `reply_all`, `frozen_process`, `wifi_extender`, `malware`,
+`background_process`, `undo_history`.
 `TriggerGuard` caps trigger recursion (depth 1) and per-target re-trigger cooldown (0.25s)
 to prevent cast-on-X loops.
 
@@ -354,7 +357,7 @@ Per-stage difficulty is the product of `game_balance` base × depth scaling (`St
 ```
 scripts/
   autoloads/  game_bus, run_manager, input_manager, behavior_registry, meta_progression, quality_settings
-  behaviors/  behavior_base + 27 behaviors + passive_behaviors
+  behaviors/  behavior_base + 34 behaviors + passive_behaviors
   combat/     engine_tracker, combo_tracker, synergy_tracker, mutation_data, consumable_manager,
               skill_totem, skill_mine, trigger_guard
   enemies/    enemy_base, basic_ranged, swarm_enemy, tank_enemy, mini_boss, spawner, enemy_projectile
@@ -371,7 +374,7 @@ scripts/
               object_pool, spatial_grid, resource_listing, pixel_sprite + procedural *_sprite builders
 
 resources/
-  skills/ (7)   supports/ (32)   passives/ (58)   unlocks/ (40)
+  skills/ (7)   supports/ (39)   passives/ (58)   unlocks/ (40)
   regions/ (3)  consumables/ (8) config/ (game_balance, default_theme)
 
 scenes/

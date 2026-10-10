@@ -53,6 +53,10 @@ func link_support(support: SupportResource) -> bool:
 func support_rejection_reason(support: SupportResource, replacing: SupportResource = null) -> String:
 	if not TagMatcher.can_link_support(base, support):
 		return "Incompatible skill tags"
+	if not support.behavior_key.is_empty():
+		var candidate := BehaviorRegistry.get_behavior(support.behavior_key)
+		if candidate and not candidate.accepts(self):
+			return "Signature support belongs to another skill"
 	if linked_supports.size() >= base.max_supports + bonus_support_slots and replacing == null:
 		return "All sockets are full"
 	for linked: SupportResource in linked_supports:
@@ -182,6 +186,10 @@ func notify_crit(target: Node2D, projectile: Node2D) -> void:
 func notify_status_apply(target: Node2D, status_type: String) -> void:
 	for behavior in behaviors:
 		behavior.on_status_apply(self, target, status_type)
+
+func notify_expire(effect: Node2D) -> void:
+	for behavior in behaviors:
+		behavior.on_expire(self, effect)
 
 var trigger_on_death_recast: Callable = Callable()
 

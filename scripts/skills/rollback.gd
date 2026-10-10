@@ -17,6 +17,8 @@ var _recorded_path: Array[Vector2] = []
 var _ordered_hits: Array[Dictionary] = []
 var _outbound_hit_ids: Dictionary = {}
 var _return_hit_ids: Dictionary = {}
+var _undo_path: Array[Vector2] = []
+var _undo_index := 0
 
 func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_context: AttackContext = null) -> void:
 	skill_instance = si
@@ -32,6 +34,8 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_contex
 	_ordered_hits.clear()
 	_outbound_hit_ids.clear()
 	_return_hit_ids.clear()
+	_undo_path.clear()
+	_undo_index = 0
 	rotation = direction.angle()
 	queue_redraw()
 
@@ -47,6 +51,9 @@ func advance_simulation(delta: float) -> void:
 			_record_path_point()
 			if _distance_traveled >= max_range:
 				state = State.TURNING
+				if get_meta("undo_retrace", false):
+					_undo_path = UndoHistoryBehavior.retrace_path(_recorded_path)
+					_undo_index = 1
 				state = State.RETURNING
 		State.TURNING:
 			state = State.RETURNING
@@ -55,11 +62,16 @@ func advance_simulation(delta: float) -> void:
 				state = State.CAUGHT
 				return
 			var target := _owner_node.global_position
+			if get_meta("undo_retrace", false) and _undo_index < _undo_path.size():
+				target = _undo_path[_undo_index]
 			var distance := global_position.distance_to(target)
 			if distance <= speed * delta + 16.0:
 				global_position = target
 				_record_path_point()
-				state = State.CAUGHT
+				if get_meta("undo_retrace", false) and _undo_index < _undo_path.size() - 1:
+					_undo_index += 1
+				else:
+					state = State.CAUGHT
 			else:
 				direction = global_position.direction_to(target)
 				global_position += direction * speed * delta
@@ -110,6 +122,10 @@ func reset() -> void:
 	_ordered_hits.clear()
 	_outbound_hit_ids.clear()
 	_return_hit_ids.clear()
+	_undo_path.clear()
+	_undo_index = 0
+	if has_meta("undo_retrace"):
+		remove_meta("undo_retrace")
 
 func _draw() -> void:
 	draw_arc(Vector2.ZERO, 16.0, -2.35, 0.75, 18, Color(0.15, 0.9, 1.0), 7.0)

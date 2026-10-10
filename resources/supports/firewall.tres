@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SupportResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/support_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/supports/firewall-v1.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "firewall"
+name = "Firewall"
+required_tags = Array[String]([])
+excluded_tags = Array[String]([])
+stat_modifiers = {}
+added_tags = Array[String]([])
+behavior_key = "firewall"
+icon = ExtResource("2")
+rarity = "rare"
+description = "Flame Wave leaves one burning wall between the caster and impact."
