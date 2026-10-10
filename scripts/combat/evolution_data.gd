@@ -34,6 +34,9 @@ static func create_behavior(id: String, tier: int) -> EvolutionBehavior:
 	behavior.configure(tier)
 	return behavior
 
+static func roman(value: int) -> String:
+	return ["0", "I", "II", "III"][clampi(value, 0, 3)]
+
 static func roll_offers(skills: Array[SkillInstance], difficulty: int, rng: RandomNumberGenerator) -> Array[Dictionary]:
 	var eligible_indices: Array[int] = []
 	for index in skills.size():

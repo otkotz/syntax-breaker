@@ -31,12 +31,53 @@ func setup(skills: Array[SkillInstance], difficulty: int = 0, rng: RandomNumberG
 	title.add_theme_font_size_override("font_size", 30)
 	box.add_child(title)
 	for offer: Dictionary in offers:
-		var button := Button.new()
-		button.text = "%s\n%s" % [offer.name, offer.description]
-		button.custom_minimum_size.y = 120
-		UITheme.style_button(button, 26)
+		var button := _build_offer_card(offer, skills)
 		button.pressed.connect(func(): _select_offer(offer, skills))
 		box.add_child(button)
+
+func format_tier_transition(current: int, offered: int) -> String:
+	return "%s → %s" % [EvolutionData.roman(current), EvolutionData.roman(offered)]
+
+func _build_offer_card(offer: Dictionary, skills: Array[SkillInstance]) -> Button:
+	var button := Button.new()
+	button.set_meta("evolution_offer", true)
+	button.custom_minimum_size = Vector2(700, 120)
+	button.tooltip_text = ""
+	UITheme.style_button(button, 20)
+	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(PRESET_FULL_RECT, PRESET_MODE_MINSIZE, 14)
+	row.mouse_filter = MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 16)
+	button.add_child(row)
+	var skill_index := int(offer.get("skill_index", -1))
+	if skill_index >= 0 and skill_index < skills.size():
+		var artwork := UITheme.item_thumbnail(skills[skill_index].base, 88)
+		if artwork:
+			row.add_child(artwork)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = SIZE_EXPAND_FILL
+	copy.mouse_filter = MOUSE_FILTER_IGNORE
+	row.add_child(copy)
+	var heading := Label.new()
+	heading.text = str(offer.get("name", "Upgrade"))
+	heading.add_theme_font_size_override("font_size", 24)
+	heading.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
+	heading.mouse_filter = MOUSE_FILTER_IGNORE
+	copy.add_child(heading)
+	var tier := Label.new()
+	tier.text = format_tier_transition(int(offer.get("current_tier", 0)), int(offer.get("offered_tier", 0))) if offer.get("type") == "evolution" else "EXTRA SUPPORT SLOT"
+	tier.add_theme_font_size_override("font_size", 18)
+	tier.add_theme_color_override("font_color", UITheme.C_RARITY_LEGENDARY)
+	tier.mouse_filter = MOUSE_FILTER_IGNORE
+	copy.add_child(tier)
+	var description := Label.new()
+	description.text = str(offer.get("description", ""))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.add_theme_font_size_override("font_size", 16)
+	description.add_theme_color_override("font_color", UITheme.C_INK_MUTE)
+	description.mouse_filter = MOUSE_FILTER_IGNORE
+	copy.add_child(description)
+	return button
 
 func _select_offer(offer: Dictionary, skills: Array[SkillInstance]) -> void:
 	if _chosen:

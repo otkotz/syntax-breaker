@@ -335,6 +335,13 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 	name_lbl.add_theme_font_size_override("font_size", 24)
 	name_lbl.add_theme_color_override("font_color", card_color)
 	info.add_child(name_lbl)
+	if si.evolution_tier > 0:
+		var evolution := Label.new()
+		var data := EvolutionData.get_for_skill(si.base.id)
+		evolution.text = "%s · TIER %s" % [data.get("name", si.evolution_id), EvolutionData.roman(si.evolution_tier)]
+		evolution.add_theme_font_size_override("font_size", 16)
+		evolution.add_theme_color_override("font_color", C_GOLD)
+		info.add_child(evolution)
 
 	var tag_row := HBoxContainer.new()
 	tag_row.add_theme_constant_override("separation", 5)

@@ -25,12 +25,25 @@ func run_checks() -> void:
 	_check_warning_activation()
 	_check_boss_ground_opacity()
 	_check_damage_telemetry()
+	_check_low_quality_evolution_identity()
 	if failures.is_empty():
 		print("PASS: opaque hostile projectiles, readable silhouettes, A0 boss damage budget, warning/activation phases and uncapped damage telemetry")
 	else:
 		for failure in failures:
 			push_error(failure)
 	get_tree().quit(0 if failures.is_empty() else 1)
+
+func _check_low_quality_evolution_identity() -> void:
+	var previous := QualitySettings.current_preset
+	QualitySettings.set_preset(QualitySettings.Preset.LOW)
+	var gallery := EvolutionGallery.new()
+	add_child(gallery)
+	gallery.show_effect("recursive_rollback", 3)
+	var visible := gallery.count_gameplay_effects("rollback")
+	check(visible >= 1, "Low quality preserves Recursive Rollback identity")
+	check(visible <= QualitySettings.projectile_cap, "Low quality evolution identity obeys gameplay cap")
+	gallery.queue_free()
+	QualitySettings.set_preset(previous)
 
 # Catches glow overwriting the opaque core in the baked image, not color declarations.
 func _check_projectile() -> void:
