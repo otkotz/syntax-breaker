@@ -40,7 +40,7 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, context: Atta
 	attack_context = context if context else si.create_attack_context()
 	direction = dir.normalized()
 	speed = si.computed_stats.get("speed", 300.0)
-	damage = si.computed_stats.get("damage", 10.0)
+	damage = si.computed_stats.get("damage", 10.0) * float(attack_context.metadata.get("damage_mult", 1.0))
 	pierce_remaining = si.computed_stats.get("pierce", 0)
 	_max_range = si.computed_stats.get("range", 400.0)
 	pool_ref = pool

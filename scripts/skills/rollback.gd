@@ -19,6 +19,7 @@ var _outbound_hit_ids: Dictionary = {}
 var _return_hit_ids: Dictionary = {}
 var _undo_path: Array[Vector2] = []
 var _undo_index := 0
+var _expire_notified := false
 
 func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_context: AttackContext = null) -> void:
 	skill_instance = si
@@ -26,7 +27,7 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_contex
 	pool_ref = pool
 	context = attack_context if attack_context else si.create_attack_context()
 	speed = si.computed_stats.get("speed", 300.0)
-	damage = si.computed_stats.get("damage", 8.0)
+	damage = si.computed_stats.get("damage", 8.0) * float(context.metadata.get("damage_mult", 1.0))
 	max_range = maxf(40.0, si.computed_stats.get("range", 240.0))
 	state = State.OUTBOUND
 	_distance_traveled = 0.0
@@ -36,6 +37,7 @@ func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_contex
 	_return_hit_ids.clear()
 	_undo_path.clear()
 	_undo_index = 0
+	_expire_notified = false
 	rotation = direction.angle()
 	queue_redraw()
 
@@ -107,6 +109,9 @@ func get_ordered_hits() -> Array[Dictionary]:
 	return _ordered_hits.duplicate(true)
 
 func _release_to_pool() -> void:
+	if not _expire_notified and skill_instance:
+		_expire_notified = true
+		skill_instance.notify_expire(self)
 	if pool_ref:
 		pool_ref.release(self)
 	else:
@@ -124,6 +129,7 @@ func reset() -> void:
 	_return_hit_ids.clear()
 	_undo_path.clear()
 	_undo_index = 0
+	_expire_notified = false
 	if has_meta("undo_retrace"):
 		remove_meta("undo_retrace")
 

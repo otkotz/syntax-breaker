@@ -11,11 +11,28 @@ const BY_SKILL := {
 	"blade_spin": {"id": "recursive_rollback", "name": "Recursive Rollback"},
 }
 
+const BEHAVIORS := {
+	"solar_flare": preload("res://scripts/evolutions/solar_flare.gd"),
+	"firewall_breach": preload("res://scripts/evolutions/firewall_breach.gd"),
+	"absolute_zero": preload("res://scripts/evolutions/absolute_zero.gd"),
+	"cloud_outage": preload("res://scripts/evolutions/cloud_outage.gd"),
+	"ransomware": preload("res://scripts/evolutions/ransomware.gd"),
+	"daemon_process": preload("res://scripts/evolutions/daemon_process.gd"),
+	"recursive_rollback": preload("res://scripts/evolutions/recursive_rollback.gd"),
+}
+
 static func get_for_skill(skill_id: String) -> Dictionary:
 	return BY_SKILL.get(skill_id, {}).duplicate(true)
 
 static func is_valid_for_skill(skill_id: String, evolution_id: String) -> bool:
 	return BY_SKILL.has(skill_id) and BY_SKILL[skill_id].id == evolution_id
+
+static func create_behavior(id: String, tier: int) -> EvolutionBehavior:
+	if not BEHAVIORS.has(id):
+		return null
+	var behavior: EvolutionBehavior = BEHAVIORS[id].new()
+	behavior.configure(tier)
+	return behavior
 
 static func roll_offers(skills: Array[SkillInstance], difficulty: int, rng: RandomNumberGenerator) -> Array[Dictionary]:
 	var eligible_indices: Array[int] = []

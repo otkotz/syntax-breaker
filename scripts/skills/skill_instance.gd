@@ -14,6 +14,7 @@ var evolution_tier := 0
 var bonus_support_slots := 0
 var request_recast: Callable = Callable()
 var last_cast_metadata: Dictionary = {}
+var evolution_behavior: EvolutionBehavior
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -156,27 +157,36 @@ func _apply_mutations() -> void:
 
 func _rebuild_behaviors() -> void:
 	behaviors.clear()
+	evolution_behavior = null
 	for support in linked_supports:
 		if not support.behavior_key.is_empty():
 			var behavior: BehaviorBase = BehaviorRegistry.get_behavior(support.behavior_key)
 			if behavior:
 				behavior.support_id = support.id
 				behaviors.append(behavior)
+	if evolution_tier > 0 and not evolution_id.is_empty():
+		evolution_behavior = EvolutionData.create_behavior(evolution_id, evolution_tier)
 
 func notify_spawn(projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.modify_spawn(self, projectile)
+	if evolution_behavior:
+		evolution_behavior.on_spawn(self, projectile)
 
 func notify_cast(direction: Vector2, context: AttackContext, metadata: Dictionary = {}) -> Dictionary:
 	var cast := {"direction": direction, "context": context, "metadata": metadata}
 	for behavior in behaviors:
 		behavior.on_cast(self, cast)
+	if evolution_behavior:
+		evolution_behavior.on_cast(self, cast)
 	last_cast_metadata = cast.metadata.duplicate(true)
 	return cast
 
 func notify_hit(target: Node2D, projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.on_hit(self, target, projectile)
+	if evolution_behavior:
+		evolution_behavior.on_hit(self, target, projectile)
 
 func notify_crit(target: Node2D, projectile: Node2D) -> void:
 	EngineTracker.on_crit()
@@ -190,12 +200,16 @@ func notify_status_apply(target: Node2D, status_type: String) -> void:
 func notify_expire(effect: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.on_expire(self, effect)
+	if evolution_behavior:
+		evolution_behavior.on_expire(self, effect)
 
 var trigger_on_death_recast: Callable = Callable()
 
 func notify_kill(target: Node2D, projectile: Node2D) -> void:
 	for behavior in behaviors:
 		behavior.on_kill(self, target, projectile)
+	if evolution_behavior:
+		evolution_behavior.on_kill(self, target, projectile)
 	_process_mutation_kills(target)
 	if PassiveBehaviors.has_trigger_on_death() and trigger_on_death_recast.is_valid():
 		trigger_on_death_recast.call(self, target)
