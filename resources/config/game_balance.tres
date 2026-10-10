@@ -26,3 +26,5 @@ screen_shake_on_hit = 3.0
 screen_shake_on_kill = 1.5
 screen_shake_duration = 0.15
 hit_stop_duration = 0.03
+gameplay_projectile_caps = PackedInt32Array(20, 40, 60)
+cosmetic_particle_caps = PackedInt32Array(4, 16, 32)

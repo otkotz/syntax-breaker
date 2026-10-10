@@ -32,3 +32,7 @@ extends Resource
 @export var screen_shake_on_kill: float = 1.5
 @export var screen_shake_duration: float = 0.15
 @export var hit_stop_duration: float = 0.03
+
+@export_group("Device Quality Budgets")
+@export var gameplay_projectile_caps := PackedInt32Array([20, 40, 60])
+@export var cosmetic_particle_caps := PackedInt32Array([4, 16, 32])
