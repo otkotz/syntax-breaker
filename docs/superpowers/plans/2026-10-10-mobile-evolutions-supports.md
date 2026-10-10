@@ -21,7 +21,7 @@
 - Device-quality caps remain; cosmetic particles degrade before gameplay objects.
 - Derived attacks cannot recursively reproduce themselves without an explicit generation limit.
 - Preserve unrelated dirty-worktree changes in `scripts/ui/skill_picker.gd`, `tests/item_art_native.gd`, `tests/skill_picker_touch_native.gd`, and existing untracked docs.
-- In every PowerShell test block, first resolve the engine with `$godot = 'D:\Pobrane\Godot_v4.6.2-stable_win64.exe\Godot_v4.6.2-stable_win64_console.exe'`; stop if that path is absent rather than silently using another engine version.
+- In every PowerShell test block, first resolve the engine with `$godot = 'D:\Pobrane\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe'`; stop if that path is absent rather than silently using another engine version.
 
 ## Review Focus
 

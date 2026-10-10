@@ -15,7 +15,7 @@ func run_checks() -> void:
 	check(export_config.load("res://export_presets.cfg") == OK, "Android export preset is readable")
 	var android_features := str(export_config.get_value("preset.0", "custom_features", ""))
 	check(not android_features.contains("phone_test_controls"), "Default Android export keeps test arrows disabled")
-	var joystick := preload("res://scenes/ui/virtual_joystick.tscn").instantiate() as VirtualJoystick
+	var joystick := preload("res://scenes/ui/virtual_joystick.tscn").instantiate() as GameVirtualJoystick
 	# In combat the joystick inherits pausable processing from Arena, while the
 	# test runner must stay active to inspect the paused state.
 	joystick.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -79,14 +79,14 @@ func run_checks() -> void:
 	await get_tree().process_frame
 	finish()
 
-func touch(joystick: VirtualJoystick, pressed: bool) -> void:
+func touch(joystick: GameVirtualJoystick, pressed: bool) -> void:
 	var event := InputEventScreenTouch.new()
 	event.index = 0
 	event.position = Vector2(500, 600)
 	event.pressed = pressed
 	joystick._input(event)
 
-func drag(joystick: VirtualJoystick) -> void:
+func drag(joystick: GameVirtualJoystick) -> void:
 	var event := InputEventScreenDrag.new()
 	event.index = 0
 	event.position = Vector2(600, 600)
