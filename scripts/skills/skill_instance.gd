@@ -11,6 +11,7 @@ var stage_overrides: Array[Dictionary] = []
 var _next_root_cast_id := 1
 var evolution_id := ""
 var evolution_tier := 0
+var bonus_support_slots := 0
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -37,6 +38,9 @@ func set_evolution(id: String, tier: int) -> bool:
 	recompute(RunManager.owned_passives)
 	return true
 
+func grant_support_slot() -> void:
+	bonus_support_slots += 1
+
 func link_support(support: SupportResource) -> bool:
 	if not support_rejection_reason(support).is_empty():
 		return false
@@ -47,7 +51,7 @@ func link_support(support: SupportResource) -> bool:
 func support_rejection_reason(support: SupportResource, replacing: SupportResource = null) -> String:
 	if not TagMatcher.can_link_support(base, support):
 		return "Incompatible skill tags"
-	if linked_supports.size() >= base.max_supports and replacing == null:
+	if linked_supports.size() >= base.max_supports + bonus_support_slots and replacing == null:
 		return "All sockets are full"
 	for linked: SupportResource in linked_supports:
 		if linked != replacing and not support.id.is_empty() and linked.id == support.id:

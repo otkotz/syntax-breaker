@@ -20,6 +20,26 @@ func _ready() -> void:
 	call_deferred("run_checks")
 
 func run_checks() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261010
+	var counts := [0, 0, 0]
+	for i in 3000:
+		counts[CompilationTerminalScript.roll_difficulty(rng)] += 1
+	for count: int in counts:
+		check(count >= 900 and count <= 1100, "Test mode exposes each difficulty approximately equally")
+	var definitions := CompilationTerminalScript.ENCOUNTERS
+	check(definitions[0].enemy_count == 24 and definitions[0].outside_grace == 3.0, "Compile contract")
+	check(definitions[1].enemy_count == 32 and definitions[1].outside_grace == 2.0, "Overclock contract")
+	check(definitions[2].enemy_count == 40 and definitions[2].outside_grace == 1.0, "Kernel contract")
+	var maxed_skills: Array[SkillInstance] = []
+	for skill_id: String in EvolutionData.BY_SKILL:
+		var maxed := SkillInstance.new(load("res://resources/skills/%s.tres" % skill_id))
+		maxed.set_evolution(EvolutionData.get_for_skill(skill_id).id, 3)
+		maxed_skills.append(maxed)
+	var fallback := EvolutionData.roll_offers(maxed_skills, 2, rng)
+	check(fallback.size() == 3 and fallback.all(func(offer): return offer.type in ["support", "support_slot"]),
+		"Exhausted evolution catalog returns legal fallback offers")
+
 	var terminal := CompilationTerminalScript.new()
 	add_child(terminal)
 	terminal.wave_size = 4
@@ -100,11 +120,25 @@ func run_checks() -> void:
 	picker.setup([fireball])
 	var buttons := find_buttons(picker)
 	check(buttons.size() == 3, "Successful terminal offers exactly three rewards and no skip button")
-	var mutations_before := fireball.mutations.size()
+	var tier_before := fireball.evolution_tier
 	buttons[0].pressed.emit()
-	check(fireball.mutations.size() == mutations_before + 1,
-		"Choosing a terminal reward installs a persistent skill mutation")
+	check(fireball.evolution_tier > tier_before,
+		"Choosing a terminal reward installs a persistent skill evolution")
 	await get_tree().process_frame
+
+	RunTelemetry.log_directory = "res://.godot/terminal_cleanup_telemetry"
+	RunTelemetry.begin({"test": "terminal_cleanup"}, true)
+	var interrupted_picker := CompilationPicker.new()
+	add_child(interrupted_picker)
+	interrupted_picker.setup([fireball], CompilationTerminalScript.Difficulty.KERNEL_BREACH, rng)
+	Engine.time_scale = 0.08
+	interrupted_picker.queue_free()
+	arena._restore_combat_time()
+	await get_tree().process_frame
+	var cancel_events: Array = RunTelemetry.data.events.filter(func(event): return event.type == "decision_canceled")
+	check(Engine.time_scale == 1.0 and cancel_events.size() == 1,
+		"Stage cleanup restores time and records one interrupted terminal result")
+	RunTelemetry.finish("test_complete", [])
 
 	if failures.is_empty():
 		print("PASS: compilation terminal risk, permanence and mutation rewards")

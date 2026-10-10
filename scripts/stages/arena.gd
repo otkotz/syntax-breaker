@@ -123,9 +123,9 @@ func _setup_compilation_terminal() -> void:
 	_compilation_terminal = CompilationTerminalScript.new()
 	_compilation_terminal.position = Vector2(arena_size.x * 0.25, arena_size.y * 0.48)
 	add_child(_compilation_terminal)
-	_compilation_terminal.setup(player, spawner)
 	_compilation_terminal.wave_completed.connect(_open_compilation, CONNECT_ONE_SHOT)
 	_compilation_terminal.status_changed.connect(_show_terminal_status)
+	_compilation_terminal.setup(player, spawner)
 	_terminal_status = Label.new()
 	_terminal_status.position = Vector2(180, 458)
 	_terminal_status.size = Vector2(720, 72)
@@ -134,7 +134,7 @@ func _setup_compilation_terminal() -> void:
 	_terminal_status.add_theme_font_size_override("font_size", 26)
 	_terminal_status.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	$CanvasLayer.add_child(_terminal_status)
-	_show_terminal_status("APPROACH THE TERMINAL TO START COMPILATION")
+	_show_terminal_status("%s — APPROACH THE TERMINAL" % _compilation_terminal.get_encounter_definition().name)
 
 func _show_terminal_status(message: String) -> void:
 	if _terminal_status:
@@ -147,7 +147,7 @@ func _open_compilation() -> void:
 	Engine.time_scale = 0.08
 	var picker := CompilationPicker.new()
 	$CanvasLayer.add_child(picker)
-	picker.setup((player.get_node("SkillCaster") as SkillCaster).skill_instances)
+	picker.setup((player.get_node("SkillCaster") as SkillCaster).skill_instances, _compilation_terminal.difficulty)
 	picker.chosen.connect(func():
 		_restore_combat_time()
 		_show_terminal_status("TERMINAL DEPLETED — MUTATION INSTALLED")

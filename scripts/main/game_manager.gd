@@ -541,6 +541,7 @@ func _serialize_skills() -> Array[Dictionary]:
 			"tier": si.rarity_tier,
 			"evolution_id": si.evolution_id,
 			"evolution_tier": si.evolution_tier,
+			"bonus_support_slots": si.bonus_support_slots,
 		})
 	return result
 
@@ -561,6 +562,7 @@ static func deserialize_skill_entry(entry: Dictionary) -> SkillInstance:
 		return null
 	var si := SkillInstance.new(skill_res)
 	si.rarity_tier = entry.get("tier", skill_res.rarity)
+	si.bonus_support_slots = maxi(0, int(entry.get("bonus_support_slots", 0)))
 	for support_id: String in entry.get("supports", []):
 		var support_path := "res://resources/supports/%s.tres" % support_id
 		if ResourceLoader.exists(support_path):

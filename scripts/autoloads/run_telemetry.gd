@@ -129,6 +129,13 @@ func choose(id: int, selected: Dictionary) -> void:
 		"think_seconds": data.app_seconds - decision.opened_app, "selected": selected})
 	_open_decisions.erase(id)
 
+func cancel_decision(id: int, reason: String) -> void:
+	if not active or not _open_decisions.has(id):
+		return
+	var decision: Dictionary = _open_decisions[id]
+	record("decision_canceled", {"id": id, "kind": decision.kind, "reason": reason})
+	_open_decisions.erase(id)
+
 func describe_offer(offer: Dictionary) -> Dictionary:
 	var result := {"type": offer.get("type", "unknown")}
 	if offer.has("resource"):

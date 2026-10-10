@@ -16,3 +16,30 @@ static func get_for_skill(skill_id: String) -> Dictionary:
 
 static func is_valid_for_skill(skill_id: String, evolution_id: String) -> bool:
 	return BY_SKILL.has(skill_id) and BY_SKILL[skill_id].id == evolution_id
+
+static func roll_offers(skills: Array[SkillInstance], difficulty: int, rng: RandomNumberGenerator) -> Array[Dictionary]:
+	var eligible_indices: Array[int] = []
+	for index in skills.size():
+		if skills[index].evolution_tier < 3 and BY_SKILL.has(skills[index].base.id):
+			eligible_indices.append(index)
+	for i in range(eligible_indices.size() - 1, 0, -1):
+		var swap_index := rng.randi_range(0, i)
+		var value := eligible_indices[i]
+		eligible_indices[i] = eligible_indices[swap_index]
+		eligible_indices[swap_index] = value
+	var tier_bands: Array = CompilationTerminal.ENCOUNTERS[clampi(difficulty, 0, 2)].tiers
+	var offers: Array[Dictionary] = []
+	for skill_index in eligible_indices.slice(0, mini(3, eligible_indices.size())):
+		var skill: SkillInstance = skills[skill_index]
+		var data := get_for_skill(skill.base.id)
+		var rolled_tier: int = tier_bands[rng.randi_range(0, tier_bands.size() - 1)]
+		var offered_tier := clampi(maxi(skill.evolution_tier + 1, rolled_tier), 1, 3)
+		offers.append({"type": "evolution", "skill_index": skill_index,
+			"evolution_id": data.id, "current_tier": skill.evolution_tier,
+			"offered_tier": offered_tier, "name": data.name,
+			"description": "Upgrade %s to tier %d" % [skill.base.name, offered_tier]})
+	while offers.size() < 3:
+		var fallback_index := offers.size() % maxi(1, skills.size())
+		offers.append({"type": "support_slot", "skill_index": fallback_index,
+			"name": "Hot Socket", "description": "Gain one additional support slot"})
+	return offers

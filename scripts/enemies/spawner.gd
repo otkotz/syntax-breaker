@@ -348,18 +348,37 @@ func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = tr
 	RunTelemetry.enemy_spawned(role)
 	return enemy
 
-func spawn_compilation_wave(origin: Vector2, count: int) -> int:
+func spawn_compilation_wave(origin: Vector2, encounter: Variant) -> int:
+	var definition: Dictionary = encounter if encounter is Dictionary else {
+		"enemy_count": int(encounter), "elite_count": 0, "miniboss": false}
+	var count := int(definition.get("enemy_count", 0))
 	if _completed or count <= 0:
 		return 0
 	var spawned := 0
 	var roles: Array[String] = ["trash", "medium", "ranged", "charger", "tank"]
-	for i in count:
+	var special_count := int(definition.get("elite_count", 0)) + (1 if definition.get("miniboss", false) else 0)
+	for i in maxi(0, count - special_count):
 		var angle := TAU * float(i) / float(count)
 		var ring := 210.0 + float((i % 3) * 55)
 		var enemy := _spawn_enemy_at(origin + Vector2.from_angle(angle) * ring, roles[i % roles.size()], false)
 		if enemy:
 			enemy.set_meta("compilation_wave", true)
 			spawned += 1
+	for i in int(definition.get("elite_count", 0)):
+		var before := _enemies_alive
+		_spawn_elite()
+		if _enemies_alive > before:
+			var elite: Node = get_children().filter(func(node: Node): return node.get_meta("combat_role", "") == "elite" and not node.get_meta("compilation_wave", false)).back()
+			elite.set_meta("compilation_wave", true)
+			spawned += 1
+	if definition.get("miniboss", false):
+		var before := _enemies_alive
+		_spawn_mini_boss()
+		if _enemies_alive > before:
+			var bosses := get_children().filter(func(node: Node): return node.get_meta("combat_role", "") == "mini_boss")
+			if not bosses.is_empty():
+				bosses.back().set_meta("compilation_wave", true)
+				spawned += 1
 	return spawned
 
 func spawn_split_children(source: EnemyBase) -> void:

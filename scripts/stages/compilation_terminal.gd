@@ -2,6 +2,13 @@ class_name CompilationTerminal
 extends Node2D
 
 enum State { READY, ACTIVE, COMPLETED, FAILED }
+enum Difficulty { COMPILE, OVERCLOCK, KERNEL_BREACH }
+
+const ENCOUNTERS := [
+	{"name": "COMPILE", "enemy_count": 24, "elite_count": 0, "miniboss": false, "zone_radius": 260.0, "outside_grace": 3.0, "tiers": [1, 1, 1, 2]},
+	{"name": "OVERCLOCK", "enemy_count": 32, "elite_count": 3, "miniboss": false, "zone_radius": 220.0, "outside_grace": 2.0, "tiers": [1, 2, 2, 2, 3]},
+	{"name": "KERNEL BREACH", "enemy_count": 40, "elite_count": 4, "miniboss": true, "zone_radius": 180.0, "outside_grace": 1.0, "tiers": [2, 2, 3, 3]},
+]
 
 signal activated(wave_size: int)
 signal wave_completed
@@ -22,11 +29,27 @@ var _player: Node2D
 var _spawner: Spawner
 var _player_inside := true
 var _pulse := 0.0
+var difficulty: Difficulty = Difficulty.COMPILE
+var zone_radius := ZONE_RADIUS
+
+static func roll_difficulty(rng: RandomNumberGenerator) -> Difficulty:
+	return rng.randi_range(0, Difficulty.size() - 1)
+
+func get_encounter_definition() -> Dictionary:
+	return ENCOUNTERS[difficulty].duplicate(true)
 
 func setup(player: Node2D, spawner: Spawner) -> void:
 	_player = player
 	_spawner = spawner
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	difficulty = roll_difficulty(rng)
+	var definition := get_encounter_definition()
+	wave_size = definition.enemy_count
+	outside_grace = definition.outside_grace
+	zone_radius = definition.zone_radius
 	GameBus.enemy_killed.connect(_on_enemy_killed)
+	status_changed.emit("%s — APPROACH TO COMPILE" % definition.name)
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -35,7 +58,7 @@ func _process(delta: float) -> void:
 		if global_position.distance_to(_player.global_position) <= ACTIVATION_RADIUS:
 			activate()
 	elif state == State.ACTIVE and is_instance_valid(_player):
-		set_player_inside(global_position.distance_to(_player.global_position) <= ZONE_RADIUS)
+		set_player_inside(global_position.distance_to(_player.global_position) <= zone_radius)
 		advance_wave(delta)
 	queue_redraw()
 
@@ -46,7 +69,7 @@ func activate() -> bool:
 	kills_remaining = wave_size
 	outside_time = 0.0
 	if is_instance_valid(_spawner):
-		kills_remaining = _spawner.spawn_compilation_wave(global_position, wave_size)
+		kills_remaining = _spawner.spawn_compilation_wave(global_position, get_encounter_definition())
 		if kills_remaining <= 0:
 			_fail()
 			return false
@@ -92,8 +115,8 @@ func _fail() -> void:
 
 func _draw() -> void:
 	if state == State.ACTIVE:
-		draw_circle(Vector2.ZERO, ZONE_RADIUS, Color(0.2, 0.75, 1.0, 0.055))
-		draw_arc(Vector2.ZERO, ZONE_RADIUS, 0.0, TAU, 96, Color(0.25, 0.85, 1.0, 0.75), 4.0)
+		draw_circle(Vector2.ZERO, zone_radius, Color(0.2, 0.75, 1.0, 0.055))
+		draw_arc(Vector2.ZERO, zone_radius, 0.0, TAU, 96, Color(0.25, 0.85, 1.0, 0.75), 4.0)
 	var glow := 0.72 + sin(_pulse * 4.0) * 0.18 if state == State.READY else 0.45
 	var color := Color(0.2, 0.85, 1.0, glow)
 	if state == State.ACTIVE:
