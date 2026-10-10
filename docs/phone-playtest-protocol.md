@@ -205,6 +205,28 @@ Log nie zastępuje nagrania ani oceny jakości decyzji. Nieukończony JSON sam w
 dowodzi crasha; crash-free 99%+ wymaga osobnego rejestru sesji i dowodów awarii.
 Codzienny seed/historia pozostają odłożone do stabilnego podstawowego balansu.
 
+## Evolutions — aktualna iteracja 2026-10-10
+
+Build `builds/SyntaxBreaker-evolutions.apk` został wyeksportowany i podpisany przez Godot
+4.7.2. SHA-256: `CF9AB6D1210F7E60915BEF4B638E0E96571FEF7045A028930720D7AC0FC7681E`.
+Wszystkie 17 zestawów testów natywnych przeszło, ale `adb devices -l` nie wykrył telefonu.
+Instalacja oraz poniższy test ręczny pozostają niewykonane.
+
+Po podłączeniu i autoryzacji docelowego telefonu sprawdzić kolejno:
+
+1. Pionowy ekran kompilacji: brak ucięć i nakładania, a każda karta ma co najmniej 120 px.
+2. Każda oferta pokazuje grafikę, nazwę ewolucji, przejście tieru i pełny opis bez tooltipa.
+3. Galeria ewolucji pozwala zmienić skill, zestaw supportów, tier, trudność terminala,
+   formację i gęstość; każda kombinacja pozostaje czytelna.
+4. Terminal uruchamia dużą falę, nagroda pojawia się dopiero po jej pokonaniu, a spóźnione
+   zabójstwa nie zaliczają nieudanej kompilacji.
+5. Rollback wraca po swojej trasie, trafia cele w poprawnej kolejności i nie tworzy
+   nieograniczonej liczby efektów po połączeniu z supportami.
+6. Wszystkie siedem ewolucji oraz memiczne i sygnaturowe supporty mają widoczne grafiki,
+   poprawne nazwy i czytelne efekty podczas intensywnej walki.
+7. Na słabszym telefonie zanotować FPS/frame time, temperaturę i stabilność w najgęstszej
+   galerii oraz podczas fali terminala; do czasu pomiaru nie deklarować wyniku wydajności.
+
 ## Analiza
 
 Po skopiowaniu JSON z telefonu do osobnego katalogu wejściowego:
