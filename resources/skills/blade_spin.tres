@@ -1,20 +1,20 @@
 [gd_resource type="Resource" script_class="SkillResource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/skill_resource.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/icons/skills/blade_spin-v1.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/skills/rollback-v1.png" id="2"]
 
 [resource]
 script = ExtResource("1")
 id = "blade_spin"
-name = "Blade Spin"
+name = "Rollback"
 icon = ExtResource("2")
-tags = Array[String](["melee", "aoe", "physical"])
+tags = Array[String](["projectile", "aoe", "physical"])
 base_damage = 8.0
 base_cooldown = 3.0
 base_speed = 300.0
-base_range = 60.0
+base_range = 120.0
 base_pierce = 0
 max_supports = 3
-scene_path = "res://scenes/skills/blade_spin.tscn"
+scene_path = "res://scenes/skills/rollback.tscn"
 rarity = "common"
-description = "Spinning blades orbit the player, slicing enemies and causing bleeding"
+description = "A code boomerang damages enemies outbound and again while rolling back to you"

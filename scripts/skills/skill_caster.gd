@@ -141,7 +141,11 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> voi
 	projectile.global_position = global_position
 
 	if projectile.has_method("initialize"):
-		projectile.initialize(si, direction, pool)
+		if projectile is Rollback:
+			projectile.initialize(si, direction, pool, si.create_attack_context())
+			projectile.set_owner_node(get_parent())
+		else:
+			projectile.initialize(si, direction, pool)
 
 	if projectile.has_method("set_orbit_parent"):
 		projectile.set_orbit_parent(get_parent())
