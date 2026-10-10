@@ -1,16 +1,16 @@
-# PC Evolutions and Memetic Supports Design
+# Mobile-First Evolutions and Memetic Supports Design
 
 **Date:** 2026-10-10  
 **Status:** Awaiting written-spec review  
-**Target:** PC-first top-down 2D build
+**Target:** Mobile-first top-down 2D build, portrait 1080×1920
 
 ## Goal
 
 Make Syntax Breaker's build crafting immediately visible, surprising, and shareable. The first
 milestone replaces Blade Spin with a positional boomerang skill, adds behavior-changing supports,
 introduces three-tier capstone evolutions for every skill, and makes terminal risk determine reward
-quality. Mobile-specific UI and performance constraints are out of scope; PC safety limits against
-infinite recursion and runaway entity counts remain mandatory.
+quality. Touch UI, portrait readability, and phone performance are first-class constraints. Safety
+limits against infinite recursion and runaway entity counts remain mandatory on every platform.
 
 Success means that a viewer can distinguish strong builds without opening a statistics screen,
 terminal risk is legible before combat begins, and every offered evolution is an upgrade rather than
@@ -27,7 +27,7 @@ This milestone includes:
 - six universal behavior-changing supports;
 - one signature support for each of the seven skills;
 - one three-tier evolution path for each of the seven skills;
-- a PC test gallery for rapidly previewing every terminal, support, skill, and evolution tier;
+- a portrait test gallery for rapidly previewing every terminal, support, skill, and evolution tier;
 - automated coverage for compatibility, recursion limits, persistence, and build validity.
 
 This milestone does not include arena devices beyond the compilation terminal, dash/near-miss
@@ -241,8 +241,10 @@ Every derived attack carries:
 
 Support behaviors declare whether they accept derived attacks. Copy and delayed effects do not
 recursively reproduce themselves. Global caps remain for projectiles, fields, hazards, and child
-effects even though phone-specific low caps are removed. When a cap is reached, the game skips the
-new child effect rather than removing an existing player-owned effect or blocking the main cast.
+effects. They scale with the existing device-quality preset, but every supported preset must preserve
+the mechanic's identity. When a cap is reached, the game skips the least important new child effect
+rather than removing an existing player-owned effect or blocking the main cast. Cosmetic particles
+degrade before gameplay objects.
 
 Boss invulnerability, missing targets, exhausted evolution pools, and destroyed terminals fail
 closed: no reward duplication, no invalid attack, and no stuck picker. Invalid saved evolution IDs are
@@ -251,7 +253,8 @@ discarded with a warning while the base skill remains usable.
 ## UI and Feedback
 
 The terminal displays its rolled difficulty before activation using color, name, encounter summary,
-and likely reward tier. Activation remains proximity-based and irreversible.
+and likely reward tier. Activation remains proximity-based and irreversible, so no small interaction
+button is required during movement.
 
 Evolution offers display:
 
@@ -262,12 +265,14 @@ Evolution offers display:
 - a preview icon for the signature effect.
 
 Combat feedback includes distinct source-colored effects, short labels for major procs, evolution
-tier in the skill manager, and separate damage attribution in the run summary. UI is designed for PC
-mouse/keyboard readability; this milestone does not maintain portrait-phone layout parity.
+tier in the skill manager, and separate damage attribution in the run summary. Evolution cards use
+the existing portrait card language, maintain touch targets of at least 96 px at the 1080×1920 design
+resolution, and never require hover. Long descriptions wrap or scroll without shrinking body text.
+Effects must remain distinguishable behind the player's thumbs and inside the portrait camera view.
 
 ## Test Gallery
 
-A developer-only PC scene provides selectors for:
+A developer-only portrait scene provides touch selectors for:
 
 - skill;
 - linked support set;
@@ -277,6 +282,7 @@ A developer-only PC scene provides selectors for:
 
 It can trigger casts, terminal waves, and evolution upgrades without completing a run. It uses actual
 production resources and behaviors rather than test doubles and is excluded from normal progression.
+It supports mouse input in the editor and touch input on an Android device.
 
 ## Verification
 
@@ -293,7 +299,9 @@ Automated verification covers:
 - recursion-generation and active-object caps;
 - all legal skill/support/evolution combinations through the native build audit;
 - existing encounter, damage, save-integrity, catalog, and route suites;
-- project parse, PC export, and a manual gallery pass for visual distinction.
+- project parse, Android export, installation on the test phone, and a manual portrait gallery pass;
+- sustained device performance during the densest legal Kernel Breach build, including thermal and
+  frame-time observation rather than only a desktop frame-rate check.
 
 The initial terminal weights and balance numbers remain test hypotheses. Telemetry and playtests decide
 production weights after all variants are observable.
@@ -306,8 +314,9 @@ production weights after all variants are observable.
 4. Add the six universal supports and their recursion/source metadata.
 5. Add the seven signature supports.
 6. Add three evolution tiers for all seven skills.
-7. Add the test gallery, full catalog audit, PC export verification, and manual visual pass.
+7. Add the portrait test gallery, full catalog audit, Android export/install verification, and manual
+   phone visual/performance pass.
 
 Each step begins with failing behavior tests and ends with the relevant native regression suites. No
-step may weaken compatibility validation or remove safety caps merely because mobile support is no
-longer a target.
+step may weaken compatibility validation, touch usability, portrait readability, or device safety
+caps. PC-specific presentation and uncapped spectacle are deferred until the mobile milestone passes.
