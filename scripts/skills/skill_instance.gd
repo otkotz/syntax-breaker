@@ -172,3 +172,13 @@ func _process_mutation_kills(target: Node2D) -> void:
 		for enemy: Node2D in enemies:
 			if enemy != target and enemy.has_method("take_damage"):
 				enemy.take_damage(damage, false, base, "proc")
+	if has_mutation("terminal_explosive"):
+		var damage: float = computed_stats.get("damage", 10.0)
+		for enemy: Node2D in Targeting.find_enemies_in_range(target.global_position, 180.0, 20):
+			if enemy != target and enemy.has_method("take_damage"):
+				enemy.take_damage(damage, false, base, "proc")
+	if has_mutation("terminal_recursive"):
+		var damage: float = computed_stats.get("damage", 10.0) * 0.75
+		for enemy: Node2D in Targeting.find_enemies_in_range(target.global_position, 320.0, 4):
+			if enemy != target and enemy.has_method("take_damage"):
+				enemy.take_damage(damage, false, base, "proc")

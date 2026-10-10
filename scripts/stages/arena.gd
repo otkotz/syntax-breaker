@@ -1,6 +1,8 @@
 class_name Arena
 extends Node2D
 
+const CompilationTerminalScript = preload("res://scripts/stages/compilation_terminal.gd")
+
 @onready var player: Player = $Player
 @onready var spawner: Spawner = $Spawner
 @onready var joystick: VirtualJoystick = $CanvasLayer/VirtualJoystick
@@ -18,9 +20,9 @@ var _arena_rect: Rect2
 var _stage_data: StageData
 var _consumable_pool: Array[ConsumableResource] = []
 const CONSUMABLE_DROP_CHANCE := 0.03
-var _checkpoint_index: int = 0
 var _compilation_open := false
-const CHECKPOINTS := [0.35, 0.70]
+var _compilation_terminal: Node2D
+var _terminal_status: Label
 
 signal stage_completed
 
@@ -95,6 +97,8 @@ func start_stage(stage_number: int, skill_instances: Array[SkillInstance], stage
 		$CanvasLayer.add_child(consumable_hud)
 		consumable_hud.setup(_consumable_manager)
 
+	_setup_compilation_terminal()
+
 	SynergyTracker.clear()
 	TriggerGuard.clear()
 	CorpseBloomBehavior.reset_clouds()
@@ -107,8 +111,6 @@ func _process(delta: float) -> void:
 	RunTelemetry.tick_combat(delta, spawner._active and spawner._enemies_alive == 0 and spawner._pending_split_fragments == 0 and spawner._stage_timer > 0.0)
 	if hud.has_method("update_wave"):
 		hud.update_wave(spawner.get_stage_timer(), spawner.get_stage_progress(), spawner.get_remaining_enemies())
-	if not _compilation_open and _checkpoint_index < CHECKPOINTS.size() and spawner.get_stage_progress() >= CHECKPOINTS[_checkpoint_index]:
-		_open_compilation()
 	EngineTracker.tick(delta)
 	CritCascadeBehavior.tick(delta)
 	if player:
@@ -117,17 +119,43 @@ func _process(delta: float) -> void:
 			_arena_rect.end - Vector2(16, 16)
 		)
 
+func _setup_compilation_terminal() -> void:
+	_compilation_terminal = CompilationTerminalScript.new()
+	_compilation_terminal.position = Vector2(arena_size.x * 0.25, arena_size.y * 0.48)
+	add_child(_compilation_terminal)
+	_compilation_terminal.setup(player, spawner)
+	_compilation_terminal.wave_completed.connect(_open_compilation, CONNECT_ONE_SHOT)
+	_compilation_terminal.status_changed.connect(_show_terminal_status)
+	_terminal_status = Label.new()
+	_terminal_status.position = Vector2(180, 458)
+	_terminal_status.size = Vector2(720, 72)
+	_terminal_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_terminal_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_terminal_status.add_theme_font_size_override("font_size", 26)
+	_terminal_status.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
+	$CanvasLayer.add_child(_terminal_status)
+	_show_terminal_status("APPROACH THE TERMINAL TO START COMPILATION")
+
+func _show_terminal_status(message: String) -> void:
+	if _terminal_status:
+		_terminal_status.text = message
+
 func _open_compilation() -> void:
+	if _compilation_open:
+		return
 	_compilation_open = true
-	_checkpoint_index += 1
-	get_tree().paused = true
+	Engine.time_scale = 0.08
 	var picker := CompilationPicker.new()
 	$CanvasLayer.add_child(picker)
 	picker.setup((player.get_node("SkillCaster") as SkillCaster).skill_instances)
 	picker.chosen.connect(func():
-		_compilation_open = false
-		get_tree().paused = false
+		_restore_combat_time()
+		_show_terminal_status("TERMINAL DEPLETED — MUTATION INSTALLED")
 	, CONNECT_ONE_SHOT)
+
+func _restore_combat_time() -> void:
+	Engine.time_scale = 1.0
+	_compilation_open = false
 
 func _draw() -> void:
 	var bg := Color(0.12, 0.12, 0.18)
@@ -164,7 +192,7 @@ func _on_enemy_killed(_enemy: Node2D, _killer_skill: Resource) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE or what == NOTIFICATION_EXIT_TREE:
-		Engine.time_scale = 1.0
+		_restore_combat_time()
 		_clear_transient_effects()
 
 func skip_stage() -> void:

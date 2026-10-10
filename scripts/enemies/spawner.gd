@@ -304,7 +304,7 @@ func _get_scene_for_role(role: String) -> PackedScene:
 			return split_fragment_scene
 	return melee_scene
 
-func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = true, cleansing: bool = false) -> void:
+func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = true, cleansing: bool = false) -> EnemyBase:
 	if ROLE_LIMITS.has(role) and get_active_role_count(role) >= int(ROLE_LIMITS[role]):
 		if role == "split_fragment":
 			return
@@ -314,7 +314,7 @@ func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = tr
 
 	var scene := _get_scene_for_role(role)
 	if not scene:
-		return
+		return null
 
 	var clamped := pos.clamp(
 		_arena_rect.position + Vector2(20, 20),
@@ -322,6 +322,8 @@ func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = tr
 	)
 
 	var enemy := _get_from_pool(scene)
+	if enemy.has_meta("compilation_wave"):
+		enemy.remove_meta("compilation_wave")
 	enemy.set_meta("spawn_role", role)
 	if cleansing:
 		enemy.set_meta("cleanses_boss_poison", true)
@@ -344,6 +346,21 @@ func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = tr
 		_spawned_count += 1
 	_enemies_alive += 1
 	RunTelemetry.enemy_spawned(role)
+	return enemy
+
+func spawn_compilation_wave(origin: Vector2, count: int) -> int:
+	if _completed or count <= 0:
+		return 0
+	var spawned := 0
+	var roles: Array[String] = ["trash", "medium", "ranged", "charger", "tank"]
+	for i in count:
+		var angle := TAU * float(i) / float(count)
+		var ring := 210.0 + float((i % 3) * 55)
+		var enemy := _spawn_enemy_at(origin + Vector2.from_angle(angle) * ring, roles[i % roles.size()], false)
+		if enemy:
+			enemy.set_meta("compilation_wave", true)
+			spawned += 1
+	return spawned
 
 func spawn_split_children(source: EnemyBase) -> void:
 	_reserve_fragments(source, false)
