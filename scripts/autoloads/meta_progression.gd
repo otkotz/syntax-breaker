@@ -6,7 +6,7 @@ var save_path: String = SAVE_PATH
 
 var unlocked_items: Dictionary = {
 	"skills": ["fireball", "lightning_bolt", "blade_spin"],
-	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning", "hypothermia", "laser", "copy_paste", "spaghetti_code", "works_on_my_machine"],
+	"supports": ["pierce", "faster_casting", "poison_on_hit", "spell_echo", "cast_on_kill", "void_rift", "totem", "mine", "returning", "hypothermia", "laser", "copy_paste", "spaghetti_code", "works_on_my_machine", "lag_spike", "alt_f4", "rubber_duck"],
 	"passives": ["ward_capacity", "ward_recovery", "ward_reflex", "thick_skin", "swift_feet", "sharp_eyes", "heavy_hitter", "rapid_fire", "iron_will", "extra_shot", "wide_impact", "fortune",
 		"pierce_mastery", "returning_mastery", "chain_mastery", "split_mastery", "shotgun_mastery",
 		"increased_area_mastery", "faster_casting_mastery", "crit_explosion_mastery", "poison_on_hit_mastery",
@@ -196,6 +196,6 @@ func load_progress() -> void:
 				unlocked_items["supports"] = []
 			if not unlocked_items.supports.has("laser"):
 				unlocked_items.supports.append("laser")
-			for support_id in ["copy_paste", "spaghetti_code", "works_on_my_machine"]:
+			for support_id in ["copy_paste", "spaghetti_code", "works_on_my_machine", "lag_spike", "alt_f4", "rubber_duck"]:
 				if not unlocked_items.supports.has(support_id):
 					unlocked_items.supports.append(support_id)

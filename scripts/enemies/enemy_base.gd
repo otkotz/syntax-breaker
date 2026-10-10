@@ -15,6 +15,9 @@ var _wander_timer: float = 0.0
 var _arena_rect: Rect2
 var _slow_factor: float = 1.0
 var _slow_timer: float = 0.0
+var _debugged_remaining: float = 0.0
+var _debugged_multiplier: float = 1.0
+var _debugged_source: SkillResource
 var _base_max_hp: float
 var _base_move_speed: float
 var _base_contact_damage: float
@@ -173,6 +176,7 @@ const STATUS_COLORS: Dictionary = {
 	"shock": Color(0.5, 0.85, 1.0),
 	"frostblight": Color(0.72, 0.92, 1.0),
 	"slow": Color(0.6, 0.72, 1.0),
+	"debugged": Color(1.0, 0.9, 0.18),
 }
 const STATUS_OUTLINE := Color(0.04, 0.04, 0.07, 0.9)
 
@@ -182,6 +186,8 @@ func _draw_status_icons() -> void:
 		active.append(dot_type)
 	if _slow_timer > 0.0:
 		active.append("slow")
+	if _debugged_remaining > 0.0:
+		active.append("debugged")
 	if active.is_empty():
 		return
 	var icon := 7.0
@@ -197,6 +203,11 @@ func _draw_status_icons() -> void:
 
 func _draw_status_glyph(key: String, c: Vector2, r: float, col: Color) -> void:
 	match key:
+		"debugged":
+			draw_circle(c, r + 0.6, STATUS_OUTLINE)
+			draw_circle(c, r, col)
+			draw_circle(c + Vector2(-r * 0.25, -r * 0.1), r * 0.12, STATUS_OUTLINE)
+			draw_circle(c + Vector2(r * 0.25, -r * 0.1), r * 0.12, STATUS_OUTLINE)
 		"burn":  # flame — upward triangle
 			_draw_outlined_poly(PackedVector2Array([
 				c + Vector2(0, -r), c + Vector2(r, r), c + Vector2(-r, r)]), col)
@@ -267,6 +278,13 @@ func _pick_wander_dir() -> void:
 	_wander_timer = randf_range(1.5, 3.0)
 
 func _process(delta: float) -> void:
+	if _debugged_remaining > 0.0:
+		_debugged_remaining -= delta
+		if _debugged_remaining <= 0.0:
+			_debugged_remaining = 0.0
+			_debugged_multiplier = 1.0
+			_debugged_source = null
+			queue_redraw()
 	var expired: Array = []
 	for dot_type: String in _dots:
 		var dot: Dictionary = _dots[dot_type]
@@ -293,6 +311,7 @@ func take_damage(amount: float, crit: bool = false, source: SkillResource = null
 	if _is_proximity_guard_blocking():
 		_flash_guard_block()
 		return
+	amount *= _debugged_multiplier
 	amount *= EngineTracker.get_deep_freeze_mult(self)
 	var effective := minf(current_hp, amount)
 	RunManager.record_combat_damage(source, effective, amount >= current_hp, category)
@@ -314,6 +333,18 @@ func _spawn_damage_number(amount: float, crit: bool = false) -> void:
 
 func is_alive() -> bool:
 	return current_hp > 0.0
+
+func apply_debugged(duration: float, multiplier: float, source: SkillResource = null) -> void:
+	var role: String = get_meta("combat_role", "")
+	if role in ["boss", "mini_boss"] or is_in_group("bosses"):
+		duration *= 0.5
+	_debugged_remaining = maxf(_debugged_remaining, duration)
+	_debugged_multiplier = maxf(_debugged_multiplier, multiplier)
+	_debugged_source = source
+	queue_redraw()
+
+func is_execution_protected() -> bool:
+	return current_hp <= 0.0 or get_meta("execution_protected", false) or get_meta("scripted_invulnerable", false)
 
 func apply_slow(factor: float, duration: float) -> void:
 	var was_slowed := _slow_timer > 0.0
@@ -366,6 +397,9 @@ func deactivate_without_rewards() -> void:
 	_target = null
 	_kill_source = null
 	_dots.clear()
+	_debugged_remaining = 0.0
+	_debugged_multiplier = 1.0
+	_debugged_source = null
 	velocity = Vector2.ZERO
 	var affix := get_node_or_null("EliteAffix")
 	if affix and affix.has_method("reset_affix"):
@@ -396,6 +430,9 @@ func reset() -> void:
 	_dots.clear()
 	_slow_factor = 1.0
 	_slow_timer = 0.0
+	_debugged_remaining = 0.0
+	_debugged_multiplier = 1.0
+	_debugged_source = null
 	_facing_right = true
 	show()
 	set_process(true)

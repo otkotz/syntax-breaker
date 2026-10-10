@@ -27,6 +27,9 @@ func _ready() -> void:
 	register("copy_paste", preload("res://scripts/behaviors/copy_paste_behavior.gd"))
 	register("spaghetti_code", preload("res://scripts/behaviors/spaghetti_code_behavior.gd"))
 	register("works_on_my_machine", preload("res://scripts/behaviors/works_on_my_machine_behavior.gd"))
+	register("lag_spike", preload("res://scripts/behaviors/lag_spike_behavior.gd"))
+	register("alt_f4", preload("res://scripts/behaviors/alt_f4_behavior.gd"))
+	register("rubber_duck", preload("res://scripts/behaviors/rubber_duck_behavior.gd"))
 
 func register(key: String, behavior_script: GDScript) -> void:
 	_behaviors[key] = behavior_script

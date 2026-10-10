@@ -32,7 +32,30 @@ func _ready() -> void:
 	check(inherited.metadata.get("works_mode", "") == works_cast.metadata.get("works_mode", ""),
 		"Works mode is rolled once and inherited by derived attacks")
 
-	for support_id in ["copy_paste", "spaghetti_code", "works_on_my_machine"]:
+	check(not AltF4Behavior.should_execute_ratio(0.121, false),
+		"Alt+F4 leaves normal enemies above 12% alive")
+	check(AltF4Behavior.should_execute_ratio(0.12, false),
+		"Alt+F4 executes normal enemies at 12%")
+	check(not AltF4Behavior.should_execute_ratio(0.031, true),
+		"Alt+F4 leaves bosses above 3% alive")
+	check(AltF4Behavior.should_execute_ratio(0.03, true),
+		"Alt+F4 executes bosses at 3%")
+	check(not AltF4Behavior.should_execute_ratio(0.01, false, true),
+		"Alt+F4 respects execution protection")
+
+	var lag_plan := LagSpikeBehavior.event_plan(root)
+	check(lag_plan.damage_events == 2 and lag_plan.derived_events == 1,
+		"Lag Spike schedules exactly one delayed derived hit")
+	var lag_child := root.derive("lag_spike", "lagged")
+	var recursive_lag_plan := LagSpikeBehavior.event_plan(lag_child)
+	check(recursive_lag_plan.damage_events == 1 and recursive_lag_plan.derived_events == 0,
+		"A delayed Lag Spike hit cannot recursively spike")
+
+	var duck_plan := RubberDuckBehavior.simulate_hits(["a", "a", "b", "a", "a", "a"])
+	check(duck_plan.debugged_targets == ["a"],
+		"Rubber Duck debugs only after three consecutive hits on one target")
+
+	for support_id in ["copy_paste", "spaghetti_code", "works_on_my_machine", "lag_spike", "alt_f4", "rubber_duck"]:
 		var support := load("res://resources/supports/%s.tres" % support_id) as SupportResource
 		check(support != null and BehaviorRegistry.has_behavior(support_id),
 			"%s resource and behavior are registered" % support_id)
