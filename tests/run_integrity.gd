@@ -64,7 +64,7 @@ func run_checks() -> void:
 	var skill := SkillInstance.new(load("res://resources/skills/fireball.tres"))
 	check(skill.link_support(load("res://resources/supports/mine.tres")), "Link mine")
 	check(not skill.link_support(load("res://resources/supports/spell_echo.tres")), "Reject conflicting echo")
-	var skill_data: Array[Dictionary] = [{"skill_id": "fireball", "supports": ["mine"], "mutations": [], "tier": "common"}]
+	var skill_data: Array[Dictionary] = [{"skill_id": "fireball", "supports": ["mine"], "mutations": [], "tier": "common", "evolution_id": "solar_flare", "evolution_tier": 2}]
 	for cycle in 100:
 		RunManager.save_run(skill_data)
 		var saved := RunManager.load_run()
@@ -73,6 +73,8 @@ func run_checks() -> void:
 		check(RunManager.gold == 64 and RunManager.gold_fraction < 0.00001, "Gold roundtrip %d" % cycle)
 		check(RunManager.owned_consumables.size() == 1 and RunManager.owned_consumables[0].charges == 1, "Consumable roundtrip %d" % cycle)
 		check(saved.skills[0].supports == ["mine"], "Build roundtrip %d" % cycle)
+		check(saved.save_version == RunManager.SAVE_VERSION and saved.skills[0].evolution_id == "solar_flare" and saved.skills[0].evolution_tier == 2,
+			"Evolution roundtrip %d" % cycle)
 	manager.setup(RunManager.get_consumable_data())
 	check(manager.use_consumable(0), "Use final flask")
 	check(RunManager.owned_consumables.is_empty() and manager.slots.is_empty(), "Empty inventory synchronized")

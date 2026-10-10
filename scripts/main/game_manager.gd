@@ -534,31 +534,47 @@ func _serialize_skills() -> Array[Dictionary]:
 		var muts: Array[Dictionary] = []
 		for m: Dictionary in si.mutations:
 			muts.append(m)
-		result.append({"skill_id": si.base.id, "supports": supports, "mutations": muts, "tier": si.rarity_tier})
+		result.append({
+			"skill_id": si.base.id,
+			"supports": supports,
+			"mutations": muts,
+			"tier": si.rarity_tier,
+			"evolution_id": si.evolution_id,
+			"evolution_tier": si.evolution_tier,
+		})
 	return result
 
 func _deserialize_skills(skill_data: Array) -> void:
 	_skill_instances.clear()
 	for entry: Dictionary in skill_data:
-		var skill_id: String = entry.get("skill_id", "")
-		var path := "res://resources/skills/%s.tres" % skill_id
-		if not ResourceLoader.exists(path):
-			continue
-		var skill_res := load(path) as SkillResource
-		if not skill_res:
-			continue
-		var si := SkillInstance.new(skill_res)
-		si.rarity_tier = entry.get("tier", skill_res.rarity)
-		for support_id: String in entry.get("supports", []):
-			var s_path := "res://resources/supports/%s.tres" % support_id
-			if ResourceLoader.exists(s_path):
-				var support_res := load(s_path) as SupportResource
-				if support_res:
-					si.link_support(support_res)
-		for mutation: Dictionary in entry.get("mutations", []):
-			si.mutations.append(mutation)
-		si.recompute(RunManager.owned_passives)
-		_skill_instances.append(si)
+		var si := deserialize_skill_entry(entry)
+		if si:
+			_skill_instances.append(si)
+
+static func deserialize_skill_entry(entry: Dictionary) -> SkillInstance:
+	var skill_id: String = entry.get("skill_id", "")
+	var path := "res://resources/skills/%s.tres" % skill_id
+	if not ResourceLoader.exists(path):
+		return null
+	var skill_res := load(path) as SkillResource
+	if not skill_res:
+		return null
+	var si := SkillInstance.new(skill_res)
+	si.rarity_tier = entry.get("tier", skill_res.rarity)
+	for support_id: String in entry.get("supports", []):
+		var support_path := "res://resources/supports/%s.tres" % support_id
+		if ResourceLoader.exists(support_path):
+			var support_res := load(support_path) as SupportResource
+			if support_res:
+				si.link_support(support_res)
+	for mutation: Dictionary in entry.get("mutations", []):
+		si.mutations.append(mutation)
+	var saved_evolution_id: String = entry.get("evolution_id", "")
+	var saved_evolution_tier := int(entry.get("evolution_tier", 0))
+	if not saved_evolution_id.is_empty():
+		si.set_evolution(saved_evolution_id, saved_evolution_tier)
+	si.recompute(RunManager.owned_passives)
+	return si
 
 func _auto_save() -> void:
 	RunManager.save_run(_serialize_skills())

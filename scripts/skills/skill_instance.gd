@@ -9,6 +9,8 @@ var mutations: Array[Dictionary] = []
 var rarity_tier: String = ""
 var stage_overrides: Array[Dictionary] = []
 var _next_root_cast_id := 1
+var evolution_id := ""
+var evolution_tier := 0
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -24,6 +26,16 @@ func create_attack_context() -> AttackContext:
 	var context := AttackContext.root(base.id, _next_root_cast_id)
 	_next_root_cast_id += 1
 	return context
+
+func set_evolution(id: String, tier: int) -> bool:
+	if tier < 1 or tier > 3 or tier <= evolution_tier:
+		return false
+	if not EvolutionData.is_valid_for_skill(base.id, id):
+		return false
+	evolution_id = id
+	evolution_tier = tier
+	recompute(RunManager.owned_passives)
+	return true
 
 func link_support(support: SupportResource) -> bool:
 	if not support_rejection_reason(support).is_empty():

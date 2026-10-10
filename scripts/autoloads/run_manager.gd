@@ -163,6 +163,7 @@ func get_consumable_data() -> Array[Dictionary]:
 	return result
 
 const RUN_SAVE_PATH := "user://active_run.json"
+const SAVE_VERSION := 2
 var save_path: String = RUN_SAVE_PATH
 
 func has_saved_run() -> bool:
@@ -183,6 +184,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		consumables_data.append({"id": entry["id"], "charges": entry["charges"]})
 
 	var data := {
+		"save_version": SAVE_VERSION,
 		"current_stage": current_stage,
 		"gold": gold,
 		"gold_fraction": gold_fraction,
