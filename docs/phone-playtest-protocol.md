@@ -207,8 +207,9 @@ Codzienny seed/historia pozostają odłożone do stabilnego podstawowego balansu
 
 ## Evolutions — aktualna iteracja 2026-10-10
 
-Build `builds/SyntaxBreaker-evolutions.apk` został wyeksportowany i podpisany przez Godot
-4.7.2. SHA-256: `CF9AB6D1210F7E60915BEF4B638E0E96571FEF7045A028930720D7AC0FC7681E`.
+Build `builds/SyntaxBreaker-evolutions.apk` został ponownie wyeksportowany 2026-10-11
+i podpisany przez Godot 4.7.2. SHA-256:
+`361B70F130A49B2E5F5D881C642D60628FB97DE8D84D9B2FAB3DB66D61BBE00C`.
 Wszystkie 17 zestawów testów natywnych przeszło, ale `adb devices -l` nie wykrył telefonu.
 Instalacja oraz poniższy test ręczny pozostają niewykonane.
 
