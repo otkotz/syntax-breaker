@@ -40,6 +40,7 @@ func _show_mutations() -> void:
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD
 		btn.text = "%s\n%s" % [mutation["name"], mutation["desc"]]
 		UITheme.style_button(btn, 26)
+		UITheme.apply_item_icon(btn, mutation, 96)
 		btn.pressed.connect(func(): _on_mutation_selected(mutation))
 		content.add_child(btn)
 
@@ -76,6 +77,7 @@ func _show_skill_picker() -> void:
 		btn.custom_minimum_size.y = 100.0
 		btn.text = si.base.name
 		UITheme.style_button(btn, 28)
+		UITheme.apply_item_icon(btn, si.base, 80)
 		var idx := i
 		btn.pressed.connect(func(): mutation_chosen.emit(_selected_mutation, idx))
 		content.add_child(btn)

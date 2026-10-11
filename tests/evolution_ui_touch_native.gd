@@ -37,6 +37,8 @@ func _ready() -> void:
 	for card: Button in cards:
 		check(card.size.y >= 96.0, "Every portrait offer has a 96 px touch target")
 		check(card.tooltip_text.is_empty(), "Critical information never depends on hover")
+		check(card.icon != null or not card.find_children("*", "TextureRect", true, false).is_empty(),
+			"Every terminal choice, including Hot Socket, has artwork")
 	check(find_text(picker, "II → III"), "Upgrade card shows current-to-new tier")
 	picker.queue_free()
 

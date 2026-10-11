@@ -60,7 +60,10 @@ const TIER_DESCRIPTIONS := {
 }
 
 static func get_for_skill(skill_id: String) -> Dictionary:
-	return BY_SKILL.get(skill_id, {}).duplicate(true)
+	var result: Dictionary = BY_SKILL.get(skill_id, {}).duplicate(true)
+	if not result.is_empty():
+		result["icon_path"] = "res://assets/icons/evolutions/%s.png" % result.id
+	return result
 
 static func is_valid_for_skill(skill_id: String, evolution_id: String) -> bool:
 	return BY_SKILL.has(skill_id) and BY_SKILL[skill_id].id == evolution_id
@@ -108,6 +111,7 @@ static func roll_offers(skills: Array[SkillInstance], difficulty: int, rng: Rand
 		offers.append({"type": "evolution", "skill_index": skill_index,
 			"evolution_id": data.id, "current_tier": skill.evolution_tier,
 			"offered_tier": offered_tier, "name": data.name,
+			"icon_path": data.icon_path,
 			"description": "Upgrade %s to tier %d" % [skill.base.name, offered_tier]})
 	while offers.size() < 3:
 		var fallback_index := offers.size() % maxi(1, skills.size())

@@ -49,11 +49,9 @@ func _build_offer_card(offer: Dictionary, skills: Array[SkillInstance]) -> Butto
 	row.mouse_filter = MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 16)
 	button.add_child(row)
-	var skill_index := int(offer.get("skill_index", -1))
-	if skill_index >= 0 and skill_index < skills.size():
-		var artwork := UITheme.item_thumbnail(skills[skill_index].base, 88)
-		if artwork:
-			row.add_child(artwork)
+	var artwork := UITheme.item_thumbnail(offer, 88)
+	if artwork:
+		row.add_child(artwork)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = SIZE_EXPAND_FILL
 	copy.mouse_filter = MOUSE_FILTER_IGNORE

@@ -1,5 +1,7 @@
 extends Node
 
+const OptionArtData = preload("res://scripts/ui/option_art.gd")
+
 var failures: Array[String] = []
 
 func check(value: bool, message: String) -> void:
@@ -32,6 +34,17 @@ func run_checks() -> void:
 	MetaProgression.save_path = "res://.godot/art_test_meta.json"
 	RunTelemetry.enabled = false
 	RunManager.start_run()
+	for evolution: Dictionary in EvolutionData.BY_SKILL.values():
+		var offer := {"type": "evolution", "evolution_id": evolution.id, "offered_tier": 3}
+		check(OptionArtData.resolve(offer) != null, "Evolution has selectable artwork: " + evolution.id)
+		check(OptionArtData.badge(offer) == "III", "Evolution artwork exposes its tier badge: " + evolution.id)
+	for mutation: Dictionary in MutationData.POOL + MutationData.TERMINAL_POOL:
+		check(OptionArtData.resolve(mutation) != null, "Mutation has selectable artwork: " + mutation.id)
+	for system_offer: Dictionary in [
+		{"type": "support_slot"}, {"type": "gold"}, {"type": "heal"}, {"type": "target_selection"},
+		{"type": "unknown", "icon_path": "res://assets/icons/definitely_missing.png"},
+	]:
+		check(OptionArtData.resolve(system_offer) != null, "System or malformed offer has guaranteed fallback art")
 	for file_name: String in ResourceListing.get_resource_files("res://resources/passives/"):
 		var passive := load("res://resources/passives/" + file_name) as PassiveResource
 		check(passive != null, "Passive loads: " + file_name)
@@ -62,6 +75,7 @@ func run_checks() -> void:
 	var ward := load("res://resources/passives/ward_capacity.tres") as PassiveResource
 	var pierce := load("res://resources/supports/pierce.tres") as SupportResource
 	var mastery := load("res://resources/passives/pierce_mastery.tres") as PassiveResource
+	check(OptionArtData.badge(mastery) == "MASTERY", "Mastery resolver exposes a readable badge")
 	check(mastery.icon == pierce.icon, "Mastery shares its matching support art, not an unrelated generic icon")
 	var reward = load("res://scenes/ui/reward_picker.tscn").instantiate()
 	get_tree().root.add_child(reward)

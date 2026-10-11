@@ -334,8 +334,7 @@ func _build_card(item: Dictionary, index: int) -> PanelContainer:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 14)
 	card.add_child(hbox)
-	var resource := item.get("resource") as Resource
-	var thumbnail := UITheme.item_thumbnail(resource, 96)
+	var thumbnail := UITheme.item_thumbnail(item, 96)
 	if thumbnail:
 		hbox.add_child(thumbnail)
 	var vbox := VBoxContainer.new()

@@ -1,6 +1,16 @@
 class_name MutationData
 extends RefCounted
 
+const ICON_DIR := "res://assets/icons/mutations/"
+
+static func with_icon(mutation: Dictionary) -> Dictionary:
+	var result := mutation.duplicate(true)
+	result["icon_path"] = icon_path(str(result.get("id", "")))
+	return result
+
+static func icon_path(mutation_id: String) -> String:
+	return ICON_DIR + mutation_id + ".png"
+
 const POOL := [
 	{
 		"id": "piercing",
@@ -127,7 +137,7 @@ static func roll_mutations(count: int, exclude_ids: Array = [], skills: Array[Sk
 					break
 			if not applicable:
 				continue
-		available.append(m)
+		available.append(with_icon(m))
 	available.shuffle()
 	var result: Array[Dictionary] = []
 	for i in mini(count, available.size()):
@@ -141,6 +151,6 @@ static func roll_terminal_mutations(count: int, exclude_ids: Array = [], skills:
 			continue
 		if not skills.is_empty() and not skills.any(func(skill: SkillInstance): return can_apply(mutation, skill)):
 			continue
-		available.append(mutation)
+		available.append(with_icon(mutation))
 	available.shuffle()
 	return available.slice(0, mini(count, available.size()))

@@ -81,14 +81,15 @@ static func style_label_body(lbl: Label, font_size: int = 26) -> void:
 	lbl.add_theme_font_size_override("font_size", font_size)
 	lbl.add_theme_color_override("font_color", C_INK_MUTE)
 
-static func apply_item_icon(button: Button, item: Resource, width: int = 64) -> void:
-	if item == null or not "icon" in item or item.icon == null:
+static func apply_item_icon(button: Button, item: Variant, width: int = 64) -> void:
+	var texture := OptionArt.resolve(item)
+	if texture == null:
 		return
-	button.icon = item.icon
+	button.icon = texture
 	button.expand_icon = true
 	button.add_theme_constant_override("icon_max_width", width)
 	button.add_theme_constant_override("h_separation", 16)
-	if item is PassiveResource and item.id.ends_with("_mastery"):
+	if OptionArt.badge(item) == "MASTERY":
 		var badge := add_mastery_badge(button, 20)
 		badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		badge.offset_left = -140
@@ -96,18 +97,19 @@ static func apply_item_icon(button: Button, item: Resource, width: int = 64) -> 
 		badge.offset_top = 8
 		badge.offset_bottom = 36
 
-static func item_thumbnail(item: Resource, width: int = 96) -> TextureRect:
-	if item == null or not "icon" in item or item.icon == null:
+static func item_thumbnail(item: Variant, width: int = 96) -> TextureRect:
+	var texture := OptionArt.resolve(item)
+	if texture == null:
 		return null
 	var icon := TextureRect.new()
-	icon.texture = item.icon
+	icon.texture = texture
 	icon.custom_minimum_size = Vector2(width, width)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if item is PassiveResource and item.id.ends_with("_mastery"):
+	if OptionArt.badge(item) == "MASTERY":
 		var badge := add_mastery_badge(icon, 16)
 		badge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 		badge.offset_top = -24
