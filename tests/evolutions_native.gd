@@ -44,7 +44,11 @@ func _ready() -> void:
 
 	for skill_id: String in EvolutionData.BY_SKILL:
 		var data := EvolutionData.get_for_skill(skill_id)
+		var descriptions := EvolutionData.all_tier_descriptions(skill_id)
+		check(descriptions.size() == 3 and descriptions.duplicate().all(func(text): return descriptions.count(text) == 1), "%s exposes three unique tier descriptions" % data.id)
 		for tier in range(1, 4):
+			var description := EvolutionData.tier_description(data.id, tier)
+			check(description.length() >= 20 and not description.to_lower().contains("stronger effect"), "%s tier %d describes observable behavior" % [data.id, tier])
 			var behavior := EvolutionData.create_behavior(data.id, tier)
 			check(behavior != null and behavior.tier == tier,
 				"%s creates a configured tier %d behavior" % [data.id, tier])

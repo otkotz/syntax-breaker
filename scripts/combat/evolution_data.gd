@@ -21,6 +21,44 @@ const BEHAVIORS := {
 	"recursive_rollback": preload("res://scripts/evolutions/recursive_rollback.gd"),
 }
 
+const TIER_DESCRIPTIONS := {
+	"solar_flare": [
+		"Hits create a burning sun that repeatedly damages nearby enemies.",
+		"Each cast also fires 3 child fireballs at 45% damage around the main shot.",
+		"The sun grows larger and ends with a supernova pulse while keeping the child shots.",
+	],
+	"firewall_breach": [
+		"The first hit raises a damaging firewall across the impact point.",
+		"When the wave expires it returns through the arena in the opposite direction.",
+		"The returning wave also creates a second perpendicular firewall for a cross attack.",
+	],
+	"absolute_zero": [
+		"Targets are slowed to 40% speed for 3 seconds and shatter into damaging ice shards on death.",
+		"The freeze spreads to 2 nearby enemies and each kill launches up to 4 slowing shards.",
+		"Slow reaches 20% speed for 5 seconds, spreads farther, and launches up to 6 shards.",
+	],
+	"cloud_outage": [
+		"The first hit plants 1 lightning rod that repeatedly shocks enemies around it.",
+		"The rod grows larger, lasts longer, and delivers heavier area shocks.",
+		"The rod network also pulses once into up to 6 nearby enemies for 35% damage.",
+	],
+	"ransomware": [
+		"Hits mark a carrier, add poison, and spread a weaker poison to 2 nearby enemies.",
+		"Carriers gain stacking infection and fire 2 death darts at 45% damage when killed.",
+		"Eligible normal enemies are hijacked for 5 seconds and elites for 3 seconds.",
+	],
+	"daemon_process": [
+		"The field persists as a background process with its normal repeated damage.",
+		"When it expires it forks into 2 child fields that deal 35% damage.",
+		"When it expires it forks into 4 bounded child fields that deal 35% damage.",
+	],
+	"recursive_rollback": [
+		"The returning boomerang deals 40% bonus return damage.",
+		"The return replays hits and expiry launches 1 child boomerang at 50% damage.",
+		"The return gains 70% bonus damage and launches 2 angled child boomerangs at 50% damage.",
+	],
+}
+
 static func get_for_skill(skill_id: String) -> Dictionary:
 	return BY_SKILL.get(skill_id, {}).duplicate(true)
 
@@ -33,6 +71,19 @@ static func create_behavior(id: String, tier: int) -> EvolutionBehavior:
 	var behavior: EvolutionBehavior = BEHAVIORS[id].new()
 	behavior.configure(tier)
 	return behavior
+
+static func tier_description(evolution_id: String, tier: int) -> String:
+	var descriptions: Array = TIER_DESCRIPTIONS.get(evolution_id, [])
+	if descriptions.is_empty() or tier < 1 or tier > descriptions.size():
+		return ""
+	return str(descriptions[tier - 1])
+
+static func all_tier_descriptions(skill_id: String) -> Array[String]:
+	var result: Array[String] = []
+	var data := get_for_skill(skill_id)
+	for description: Variant in TIER_DESCRIPTIONS.get(data.get("id", ""), []):
+		result.append(str(description))
+	return result
 
 static func roman(value: int) -> String:
 	return ["0", "I", "II", "III"][clampi(value, 0, 3)]

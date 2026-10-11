@@ -315,9 +315,19 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 	vbox.add_theme_constant_override("separation", 0)
 	card.add_child(vbox)
 
+	var head_button := Button.new()
+	head_button.flat = true
+	head_button.custom_minimum_size.y = 80
+	head_button.set_meta("skill_details", true)
+	head_button.tooltip_text = "View skill details"
+	head_button.pressed.connect(_show_skill_info_drawer.bind(si))
+	vbox.add_child(head_button)
+
 	var head := HBoxContainer.new()
+	head.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	head.mouse_filter = MOUSE_FILTER_IGNORE
 	head.add_theme_constant_override("separation", 14)
-	vbox.add_child(head)
+	head_button.add_child(head)
 
 	var artwork := UITheme.item_thumbnail(si.base, 64)
 	if artwork:
@@ -326,6 +336,7 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 		head.add_child(_build_gem_main(card_color))
 
 	var info := VBoxContainer.new()
+	info.mouse_filter = MOUSE_FILTER_IGNORE
 	info.add_theme_constant_override("separation", 5)
 	info.size_flags_horizontal = SIZE_EXPAND_FILL
 	head.add_child(info)
@@ -716,6 +727,50 @@ func _show_support_info_drawer(support: SupportResource) -> void:
 
 	_drawer_scrim.visible = true
 	_drawer.visible = true
+
+func _show_skill_info_drawer(skill: SkillInstance) -> void:
+	_active_slot = {}
+	_clear_children(_drawer_list)
+	_clear_children(_drawer_actions)
+	_drawer_title.text = skill.base.name.to_upper()
+	_drawer_sub.text = "%s · %s" % [skill.rarity_tier.to_upper(), ", ".join(skill.base.tags)]
+	_add_detail_text(skill.base.description, 22, C_INK)
+	var damage: float = skill.computed_stats.get("damage", skill.base.base_damage)
+	var cooldown: float = skill.computed_stats.get("cooldown", skill.base.base_cooldown)
+	var range_value: float = skill.computed_stats.get("range", skill.base.base_range)
+	var projectile_count: int = int(skill.computed_stats.get("projectile_count", skill.base.base_projectile_count))
+	var pierce: int = int(skill.computed_stats.get("pierce", skill.base.base_pierce))
+	_add_detail_text("Current stats — %.1f damage · %.2fs cooldown · %.0f range · %d projectile(s) · %d pierce · %.1f DPS" % [damage, cooldown, range_value, projectile_count, pierce, damage / maxf(cooldown, 0.01)], 19, C_INK_MUTE)
+	_add_detail_text("RARITY — base damage multiplier", 18, C_BRONZE_HI)
+	for rarity: String in RarityTiers.ORDER:
+		var marker := " — CURRENT" if rarity == skill.rarity_tier else ""
+		_add_detail_text("%s x%.2f%s" % [rarity.capitalize(), RarityTiers.damage_mult(rarity), marker], 18, UITheme.get_rarity_color(rarity))
+	var evolution := EvolutionData.get_for_skill(skill.base.id)
+	if evolution.is_empty():
+		_add_detail_text("No evolution available", 18, C_INK_LOW)
+	else:
+		_add_detail_text("EVOLUTION — %s" % evolution.name, 18, C_GOLD)
+		for tier in range(1, 4):
+			var current := " — CURRENT" if tier == skill.evolution_tier else ""
+			_add_detail_text("%s %s%s\n%s" % [evolution.name, EvolutionData.roman(tier), current, EvolutionData.tier_description(evolution.id, tier)], 18, C_INK_MUTE)
+	if not skill.linked_supports.is_empty():
+		_add_detail_text("LINKED SUPPORTS", 18, C_BRONZE_HI)
+		for support: SupportResource in skill.linked_supports:
+			_add_detail_text("%s — %s" % [support.name, support.description], 18, _get_support_color(support))
+	var close_btn := _make_drawer_btn("CLOSE", false)
+	close_btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	close_btn.pressed.connect(_close_drawer)
+	_drawer_actions.add_child(close_btn)
+	_drawer_scrim.visible = true
+	_drawer.visible = true
+
+func _add_detail_text(text: String, size: int, color: Color) -> void:
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", color)
+	_drawer_list.add_child(label)
 
 func _build_drawer_item(support: SupportResource, is_current: bool) -> Button:
 	var btn := Button.new()
