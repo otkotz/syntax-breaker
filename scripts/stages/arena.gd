@@ -1,6 +1,8 @@
 class_name Arena
 extends Node2D
 
+signal compilation_decision_requested(difficulty: int)
+
 const CompilationTerminalScript = preload("res://scripts/stages/compilation_terminal.gd")
 
 @onready var player: Player = $Player
@@ -145,13 +147,11 @@ func _open_compilation() -> void:
 		return
 	_compilation_open = true
 	Engine.time_scale = 0.08
-	var picker := CompilationPicker.new()
-	$CanvasLayer.add_child(picker)
-	picker.setup((player.get_node("SkillCaster") as SkillCaster).skill_instances, _compilation_terminal.difficulty)
-	picker.chosen.connect(func():
-		_restore_combat_time()
-		_show_terminal_status("TERMINAL DEPLETED — MUTATION INSTALLED")
-	, CONNECT_ONE_SHOT)
+	compilation_decision_requested.emit(_compilation_terminal.difficulty)
+
+func complete_compilation_decision() -> void:
+	_restore_combat_time()
+	_show_terminal_status("TERMINAL DEPLETED — MUTATION INSTALLED")
 
 func _restore_combat_time() -> void:
 	Engine.time_scale = 1.0

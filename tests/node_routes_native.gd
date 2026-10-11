@@ -194,6 +194,21 @@ func run_checks() -> void:
 	check(not RunManager.has_saved_run(), "Final victory removes active run save")
 	game.queue_free()
 	await get_tree().process_frame
+	game = make_game(StageData.Type.COMBAT, 1)
+	game._arena.compilation_decision_requested.emit(CompilationTerminal.Difficulty.KERNEL_BREACH)
+	game._arena._on_all_waves_cleared()
+	var terminal_picker := find_ui(game, preload("res://scripts/ui/compilation_picker.gd")) as CompilationPicker
+	check(terminal_picker != null and find_ui(game, preload("res://scripts/ui/reward_picker.gd")) == null,
+		"Same-frame terminal completion stays ahead of the stage reward")
+	if terminal_picker:
+		var terminal_buttons := terminal_picker.find_children("*", "Button", true, false)
+		if not terminal_buttons.is_empty():
+			(terminal_buttons[0] as Button).pressed.emit()
+	await get_tree().process_frame
+	check(find_ui(game, preload("res://scripts/ui/reward_picker.gd")) != null,
+		"Queued stage reward appears once after the terminal choice")
+	game.queue_free()
+	await get_tree().process_frame
 	game = make_game(StageData.Type.BOSS, 10)
 	game._on_player_died()
 	game._on_stage_completed()

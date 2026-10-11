@@ -1,6 +1,7 @@
 extends Node2D
 
 const CompilationTerminalScript = preload("res://scripts/stages/compilation_terminal.gd")
+const DecisionQueueScript = preload("res://scripts/main/decision_queue.gd")
 
 var failures: Array[String] = []
 
@@ -20,6 +21,23 @@ func _ready() -> void:
 	call_deferred("run_checks")
 
 func run_checks() -> void:
+	var queue := DecisionQueueScript.new()
+	add_child(queue)
+	var order: Array[StringName] = []
+	queue.decision_ready.connect(func(request: Dictionary): order.append(request.kind))
+	queue.enqueue(&"terminal", {}, 400)
+	queue.enqueue(&"reward_a", {}, 200)
+	queue.enqueue(&"reward_b", {}, 200)
+	check(order == [&"terminal"], "Only one modal decision becomes active")
+	check(queue.complete_active({}) and not queue.complete_active({}), "A decision can complete exactly once")
+	await get_tree().process_frame
+	check(order == [&"terminal", &"reward_a"], "Queue advances after completion")
+	check(queue.cancel_active("test") and not queue.cancel_active("duplicate"), "Cancellation is explicit and idempotent")
+	await get_tree().process_frame
+	check(order == [&"terminal", &"reward_a", &"reward_b"], "Equal priorities preserve FIFO")
+	queue.clear()
+	check(queue.active_request().is_empty() and queue.pending_count() == 0, "Clear removes active and pending decisions")
+	queue.queue_free()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261010
 	var counts := [0, 0, 0]

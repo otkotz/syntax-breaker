@@ -2,6 +2,7 @@ class_name GameManager
 extends Node
 
 const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
+const DecisionQueueData = preload("res://scripts/main/decision_queue.gd")
 
 enum State { MENU, STAGE_MAP, COMBAT, SHOP, REWARD, RUN_END }
 
@@ -24,6 +25,7 @@ var _current_stage_data: StageData
 var _region: RegionResource
 var _stage_tree: StageTree
 var _reward_generation := 0
+var _decision_queue: Node
 
 signal state_changed(new_state: State)
 signal run_completed(victory: bool)
@@ -33,7 +35,32 @@ func _ready() -> void:
 	_ui_layer = CanvasLayer.new()
 	_ui_layer.layer = 10
 	add_child(_ui_layer)
+	_decision_queue = DecisionQueueData.new()
+	add_child(_decision_queue)
+	_decision_queue.decision_ready.connect(_on_decision_ready)
 	GameBus.player_died.connect(_on_player_died)
+
+func _on_decision_ready(request: Dictionary) -> void:
+	match request.kind:
+		&"terminal":
+			var picker := CompilationPicker.new()
+			_ui_layer.add_child(picker)
+			picker.setup(_skill_instances, int(request.payload.get("difficulty", 0)))
+			picker.chosen.connect(func():
+				if _arena:
+					_arena.complete_compilation_decision()
+				else:
+					Engine.time_scale = 1.0
+				_decision_queue.complete_active({"chosen": true})
+			, CONNECT_ONE_SHOT)
+		&"reward":
+			_show_reward_picker(bool(request.payload.get("treasure", false)), true)
+		&"map":
+			_show_stage_map(true)
+		&"boss_mutation":
+			_show_mutation_picker(true)
+		&"legendary":
+			_show_legendary_picker(true)
 
 func _on_player_died() -> void:
 	if _state == State.COMBAT:
@@ -48,6 +75,7 @@ func _clear_ui() -> void:
 		child.queue_free()
 
 func start_run(region_id: String = "") -> void:
+	_decision_queue.clear()
 	if RunTelemetry.active:
 		RunTelemetry.finish("abandoned", _serialize_skills())
 	_region = _load_region(region_id)
@@ -98,7 +126,13 @@ func _enter_first_stage() -> void:
 	var stage := _stage_tree.visit(0)
 	_enter_stage(stage)
 
-func _show_stage_map() -> void:
+func _show_stage_map(from_queue: bool = false) -> void:
+	var active: Dictionary = _decision_queue.active_request()
+	if not from_queue:
+		if active.get("kind", &"") == &"reward":
+			_decision_queue.complete_active({"route": "map"})
+		_decision_queue.enqueue(&"map", {}, 100)
+		return
 	_clear_ui()
 	_auto_save()
 	if not _stage_tree:
@@ -110,6 +144,7 @@ func _show_stage_map() -> void:
 	var available := _stage_tree.get_available_nodes()
 	if available.size() == 1:
 		var stage := _stage_tree.visit(available[0])
+		_decision_queue.complete_active({"automatic": true})
 		_enter_stage(stage)
 		return
 
@@ -127,6 +162,7 @@ func _show_stage_map() -> void:
 	map_ui.stage_chosen.connect(func(stage: StageData):
 		RunTelemetry.choose(decision, {"index": _stage_tree.visited[stage.depth - 1], "type": stage.get_type_name(), "depth": stage.depth})
 		map_ui.queue_free()
+		_decision_queue.complete_active({"chosen": true})
 		_enter_stage(stage)
 	, CONNECT_ONE_SHOT)
 
@@ -157,6 +193,9 @@ func _advance_to_combat(stage_data: StageData) -> void:
 	_arena = ARENA_SCENE.instantiate() as Arena
 	add_child(_arena)
 	_arena.stage_completed.connect(_on_stage_completed, CONNECT_ONE_SHOT)
+	_arena.compilation_decision_requested.connect(func(difficulty: int):
+		_decision_queue.enqueue(&"terminal", {"difficulty": difficulty}, 400)
+	)
 	_arena.start_stage(RunManager.current_stage, _skill_instances, stage_data)
 
 func _on_stage_completed() -> void:
@@ -183,13 +222,17 @@ func _on_stage_completed() -> void:
 	else:
 		_show_reward_picker(false)
 
-func _show_mutation_picker() -> void:
+func _show_mutation_picker(from_queue: bool = false) -> void:
+	if not from_queue:
+		_decision_queue.enqueue(&"boss_mutation", {}, 300)
+		return
 	var exclude: Array = []
 	for si: SkillInstance in _skill_instances:
 		for m: Dictionary in si.mutations:
 			exclude.append(m["id"])
 	var mutations := MutationData.roll_mutations(3, exclude, _skill_instances)
 	if mutations.is_empty():
+		_decision_queue.complete_active({"empty": true})
 		_show_legendary_picker()
 		return
 
@@ -212,6 +255,7 @@ func _show_mutation_picker() -> void:
 		chest.queue_free()
 		if _skill_instances.size() == 1:
 			_skill_instances[0].add_mutation(mutation)
+			_decision_queue.complete_active({"chosen": true})
 			_show_legendary_picker()
 		else:
 			_show_mutation_skill_target(mutation)
@@ -228,15 +272,20 @@ func _show_mutation_skill_target(mutation: Dictionary) -> void:
 		picker.queue_free()
 		if skill_idx >= 0 and skill_idx < _skill_instances.size():
 			_skill_instances[skill_idx].add_mutation(mutation)
+		_decision_queue.complete_active({"chosen": true})
 		_show_legendary_picker()
 	, CONNECT_ONE_SHOT)
 
-func _show_legendary_picker() -> void:
+func _show_legendary_picker(from_queue: bool = false) -> void:
+	if not from_queue:
+		_decision_queue.enqueue(&"legendary", {}, 300)
+		return
 	var legendaries := _get_available_legendaries()
 	legendaries.shuffle()
 	var choices := legendaries.slice(0, mini(3, legendaries.size()))
 
 	if choices.is_empty():
+		_decision_queue.complete_active({"empty": true})
 		_show_reward_picker(false)
 		return
 
@@ -262,6 +311,7 @@ func _show_legendary_picker() -> void:
 		GameBus.passive_acquired.emit(passive)
 		for si: SkillInstance in _skill_instances:
 			si.recompute(RunManager.owned_passives)
+		_decision_queue.complete_active({"chosen": true})
 		_show_reward_picker(false)
 	, CONNECT_ONE_SHOT)
 
@@ -281,7 +331,11 @@ func _get_available_legendaries() -> Array[PassiveResource]:
 				result.append(res)
 	return result
 
-func _show_reward_picker(is_treasure: bool) -> void:
+func _show_reward_picker(is_treasure: bool, from_queue: bool = false) -> void:
+	var active: Dictionary = _decision_queue.active_request()
+	if not from_queue:
+		_decision_queue.enqueue(&"reward", {"treasure": is_treasure}, 200)
+		return
 	_state = State.REWARD
 	state_changed.emit(_state)
 
@@ -368,6 +422,9 @@ func _show_chest_mutation_target(reward: Dictionary, is_treasure: bool) -> void:
 	, CONNECT_ONE_SHOT)
 
 func _finish_reward_stage() -> void:
+	var active: Dictionary = _decision_queue.active_request()
+	if not active.is_empty() and active.kind == &"reward":
+		_decision_queue.complete_active({"route": "stage_complete"})
 	if _current_stage_data and _current_stage_data.type == StageData.Type.BOSS:
 		_open_mandatory_shop()
 	else:
@@ -491,6 +548,7 @@ func _on_shop_continue() -> void:
 	_show_stage_map()
 
 func end_run(victory: bool) -> void:
+	_decision_queue.clear()
 	RunManager.clear_saved_run()
 	_clear_ui()
 
