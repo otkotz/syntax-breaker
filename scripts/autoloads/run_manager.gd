@@ -110,6 +110,7 @@ func heal_between_stages() -> void:
 # passives' "luck" modifier plus any shop luck bonus.
 func get_luck() -> float:
 	var l := float(shop_bonuses.get("luck", 0.0))
+	l += float(ThreatProtocolsData.scaling(threat_protocol_level).get("luck_bonus", 0.0))
 	for p: Resource in owned_passives:
 		if p is PassiveResource:
 			l += float((p as PassiveResource).stat_modifiers.get("luck", 0.0))

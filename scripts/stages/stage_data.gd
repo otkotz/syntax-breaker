@@ -1,6 +1,8 @@
 class_name StageData
 extends RefCounted
 
+const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
+
 enum Type { COMBAT, ELITE, SHOP, TREASURE, BOSS }
 
 var type: Type
@@ -33,9 +35,9 @@ const TYPE_DESCRIPTIONS := {
 }
 
 const MODIFIER_DATA := {
-	"elite_patrol": {"label": "Elite Patrol", "desc": "Ascension 5: one extra elite on pulse 3"},
-	"denial_reinforcement": {"label": "Denial Reinforcement", "desc": "Ascension 10: an extra caster on pulse 2, subject to role cap"},
-	"shield_reinforcement": {"label": "Shield Reinforcement", "desc": "Ascension 15: an extra shield support on pulse 4, subject to role cap"},
+	"elite_patrol": {"label": "Elite Patrol", "desc": "CORRUPTED+: one extra elite on pulse 3"},
+	"denial_reinforcement": {"label": "Denial Reinforcement", "desc": "SYSTEM FAILURE+: an extra caster on pulse 2, subject to role cap"},
+	"shield_reinforcement": {"label": "Shield Reinforcement", "desc": "NO WARRANTY: an extra shield support on pulse 4, subject to role cap"},
 	"swift": {"label": "Swift", "desc": "Enemies 30% faster"},
 	"tough": {"label": "Tough", "desc": "Enemies +50% HP"},
 	"swarming": {"label": "Swarming", "desc": "50% more enemies"},
@@ -80,16 +82,16 @@ func get_enemy_hp_mult() -> float:
 		mult *= 1.5
 	if region:
 		mult *= region.hp_mult
-	var asc: Dictionary = MetaProgression.get_ascension_scaling()
-	mult *= asc.get("hp_mult", 1.0)
+	var protocol := ThreatProtocolsData.scaling(RunManager.threat_protocol_level)
+	mult *= protocol.get("hp_mult", 1.0)
 	return mult
 
 func get_enemy_speed_mult() -> float:
 	var mult := 1.0
 	if modifiers.has("swift"):
 		mult *= 1.3
-	var asc: Dictionary = MetaProgression.get_ascension_scaling()
-	mult *= asc.get("speed_mult", 1.0)
+	var protocol := ThreatProtocolsData.scaling(RunManager.threat_protocol_level)
+	mult *= protocol.get("speed_mult", 1.0)
 	return mult
 
 func get_enemy_damage_mult() -> float:
@@ -100,8 +102,8 @@ func get_enemy_damage_mult() -> float:
 		mult *= 1.4
 	if region:
 		mult *= region.damage_mult
-	var asc: Dictionary = MetaProgression.get_ascension_scaling()
-	mult *= asc.get("damage_mult", 1.0)
+	var protocol := ThreatProtocolsData.scaling(RunManager.threat_protocol_level)
+	mult *= protocol.get("damage_mult", 1.0)
 	return mult
 
 func get_enemy_count_mult() -> float:
@@ -110,6 +112,7 @@ func get_enemy_count_mult() -> float:
 		mult *= 0.4
 	if modifiers.has("swarming"):
 		mult *= 1.5
+	mult *= float(ThreatProtocolsData.scaling(RunManager.threat_protocol_level).get("count_mult", 1.0))
 	return mult
 
 func get_gold_mult() -> float:
@@ -118,8 +121,8 @@ func get_gold_mult() -> float:
 		mult *= 1.5
 	if modifiers.has("enriched"):
 		mult *= 2.0
-	var asc: Dictionary = MetaProgression.get_ascension_scaling()
-	mult *= asc.get("gold_mult", 1.0)
+	var protocol := ThreatProtocolsData.scaling(RunManager.threat_protocol_level)
+	mult *= protocol.get("gold_mult", 1.0)
 	return mult
 
 func get_player_speed_mult() -> float:

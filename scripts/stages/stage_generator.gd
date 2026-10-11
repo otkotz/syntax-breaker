@@ -1,6 +1,8 @@
 class_name StageGenerator
 extends RefCounted
 
+const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
+
 const ALL_MODIFIERS := ["swift", "tough", "swarming", "deadly", "enriched", "cursed"]
 const MAX_DEPTH := 10
 const BOSS_DEPTHS := [5, 10]
@@ -17,6 +19,9 @@ static func get_ascension_modifiers(depth: int) -> Array[String]:
 		result.append("shield_reinforcement")
 	return result
 
+static func get_threat_protocol_modifiers(depth: int) -> Array[String]:
+	return ThreatProtocolsData.special_modifiers(RunManager.threat_protocol_level, depth)
+
 static func generate_tree(region: RegionResource = null) -> StageTree:
 	var tree := StageTree.new()
 	tree.generate(region)
@@ -24,7 +29,7 @@ static func generate_tree(region: RegionResource = null) -> StageTree:
 
 static func _apply_modifiers(stage: StageData) -> void:
 	if stage.type in [StageData.Type.COMBAT, StageData.Type.ELITE]:
-		for modifier in get_ascension_modifiers(stage.depth):
+		for modifier in get_threat_protocol_modifiers(stage.depth):
 			if not stage.modifiers.has(modifier):
 				stage.modifiers.append(modifier)
 	if stage.region:

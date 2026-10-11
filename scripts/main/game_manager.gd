@@ -1,6 +1,8 @@
 class_name GameManager
 extends Node
 
+const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
+
 enum State { MENU, STAGE_MAP, COMBAT, SHOP, REWARD, RUN_END }
 
 const ARENA_SCENE := preload("res://scenes/stages/arena.tscn")
@@ -50,13 +52,18 @@ func start_run(region_id: String = "") -> void:
 		RunTelemetry.finish("abandoned", _serialize_skills())
 	_region = _load_region(region_id)
 	RunManager.start_run(region_id)
-	RunTelemetry.begin({"region": region_id, "ascension": RunManager.ascension_level,
-		"quality": QualitySettings.current_preset, "entity_mult": QualitySettings.entity_mult,
-		"projectile_cap": QualitySettings.projectile_cap, "platform": OS.get_name(), "engine": Engine.get_version_info().string})
+	RunTelemetry.begin(_run_metadata(region_id))
 	_skill_instances.clear()
 	_stage_tree = StageGenerator.generate_tree(_region)
 	RunManager.stage_tree = _stage_tree
 	_show_skill_picker()
+
+func _run_metadata(region_id: String) -> Dictionary:
+	var protocol := ThreatProtocolsData.definition(RunManager.threat_protocol_level)
+	return {"region": region_id, "threat_protocol_level": RunManager.threat_protocol_level,
+		"threat_protocol_id": protocol.id, "quality": QualitySettings.current_preset,
+		"entity_mult": QualitySettings.entity_mult, "projectile_cap": QualitySettings.projectile_cap,
+		"platform": OS.get_name(), "engine": Engine.get_version_info().string}
 
 func _load_region(region_id: String) -> RegionResource:
 	if region_id.is_empty():
@@ -496,10 +503,10 @@ func end_run(victory: bool) -> void:
 
 	var new_unlocks := MetaProgression.check_unlocks(RunManager.run_stats)
 	if victory:
-		MetaProgression.record_victory(RunManager.current_region, RunManager.ascension_level)
+		MetaProgression.record_victory(RunManager.current_region, RunManager.threat_protocol_level)
 		RunManager.run_stats["run_completed"] = true
 		new_unlocks.append_array(MetaProgression.check_unlocks(RunManager.run_stats))
-	RunManager.run_stats["new_challenges"] = MetaProgression.record_challenges(victory, RunManager.run_stats, RunManager.current_region, RunManager.ascension_level)
+	RunManager.run_stats["new_challenges"] = MetaProgression.record_challenges(victory, RunManager.run_stats, RunManager.current_region, RunManager.threat_protocol_level)
 
 	GameBus.run_ended.emit(victory)
 	RunTelemetry.finish("victory" if victory else "death", _serialize_skills())
@@ -591,7 +598,9 @@ func resume_run() -> void:
 		return
 	RunManager.restore_from_save(data)
 	if not RunTelemetry.active:
-		RunTelemetry.begin({"region": RunManager.current_region, "ascension": RunManager.ascension_level, "resumed_without_earlier_telemetry": true})
+		var metadata := _run_metadata(RunManager.current_region)
+		metadata["resumed_without_earlier_telemetry"] = true
+		RunTelemetry.begin(metadata)
 	_region = _load_region(RunManager.current_region)
 	_deserialize_skills(data.get("skills", []))
 	_stage_tree = RunManager.stage_tree

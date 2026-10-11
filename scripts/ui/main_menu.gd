@@ -1,6 +1,8 @@
 class_name MainMenu
 extends Control
 
+const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
+
 signal start_pressed
 signal unlocks_pressed
 signal codex_pressed
@@ -39,7 +41,7 @@ var _region_next: Button
 func _ready() -> void:
 	_build_ui()
 	_load_regions()
-	_refresh_ascension()
+	_refresh_threat_protocol()
 	_refresh_region()
 
 func _build_ui() -> void:
@@ -159,7 +161,7 @@ func _build_panel() -> PanelContainer:
 	v.add_theme_constant_override("separation", 0)
 	panel.add_child(v)
 
-	var asc_label := _row_label("ASCENSION")
+	var asc_label := _row_label("THREAT PROTOCOL")
 	v.add_child(asc_label)
 	v.add_child(_gap(14))
 
@@ -169,14 +171,14 @@ func _build_panel() -> PanelContainer:
 	v.add_child(ar)
 
 	_asc_down = _make_diamond_btn("−")
-	_asc_down.pressed.connect(func() -> void: _change_ascension(-1))
+	_asc_down.pressed.connect(func() -> void: _change_threat_protocol(-1))
 	ar.add_child(_asc_down)
 
 	var medallion := _build_medallion()
 	ar.add_child(medallion)
 
 	_asc_up = _make_diamond_btn("+")
-	_asc_up.pressed.connect(func() -> void: _change_ascension(1))
+	_asc_up.pressed.connect(func() -> void: _change_threat_protocol(1))
 	ar.add_child(_asc_up)
 
 	v.add_child(_gap(24))
@@ -492,43 +494,37 @@ func _load_regions() -> void:
 		if res is RegionResource:
 			_region_ids.append(res.id)
 
-func _change_ascension(delta: int) -> void:
-	var level := clampi(MetaProgression.ascension_level + delta, 0, MetaProgression.MAX_ASCENSION)
-	MetaProgression.set_ascension(level, get_selected_region())
-	_refresh_ascension()
+func _change_threat_protocol(delta: int) -> void:
+	var level := clampi(MetaProgression.threat_protocol_level + delta, 0, MetaProgression.get_max_threat_protocol(get_selected_region()))
+	MetaProgression.set_threat_protocol(level, get_selected_region())
+	_refresh_threat_protocol()
 
-func _refresh_ascension() -> void:
-	MetaProgression.ascension_level = clampi(MetaProgression.ascension_level, 0, MetaProgression.get_max_ascension(get_selected_region()))
-	var level := MetaProgression.ascension_level
-	_asc_num.text = str(level)
+func _refresh_threat_protocol() -> void:
+	var max_level := MetaProgression.get_max_threat_protocol(get_selected_region())
+	MetaProgression.threat_protocol_level = clampi(MetaProgression.threat_protocol_level, 0, max_level)
+	var level := MetaProgression.threat_protocol_level
+	var definition := ThreatProtocolsData.definition(level)
+	var scaling := ThreatProtocolsData.scaling(level)
+	_asc_num.text = "P%d" % level
 	_asc_down.disabled = level <= 0
-	_asc_up.disabled = level >= MetaProgression.get_max_ascension(get_selected_region())
-	if level == 0:
-		_asc_desc.text = "Normal — the first descent."
-	elif level <= 2:
-		_asc_desc.text = "Cruel — wounds remember."
-	elif level <= 5:
-		_asc_desc.text = "Merciless — the world bites back."
-	elif level <= 9:
-		_asc_desc.text = "Sovereign — kneel, or break."
-	else:
-		_asc_desc.text = "Eternal — there is no morning."
-	var scaling := MetaProgression.get_ascension_scaling(level)
-	_asc_desc.text = "Enemy HP +%d%% | Damage +%d%% | Speed +%d%%" % [roundi((float(scaling.hp_mult) - 1.0) * 100), roundi((float(scaling.damage_mult) - 1.0) * 100), roundi((float(scaling.speed_mult) - 1.0) * 100)]
-	var rules := PackedStringArray()
-	if level >= 5:
-		rules.append("Elite patrol")
-	if level >= 10:
-		rules.append("Extra denial caster")
-	if level >= 15:
-		rules.append("Extra shield support")
+	_asc_up.disabled = level >= max_level
+	_asc_desc.text = "%s\nEnemy HP +%d%% | Damage +%d%% | Speed +%d%%\nEnemies +%d%% | Gold +%d%% | Rewards +%d luck" % [definition.name, roundi((float(scaling.hp_mult) - 1.0) * 100), roundi((float(scaling.damage_mult) - 1.0) * 100), roundi((float(scaling.speed_mult) - 1.0) * 100), roundi((float(scaling.count_mult) - 1.0) * 100), roundi((float(scaling.gold_mult) - 1.0) * 100), roundi(float(scaling.luck_bonus))]
+	var rules := PackedStringArray(ThreatProtocolsData.special_modifiers(level, 2))
 	if not rules.is_empty():
 		_asc_desc.text += "\n" + " / ".join(rules)
+	if max_level < ThreatProtocolsData.MAX_LEVEL:
+		_asc_desc.text += "\nLOCKED NEXT: %s — win %s in this region" % [ThreatProtocolsData.definition(max_level + 1).name, ThreatProtocolsData.definition(max_level).name]
+
+func _change_ascension(delta: int) -> void:
+	_change_threat_protocol(delta)
+
+func _refresh_ascension() -> void:
+	_refresh_threat_protocol()
 
 func _change_region(delta: int) -> void:
 	_region_index = wrapi(_region_index + delta, 0, _region_ids.size())
-	MetaProgression.set_ascension(MetaProgression.ascension_level, get_selected_region())
-	_refresh_ascension()
+	MetaProgression.set_threat_protocol(MetaProgression.threat_protocol_level, get_selected_region())
+	_refresh_threat_protocol()
 	_refresh_region()
 
 func _refresh_region() -> void:

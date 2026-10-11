@@ -20,6 +20,12 @@ func run_checks() -> void:
 	RunManager.save_path = "res://.godot/telemetry_run_test.json"
 	MetaProgression.save_path = "res://.godot/telemetry_meta_test.json"
 	RunTelemetry.log_directory = "res://.godot/telemetry_test_" + Crypto.new().generate_random_bytes(6).hex_encode()
+	MetaProgression.highest_threat_protocol_unlocked["burning_grounds"] = 4
+	RunManager.start_run("burning_grounds", 3)
+	var metadata_game := GameManager.new()
+	var production_metadata: Dictionary = metadata_game._run_metadata("burning_grounds")
+	metadata_game.free()
+	check(production_metadata.threat_protocol_level == 3 and production_metadata.threat_protocol_id == "system_failure", "Production telemetry identifies the selected Threat Protocol")
 	for sample in 50:
 		RunManager.start_run()
 		RunTelemetry.begin({"fixture": sample}, true)

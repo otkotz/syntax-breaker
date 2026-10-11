@@ -14,6 +14,11 @@ func _ready() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	_check_threat_protocol_scaling()
+	if OS.get_cmdline_user_args().has("--threat-only"):
+		print(JSON.stringify({"invalid": _invalid, "threat_protocols": 5}))
+		get_tree().quit(0 if _invalid.is_empty() else 1)
+		return
 	var skills := _load_resources("res://resources/skills/")
 	var supports := _load_resources("res://resources/supports/")
 	var passives := _load_resources("res://resources/passives/")
@@ -105,6 +110,43 @@ func _run() -> void:
 	}
 	print(JSON.stringify(result))
 	get_tree().quit(1 if not _invalid.is_empty() else 0)
+
+func _check_threat_protocol_scaling() -> void:
+	var expected := [
+		[1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+		[1.15, 1.08, 1.03, 1.12, 1.08, 5.0],
+		[1.30, 1.18, 1.06, 1.25, 1.18, 10.0],
+		[1.55, 1.32, 1.10, 1.40, 1.32, 18.0],
+		[1.85, 1.50, 1.15, 1.60, 1.50, 28.0],
+	]
+	var stage := StageData.new()
+	stage.type = StageData.Type.COMBAT
+	stage.depth = 2
+	for level in expected.size():
+		RunManager.threat_protocol_level = level
+		RunManager.ascension_level = level
+		check_threat(is_equal_approx(stage.get_enemy_hp_mult(), expected[level][0]), "Protocol %d HP scaling" % level)
+		check_threat(is_equal_approx(stage.get_enemy_damage_mult(), expected[level][1]), "Protocol %d damage scaling" % level)
+		check_threat(is_equal_approx(stage.get_enemy_speed_mult(), expected[level][2]), "Protocol %d speed scaling" % level)
+		check_threat(is_equal_approx(stage.get_enemy_count_mult(), expected[level][3]), "Protocol %d count scaling" % level)
+		check_threat(is_equal_approx(stage.get_gold_mult(), expected[level][4]), "Protocol %d gold scaling" % level)
+		check_threat(is_equal_approx(RunManager.get_luck(), expected[level][5]), "Protocol %d reward luck" % level)
+	check_threat(StageGenerator.get_threat_protocol_modifiers(1).is_empty(), "Depth one has no protocol reinforcements")
+	RunManager.threat_protocol_level = 4
+	check_threat(StageGenerator.get_threat_protocol_modifiers(2) == ["elite_patrol", "denial_reinforcement", "shield_reinforcement"], "Highest protocol exposes all capped reinforcements")
+	seed(20261011)
+	var normal_score := 0
+	for sample in 200:
+		normal_score += RarityTiers.tier_index(RarityTiers.roll_tier("common", 0.0))
+	seed(20261011)
+	var warranty_score := 0
+	for sample in 200:
+		warranty_score += RarityTiers.tier_index(RarityTiers.roll_tier("common", 28.0))
+	check_threat(warranty_score >= normal_score, "Higher protocol cannot reduce fixed-seed reward rarity")
+
+func check_threat(condition: bool, message: String) -> void:
+	if not condition:
+		_invalid.append(message)
 
 func _load_resources(dir_path: String) -> Array[Resource]:
 	var result: Array[Resource] = []

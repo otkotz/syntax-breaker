@@ -18,15 +18,18 @@ func run_checks() -> void:
 	if menu._region_sub.get_theme_font_size("font_size") < 24 or menu._asc_desc.get_theme_font_size("font_size") < 24:
 		push_error("Menu explanatory labels need readable phone typography")
 		passed = false
-	RunManager.ascension_level = 0
-	MetaProgression.highest_ascension_unlocked[""] = 15
-	MetaProgression.ascension_level = 0
-	menu._change_ascension(10)
-	if not menu._asc_desc.text.contains("HP +150%") or not menu._asc_desc.text.contains("Damage +100%") or not menu._asc_desc.text.contains("Speed +30%"):
-		push_error("Menu must preview selected Ascension, not the previous run level")
+	RunManager.threat_protocol_level = 0
+	MetaProgression.highest_threat_protocol_unlocked[""] = 3
+	MetaProgression.threat_protocol_level = 0
+	menu._change_threat_protocol(99)
+	if menu._asc_num.text != "P3" or not menu._asc_desc.text.contains("SYSTEM FAILURE") or not menu._asc_desc.text.contains("HP +55%") or not menu._asc_desc.text.contains("Damage +32%") or not menu._asc_desc.text.contains("Enemies +40%") or not menu._asc_desc.text.contains("Rewards +18 luck"):
+		push_error("Menu must preview exact selected Threat Protocol risk and reward")
 		passed = false
-	if RunManager.ascension_level != 0:
-		push_error("Previewing Ascension must not mutate the active run")
+	if not menu._asc_desc.text.contains("NO WARRANTY") or not menu._asc_up.disabled:
+		push_error("Menu must disclose the next locked protocol and prevent selecting it")
+		passed = false
+	if RunManager.threat_protocol_level != 0:
+		push_error("Previewing Threat Protocol must not mutate the active run")
 		passed = false
 	if passed:
 		print("PASS: readable menu typography and upright 80px touch controls")

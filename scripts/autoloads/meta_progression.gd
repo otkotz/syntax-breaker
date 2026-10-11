@@ -62,7 +62,7 @@ func record_challenges(victory: bool, stats: Dictionary, region: String, level: 
 	for id in ArchetypeChallenges.evaluate(victory, stats):
 		if completed_challenges.has(id):
 			continue
-		completed_challenges[id] = {"region": region, "ascension": level, "completed_utc": Time.get_datetime_string_from_system(true)}
+		completed_challenges[id] = {"region": region, "threat_protocol": level, "completed_utc": Time.get_datetime_string_from_system(true)}
 		newly_completed.append(id)
 	if not newly_completed.is_empty():
 		save_progress()
