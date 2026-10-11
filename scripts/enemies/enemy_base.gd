@@ -4,6 +4,7 @@ extends CharacterBody2D
 @export var max_hp: float = 20.0
 @export var move_speed: float = 80.0
 @export var contact_damage: float = 10.0
+@export var contact_damage_cooldown: float = 0.9
 @export var gold_value: float = 1.0
 @export var aggro_range: float = 200.0
 
@@ -26,6 +27,7 @@ var _base_gold_value: float
 var _sprite: Sprite2D
 var _facing_right: bool = true
 var _kill_source: SkillResource
+var _contact_cooldown_remaining := 0.0
 
 static var _gremlin_variants: Array = []
 
@@ -83,6 +85,7 @@ func initialize(target: Node2D) -> void:
 	set_physics_process(true)
 
 func _physics_process(delta: float) -> void:
+	advance_contact_cooldown(delta)
 	_update_slow(delta)
 	_hijacked_remaining = maxf(0.0, _hijacked_remaining - delta)
 	_move_toward_target()
@@ -266,12 +269,26 @@ func _check_contact_damage() -> void:
 	for i in get_slide_collision_count():
 		var collision := get_slide_collision(i)
 		if collision.get_collider() is Player:
-			Player.hurt(collision.get_collider(), contact_damage, get_contact_source(), get_damage_context())
+			_attempt_contact(collision.get_collider() as Player)
 		elif is_hijacked() and collision.get_collider() is EnemyBase and collision.get_collider() != self:
 			collision.get_collider().take_damage(contact_damage, false, null, "proc")
 
 func get_contact_source() -> String:
 	return get_enemy_id() + ":contact"
+
+func advance_contact_cooldown(delta: float) -> void:
+	_contact_cooldown_remaining = maxf(0.0, _contact_cooldown_remaining - maxf(0.0, delta))
+
+func _attempt_contact(player: Player) -> bool:
+	if _contact_cooldown_remaining > 0.0 or not is_instance_valid(player):
+		return false
+	var context := get_damage_context()
+	context["per_attacker_contact"] = true
+	if not Player.hurt(player, contact_damage, get_contact_source(), context):
+		return false
+	_contact_cooldown_remaining = maxf(0.75, contact_damage_cooldown)
+	player.apply_contact_separation(global_position, 180.0)
+	return true
 
 const SEPARATION_RADIUS := 40.0
 const SEPARATION_STRENGTH := 0.6
@@ -427,6 +444,7 @@ func deactivate_without_rewards() -> void:
 	_debugged_multiplier = 1.0
 	_debugged_source = null
 	velocity = Vector2.ZERO
+	_contact_cooldown_remaining = 0.0
 	var affix := get_node_or_null("EliteAffix")
 	if affix and affix.has_method("reset_affix"):
 		affix.reset_affix()
@@ -450,6 +468,7 @@ func reset() -> void:
 	gold_value = _base_gold_value
 	modulate = Color.WHITE
 	velocity = Vector2.ZERO
+	_contact_cooldown_remaining = 0.0
 	collision_layer = 2
 	collision_mask = 5
 	_target = null

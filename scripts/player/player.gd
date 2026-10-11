@@ -161,21 +161,22 @@ func _connect_caster() -> void:
 func _on_spell_cast() -> void:
 	_cast_timer = CAST_ANIM_DURATION
 
-static func hurt(target: Node2D, amount: float, source: String, context: Dictionary = {}) -> void:
+static func hurt(target: Node2D, amount: float, source: String, context: Dictionary = {}) -> bool:
 	if not is_instance_valid(target) or not target.has_method("take_damage"):
-		return
+		return false
 	if target is Player:
-		target.take_damage(amount, source, context)
+		return target.take_damage(amount, source, context)
 	else:
 		target.take_damage(amount)
+	return true
 
-func take_damage(amount: float, source: String = "unknown", context: Dictionary = {}) -> void:
+func take_damage(amount: float, source: String = "unknown", context: Dictionary = {}) -> bool:
 	if current_hp <= 0.0 or amount <= 0.0:
-		return
-	if _damage_cooldown > 0.0:
-		return
+		return false
+	if _damage_cooldown > 0.0 and not bool(context.get("per_attacker_contact", false)):
+		return false
 	if get_meta("god_mode", false):
-		return
+		return false
 	_damage_cooldown = IFRAME_DURATION
 	var final_amount := amount * _get_damage_taken_mult()
 	var shield_before := current_shield
@@ -206,11 +207,18 @@ func take_damage(amount: float, source: String = "unknown", context: Dictionary 
 	tween.tween_property(_anim_sprite, "modulate", Color.WHITE, 0.15)
 	if current_hp <= 0.0:
 		if _try_auto_revive():
-			return
+			return true
 		RunManager.run_stats["death_source"] = source
 		RunTelemetry.record("player_death", {"source": source, "x": global_position.x, "y": global_position.y})
 		died.emit()
 		GameBus.player_died.emit()
+	return true
+
+func apply_contact_separation(from_position: Vector2, strength: float) -> void:
+	var away := from_position.direction_to(global_position)
+	if away == Vector2.ZERO:
+		away = Vector2.RIGHT
+	velocity += away * maxf(0.0, strength)
 
 func _get_damage_taken_mult() -> float:
 	var nodes := get_tree().get_nodes_in_group("consumable_manager")

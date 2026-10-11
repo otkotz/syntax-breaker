@@ -12,6 +12,7 @@ script = ExtResource("1")
 max_hp = 80.0
 move_speed = 50.0
 contact_damage = 15.0
+contact_damage_cooldown = 1.0
 gold_value = 3
 aggro_range = 200.0
 
