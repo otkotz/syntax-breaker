@@ -24,9 +24,11 @@ func _ready() -> void:
 	var player := Node2D.new()
 	add_child(player)
 	var skill := SkillInstance.new(load("res://resources/skills/blade_spin.tres"))
+	skill.set_evolution("recursive_rollback", 2)
 	var rollback := preload("res://scenes/skills/rollback.tscn").instantiate() as Rollback
 	add_child(rollback)
 	rollback.initialize(skill, Vector2.RIGHT, null, AttackContext.root("blade_spin", 1))
+	skill.notify_spawn(rollback)
 	rollback.set_owner_node(player)
 	var dummy := RollbackDummy.new()
 	dummy.set_meta("rollback_source", rollback)
@@ -41,7 +43,7 @@ func _ready() -> void:
 	rollback.advance_simulation(0.6)
 	check(rollback.state == Rollback.State.CAUGHT, "Return trajectory follows the moving owner")
 	check(dummy.outbound_hits == 1 and dummy.return_hits == 1,
-		"A target can be hit once in each direction")
+		"Recursive Rollback II replays a target once in the return direction")
 	check(rollback.get_ordered_hits().size() == 2 and rollback.get_recorded_path().size() >= 2,
 		"Rollback exposes ordered hits and its recorded path")
 	check(skill.base.id == "blade_spin" and skill.base.name == "Rollback",

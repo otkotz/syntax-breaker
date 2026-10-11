@@ -4,6 +4,11 @@ extends EvolutionBehavior
 static func simulate(value: int) -> Dictionary:
 	return {"child_boomerangs": 2 if value >= 3 else (1 if value >= 2 else 0)}
 
+func on_spawn(_skill: SkillInstance, effect: Node2D) -> void:
+	effect.set_meta("recursive_return_mult", 1.25 + tier * 0.15)
+	if tier >= 2:
+		effect.set_meta("recursive_replay_hits", true)
+
 func on_cast(_skill: SkillInstance, cast: Dictionary) -> void:
 	cast.metadata["rollback_children"] = simulate(tier).child_boomerangs
 

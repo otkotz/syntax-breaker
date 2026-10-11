@@ -22,7 +22,10 @@ func on_hit(skill: SkillInstance, target: Node2D, _attack: Node2D) -> void:
 		var role: String = target.get_meta("combat_role", target.get_meta("spawn_role", "normal"))
 		var duration := hijack_duration(role, tier)
 		if duration > 0.0:
-			target.set_meta("hijacked_until_msec", Time.get_ticks_msec() + int(duration * 1000.0))
+			if target.has_method("apply_hijack"):
+				target.apply_hijack(duration)
+			else:
+				target.set_meta("hijacked_until_msec", Time.get_ticks_msec() + int(duration * 1000.0))
 
 func on_kill(skill: SkillInstance, _target: Node2D, attack: Node2D) -> void:
 	if tier < 2 or not skill.request_recast.is_valid():

@@ -18,6 +18,7 @@ var _slow_timer: float = 0.0
 var _debugged_remaining: float = 0.0
 var _debugged_multiplier: float = 1.0
 var _debugged_source: SkillResource
+var _hijacked_remaining := 0.0
 var _base_max_hp: float
 var _base_move_speed: float
 var _base_contact_damage: float
@@ -83,6 +84,7 @@ func initialize(target: Node2D) -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_slow(delta)
+	_hijacked_remaining = maxf(0.0, _hijacked_remaining - delta)
 	_move_toward_target()
 
 func _update_slow(delta: float) -> void:
@@ -95,14 +97,15 @@ func _update_slow(delta: float) -> void:
 
 func _move_toward_target() -> void:
 	var effective_speed := move_speed * _slow_factor * _get_consumable_slow()
+	var movement_target := get_effective_target()
 
-	if _target and is_instance_valid(_target):
-		var dist := global_position.distance_to(_target.global_position)
+	if movement_target and is_instance_valid(movement_target):
+		var dist := global_position.distance_to(movement_target.global_position)
 		if dist < 30.0:
-			var away := _target.global_position.direction_to(global_position)
+			var away := movement_target.global_position.direction_to(global_position)
 			velocity = away * effective_speed * 0.5
 		else:
-			var dir := global_position.direction_to(_target.global_position)
+			var dir := global_position.direction_to(movement_target.global_position)
 			velocity = dir * effective_speed
 	else:
 		velocity = _wander_dir * effective_speed * 0.3
@@ -122,6 +125,27 @@ func _update_facing() -> void:
 	if should_face_right != _facing_right:
 		_facing_right = should_face_right
 		_sprite.flip_h = not _facing_right
+
+func apply_hijack(duration: float) -> void:
+	_hijacked_remaining = maxf(_hijacked_remaining, duration)
+	queue_redraw()
+
+func is_hijacked() -> bool:
+	return _hijacked_remaining > 0.0
+
+func get_effective_target() -> Node2D:
+	if not is_hijacked() or not is_inside_tree():
+		return _target
+	var nearest: Node2D
+	var nearest_distance := INF
+	for candidate: Node in get_tree().get_nodes_in_group("enemies"):
+		if candidate == self or not candidate is Node2D or candidate.is_queued_for_deletion():
+			continue
+		var distance := global_position.distance_squared_to(candidate.global_position)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest = candidate
+	return nearest
 
 func _draw() -> void:
 	_draw_health_bar()
@@ -243,6 +267,8 @@ func _check_contact_damage() -> void:
 		var collision := get_slide_collision(i)
 		if collision.get_collider() is Player:
 			Player.hurt(collision.get_collider(), contact_damage, get_contact_source(), get_damage_context())
+		elif is_hijacked() and collision.get_collider() is EnemyBase and collision.get_collider() != self:
+			collision.get_collider().take_damage(contact_damage, false, null, "proc")
 
 func get_contact_source() -> String:
 	return get_enemy_id() + ":contact"

@@ -43,13 +43,33 @@ func _ready() -> void:
 	QualitySettings.set_preset(QualitySettings.Preset.LOW)
 	var gallery := EvolutionGallery.new()
 	add_child(gallery)
+	await get_tree().process_frame
+	check(gallery.get_preview_skill() != null,
+		"Gallery builds a real production SkillInstance from its selectors")
+	check(gallery.trigger_cast(), "Gallery can trigger a real production cast")
+	check(gallery.production_effect_count() >= 1,
+		"Gallery cast creates a real production gameplay effect")
+	check(gallery.trigger_terminal(), "Gallery can activate a real production terminal encounter")
+	check(gallery.get_preview_terminal().state == CompilationTerminal.State.ACTIVE,
+		"Gallery terminal uses the production terminal state machine")
+	check(gallery.preview_wave_count() > 0,
+		"Gallery terminal spawns a real production enemy wave")
+	check(gallery.preview_wave_count() <= 6,
+		"Gallery density selector scales the production terminal wave")
 	gallery.show_effect("recursive_rollback", 3)
+	check(gallery.get_preview_skill().base.id == "blade_spin",
+		"Gallery evolution selection rebuilds the matching production skill")
+	check(gallery.trigger_cast(), "Gallery can cast the selected Rollback production skill")
 	check(gallery.selector_names() == ["skill", "support_set", "tier", "terminal_difficulty", "formation", "density"],
 		"Gallery exposes all production test selectors")
 	check(gallery.count_gameplay_effects("rollback") >= 1,
 		"Low preset preserves mechanic identity")
 	check(gallery.count_gameplay_effects("rollback") <= QualitySettings.projectile_cap,
 		"Low preset obeys gameplay cap")
+	gallery.queue_free()
+	await get_tree().process_frame
+	await get_tree().physics_frame
+	await get_tree().process_frame
 
 	if failures.is_empty():
 		print("PASS: portrait evolution cards and low-quality touch gallery")

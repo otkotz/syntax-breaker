@@ -88,6 +88,47 @@ func _ready() -> void:
 	check(recasts.size() > 0 and recasts[0].has_flag("ransomware_death_dart"),
 		"Ransomware II fires bounded derived darts on carrier death")
 
+	var frost := SkillInstance.new(load("res://resources/skills/frost_nova.tres"))
+	var shatter_target := RuntimeTarget.new()
+	shatter_target.add_to_group("enemies")
+	shatter_target.global_position = Vector2(12, 0)
+	add_child(shatter_target)
+	attack.attack_context = AttackContext.root("frost_nova", 103)
+	var zero := AbsoluteZeroEvolution.new()
+	zero.configure(3)
+	zero.on_kill(frost, target, attack)
+	check(shatter_target.damage_received > 0.0,
+		"Absolute Zero shatters killed enemies into bounded damaging shards")
+
+	var hijacked := EnemyBase.new()
+	var former_ally := EnemyBase.new()
+	add_child(hijacked)
+	add_child(former_ally)
+	hijacked.initialize(null)
+	former_ally.global_position = Vector2(20, 0)
+	hijacked.apply_hijack(1.0)
+	var hijack_target := hijacked.get_effective_target()
+	check(hijacked.is_hijacked() and hijack_target != null and hijack_target != hijacked
+		and hijack_target.is_in_group("enemies"),
+		"Ransomware III makes an eligible enemy target another enemy")
+
+	var rollback_skill := SkillInstance.new(load("res://resources/skills/blade_spin.tres"))
+	var rollback := Rollback.new()
+	rollback.context = AttackContext.root("blade_spin", 104)
+	var recursive := RecursiveRollbackEvolution.new()
+	recursive.configure(2)
+	recursive.on_spawn(rollback_skill, rollback)
+	check(rollback.get_meta("recursive_return_mult", 1.0) > 1.0,
+		"Recursive Rollback I increases return damage")
+	check(rollback.get_meta("recursive_replay_hits", false),
+		"Recursive Rollback II enables reverse hit replay")
+	for hazard: Node in get_tree().get_nodes_in_group("evolution_hazards"):
+		hazard.queue_free()
+	for node: Node in [target, shatter_target, hijacked, former_ally, attack]:
+		node.queue_free()
+	rollback.free()
+	await get_tree().process_frame
+
 	if failures.is_empty():
 		print("PASS: all seven evolutions expose three bounded runtime tiers")
 		get_tree().quit(0)

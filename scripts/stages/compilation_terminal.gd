@@ -31,11 +31,14 @@ var _player_inside := true
 var _pulse := 0.0
 var difficulty: Difficulty = Difficulty.COMPILE
 var zone_radius := ZONE_RADIUS
+var encounter_override: Dictionary = {}
 
 static func roll_difficulty(rng: RandomNumberGenerator) -> Difficulty:
 	return rng.randi_range(0, Difficulty.size() - 1)
 
 func get_encounter_definition() -> Dictionary:
+	if not encounter_override.is_empty():
+		return encounter_override.duplicate(true)
 	return ENCOUNTERS[difficulty].duplicate(true)
 
 func setup(player: Node2D, spawner: Spawner) -> void:

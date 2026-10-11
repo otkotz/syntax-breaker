@@ -59,10 +59,12 @@ func advance_simulation(delta: float) -> void:
 			_record_path_point()
 			if _distance_traveled >= max_range:
 				state = State.TURNING
+				state = State.RETURNING
+				if get_meta("recursive_replay_hits", false):
+					_replay_recorded_hits()
 				if get_meta("undo_retrace", false):
 					_undo_path = UndoHistoryBehavior.retrace_path(_recorded_path)
 					_undo_index = 1
-				state = State.RETURNING
 		State.TURNING:
 			state = State.RETURNING
 		State.RETURNING:
@@ -106,7 +108,27 @@ func _on_body_entered(body: Node2D) -> void:
 	_ordered_hits.append({"target": body, "target_id": body_id,
 		"direction": "outbound" if state == State.OUTBOUND else "returning",
 		"position": body.global_position})
-	ProjectileBase.resolve_skill_hit(skill_instance, body, self, damage)
+	var hit_damage := damage
+	if state == State.RETURNING:
+		hit_damage *= float(get_meta("recursive_return_mult", 1.0))
+	ProjectileBase.resolve_skill_hit(skill_instance, body, self, hit_damage)
+
+func _replay_recorded_hits() -> void:
+	for index in range(_ordered_hits.size() - 1, -1, -1):
+		var entry: Dictionary = _ordered_hits[index]
+		if entry.get("direction", "") != "outbound":
+			continue
+		var target: Node2D = entry.get("target")
+		if not is_instance_valid(target):
+			continue
+		var target_id := target.get_instance_id()
+		if _return_hit_ids.has(target_id):
+			continue
+		_return_hit_ids[target_id] = true
+		_ordered_hits.append({"target": target, "target_id": target_id,
+			"direction": "returning", "position": target.global_position})
+		ProjectileBase.resolve_skill_hit(skill_instance, target, self,
+			damage * float(get_meta("recursive_return_mult", 1.0)))
 
 func get_recorded_path() -> Array[Vector2]:
 	return _recorded_path.duplicate()
