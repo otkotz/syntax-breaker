@@ -1,6 +1,8 @@
 class_name Rollback
 extends Area2D
 
+static var active_count := 0
+
 enum State { OUTBOUND, TURNING, RETURNING, CAUGHT }
 
 var state: State = State.OUTBOUND
@@ -20,8 +22,12 @@ var _return_hit_ids: Dictionary = {}
 var _undo_path: Array[Vector2] = []
 var _undo_index := 0
 var _expire_notified := false
+var _active_registered := false
 
 func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_context: AttackContext = null) -> void:
+	if not _active_registered:
+		active_count += 1
+		_active_registered = true
 	skill_instance = si
 	direction = dir.normalized() if not dir.is_zero_approx() else Vector2.RIGHT
 	pool_ref = pool
@@ -109,6 +115,7 @@ func get_ordered_hits() -> Array[Dictionary]:
 	return _ordered_hits.duplicate(true)
 
 func _release_to_pool() -> void:
+	_release_active_count()
 	if not _expire_notified and skill_instance:
 		_expire_notified = true
 		skill_instance.notify_expire(self)
@@ -118,6 +125,7 @@ func _release_to_pool() -> void:
 		set_physics_process(false)
 
 func reset() -> void:
+	_release_active_count()
 	state = State.CAUGHT
 	skill_instance = null
 	context = null
@@ -132,6 +140,14 @@ func reset() -> void:
 	_expire_notified = false
 	if has_meta("undo_retrace"):
 		remove_meta("undo_retrace")
+
+func _release_active_count() -> void:
+	if _active_registered:
+		active_count = maxi(0, active_count - 1)
+		_active_registered = false
+
+func _exit_tree() -> void:
+	_release_active_count()
 
 func _draw() -> void:
 	draw_arc(Vector2.ZERO, 16.0, -2.35, 0.75, 18, Color(0.15, 0.9, 1.0), 7.0)

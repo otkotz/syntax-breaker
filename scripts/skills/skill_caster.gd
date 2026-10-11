@@ -166,12 +166,15 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D, contex
 	si.notify_spawn(projectile)
 
 func _request_recast(direction: Vector2, context: AttackContext, metadata: Dictionary, si: SkillInstance) -> void:
-	if not AttackContext.can_spawn_child("projectile", ProjectileBase.active_count, QualitySettings.projectile_cap):
+	if not AttackContext.can_spawn_child("gameplay_effect", _active_gameplay_effect_count(), QualitySettings.projectile_cap):
 		return
 	var cast := si.notify_cast(direction, context, metadata)
 	var count := 2 if cast.metadata.get("works_mode", "") == "projectiles" else 1
 	for i in count:
 		_spawn_skill(si, direction.rotated((i - (count - 1) * 0.5) * 0.18), null, context)
+
+func _active_gameplay_effect_count() -> int:
+	return ProjectileBase.active_count + Rollback.active_count + AoeSkillBase.active_count
 
 func _place_totem(si: SkillInstance) -> bool:
 	var pool: ObjectPool = _pools.get(si.base.scene_path)

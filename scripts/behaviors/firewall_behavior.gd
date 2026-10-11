@@ -1,7 +1,7 @@
 class_name FirewallBehavior
 extends BehaviorBase
 
-const REQUIRED_SKILL_ID := "flame_wave"
+const REQUIRED_SKILL_ID := "fireball"
 
 func accepts(skill_instance: SkillInstance) -> bool:
 	return skill_instance.base.id == REQUIRED_SKILL_ID

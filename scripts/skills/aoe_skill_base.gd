@@ -1,6 +1,8 @@
 class_name AoeSkillBase
 extends Area2D
 
+static var active_count := 0
+
 var skill_instance: SkillInstance
 var damage: float = 10.0
 var area_radius: float = 100.0
@@ -14,6 +16,7 @@ var _kill_count: int = 0
 var _detonation_mult: float = 1.0
 var attack_context: AttackContext
 var _expire_notified := false
+var _active_registered := false
 
 var _arc_data: Array = []
 var _wave_hit_set: Array = []
@@ -23,6 +26,9 @@ func _ready() -> void:
 	pass
 
 func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool, context: AttackContext = null) -> void:
+	if not _active_registered:
+		active_count += 1
+		_active_registered = true
 	skill_instance = si
 	attack_context = context if context else si.create_attack_context()
 	damage = si.computed_stats.get("damage", 10.0) * float(attack_context.metadata.get("damage_mult", 1.0))
@@ -267,6 +273,7 @@ func _spawn_aftermath() -> void:
 					AftermathEffect.spawn(scene_root, global_position, "frost_patch", area_radius * 0.4, 2.0)
 
 func reset() -> void:
+	_release_active_count()
 	skill_instance = null
 	pool_ref = null
 	_timer = 0.0
@@ -281,5 +288,14 @@ func reset() -> void:
 	scale = Vector2.ONE
 
 func _return_to_pool() -> void:
+	_release_active_count()
 	if pool_ref:
 		pool_ref.release(self)
+
+func _release_active_count() -> void:
+	if _active_registered:
+		active_count = maxi(0, active_count - 1)
+		_active_registered = false
+
+func _exit_tree() -> void:
+	_release_active_count()

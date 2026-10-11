@@ -66,7 +66,7 @@ func _ready() -> void:
 	field.queue_free()
 
 	var expected := {
-		"firewall": "flame_wave", "reply_all": "fireball",
+		"firewall": "fireball", "reply_all": "flame_wave",
 		"frozen_process": "frost_nova", "wifi_extender": "lightning_bolt",
 		"malware": "poison_dart", "background_process": "static_field",
 		"undo_history": "blade_spin",

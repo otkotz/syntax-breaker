@@ -14,4 +14,4 @@ added_tags = Array[String]([])
 behavior_key = "reply_all"
 icon = ExtResource("2")
 rarity = "rare"
-description = "Fireball replies to nearby enemies once per root cast."
+description = "Flame Wave's first hit emits one smaller wave in a new direction."

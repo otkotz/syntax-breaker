@@ -14,4 +14,4 @@ added_tags = Array[String]([])
 behavior_key = "firewall"
 icon = ExtResource("2")
 rarity = "rare"
-description = "Flame Wave leaves one burning wall between the caster and impact."
+description = "Fireball connects the caster-to-impact line with a temporary burning wall."

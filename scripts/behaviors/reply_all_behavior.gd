@@ -1,7 +1,7 @@
 class_name ReplyAllBehavior
 extends BehaviorBase
 
-const REQUIRED_SKILL_ID := "fireball"
+const REQUIRED_SKILL_ID := "flame_wave"
 
 func accepts(skill_instance: SkillInstance) -> bool:
 	return skill_instance.base.id == REQUIRED_SKILL_ID

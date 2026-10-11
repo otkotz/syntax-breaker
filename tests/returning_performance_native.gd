@@ -16,6 +16,8 @@ func _ready() -> void:
 
 func run_checks() -> void:
 	ProjectileBase.active_count = 0
+	Rollback.active_count = 0
+	AoeSkillBase.active_count = 0
 	var player := Node2D.new()
 	player.add_to_group("player")
 	player.global_position = Vector2.ZERO
@@ -102,6 +104,20 @@ func run_checks() -> void:
 	first._return_to_pool()
 	second._return_to_pool()
 	check(ProjectileBase.active_count == 0, "All stress-test projectiles clean up their active count")
+	var rollback_skill := SkillInstance.new(load("res://resources/skills/blade_spin.tres"))
+	var rollback := Rollback.new()
+	add_child(rollback)
+	rollback.initialize(rollback_skill, Vector2.RIGHT, null)
+	check(Rollback.active_count == 1, "Rollback participates in the global gameplay-effect cap")
+	rollback._release_to_pool()
+	check(Rollback.active_count == 0, "Rollback releases its global capacity exactly once")
+	var nova_skill := SkillInstance.new(load("res://resources/skills/frost_nova.tres"))
+	var nova := AoeSkillBase.new()
+	add_child(nova)
+	nova.initialize(nova_skill, Vector2.ZERO, null)
+	check(AoeSkillBase.active_count == 1, "AoE skills participate in the global gameplay-effect cap")
+	nova._return_to_pool()
+	check(AoeSkillBase.active_count == 0, "AoE skills release their global capacity exactly once")
 	var stage_owner := Node2D.new()
 	add_child(stage_owner)
 	var interrupted := ProjectileBase.new()
