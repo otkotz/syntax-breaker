@@ -1,5 +1,7 @@
 extends Node
 
+const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
+
 var current_stage: int = 0
 var gold: int = 0
 var gold_fraction: float = 0.0
@@ -19,9 +21,10 @@ var reroll_cost: int = 2
 var current_stage_data: StageData
 var current_region: String = ""
 var ascension_level: int = 0
+var threat_protocol_level: int = 0
 var stage_tree: StageTree
 
-func start_run(region: String = "", ascension: int = -1) -> void:
+func start_run(region: String = "", protocol: int = -1) -> void:
 	current_stage = 0
 	gold = 30
 	gold_fraction = 0.0
@@ -39,7 +42,8 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	current_stage_data = null
 	stage_tree = null
 	current_region = region
-	ascension_level = clampi(ascension if ascension >= 0 else MetaProgression.ascension_level, 0, MetaProgression.get_max_ascension(region))
+	threat_protocol_level = clampi(protocol if protocol >= 0 else MetaProgression.threat_protocol_level, 0, MetaProgression.get_max_threat_protocol(region))
+	ascension_level = threat_protocol_level
 	run_stats = {
 		"enemies_killed": 0,
 		"gold_earned": 0.0,
@@ -80,6 +84,7 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 		"triggers_fired": 0,
 		"region": region,
 		"ascension_level": ascension_level,
+		"threat_protocol_level": threat_protocol_level,
 	}
 
 func add_gold(amount: float) -> void:
@@ -199,6 +204,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"telemetry": RunTelemetry.snapshot(),
 		"current_region": current_region,
 		"ascension_level": ascension_level,
+		"threat_protocol_level": threat_protocol_level,
 		"skills": skill_data,
 		"supports": supports_data,
 		"passives": passives_data,
@@ -237,7 +243,8 @@ func restore_from_save(data: Dictionary) -> void:
 	run_stats = data.get("run_stats", {})
 	RunTelemetry.restore(data.get("telemetry", {}))
 	current_region = data.get("current_region", "")
-	ascension_level = int(data.get("ascension_level", 0))
+	threat_protocol_level = clampi(int(data.get("threat_protocol_level", ThreatProtocolsData.from_legacy_ascension(int(data.get("ascension_level", 0))))), 0, ThreatProtocolsData.MAX_LEVEL)
+	ascension_level = threat_protocol_level
 
 	var tree_data: Dictionary = data.get("stage_tree", {})
 	stage_tree = null

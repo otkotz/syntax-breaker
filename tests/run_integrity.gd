@@ -13,9 +13,9 @@ func run_checks() -> void:
 	# Test saves stay in the project cache, never in the player's profile.
 	RunManager.save_path = "res://.godot/run_integrity_test.json"
 	MetaProgression.save_path = "res://.godot/meta_integrity_test.json"
-	MetaProgression.highest_ascension_unlocked = {}
+	MetaProgression.highest_threat_protocol_unlocked = {}
 	MetaProgression.region_victories = {}
-	MetaProgression.ascension_level = 0
+	MetaProgression.threat_protocol_level = 0
 	RunManager.start_run()
 	check(RunManager.spend_gold(15) and RunManager.refund_gold(15), "Canceled purchase returns payment")
 	check(RunManager.gold == 30 and RunManager.run_stats.gold_earned == 0.0 and RunManager.run_stats.gold_spent == 0, "Refund is not new income or a completed expense")
@@ -87,12 +87,12 @@ func run_checks() -> void:
 	player.set_max_hp(150.0)
 	check(player.current_hp == 63.0 and RunManager.current_hp == 63.0, "Max HP preserves health percentage")
 	player.queue_free()
-	MetaProgression.set_ascension(20, "storm_spire")
-	check(MetaProgression.ascension_level == 0, "New region starts at Ascension zero")
+	MetaProgression.set_threat_protocol(4, "storm_spire")
+	check(MetaProgression.threat_protocol_level == 0, "New region starts at NORMAL")
 	MetaProgression.record_victory("storm_spire", 0)
-	MetaProgression.set_ascension(20, "storm_spire")
-	check(MetaProgression.ascension_level == 1, "Victory unlocks only next level")
-	check(MetaProgression.get_max_ascension("toxic_depths") == 0, "Regional progression independent")
+	MetaProgression.set_threat_protocol(4, "storm_spire")
+	check(MetaProgression.threat_protocol_level == 1, "Victory unlocks only next protocol")
+	check(MetaProgression.get_max_threat_protocol("toxic_depths") == 0, "Regional progression independent")
 	RunManager.clear_saved_run()
 	DirAccess.remove_absolute(MetaProgression.save_path)
 	print(JSON.stringify({"save_cycles": 100, "failures": failures}))

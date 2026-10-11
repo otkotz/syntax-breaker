@@ -1,7 +1,9 @@
 extends Node
 
+const ThreatProtocolsData = preload("res://scripts/util/threat_protocols.gd")
 const SAVE_PATH := "user://meta_progression.json"
 const MAX_ASCENSION := 20
+const MAX_THREAT_PROTOCOL := ThreatProtocolsData.MAX_LEVEL
 var save_path: String = SAVE_PATH
 
 var unlocked_items: Dictionary = {
@@ -18,6 +20,8 @@ var unlocked_items: Dictionary = {
 
 var ascension_level: int = 0
 var highest_ascension_unlocked: Dictionary = {}
+var threat_protocol_level: int = 0
+var highest_threat_protocol_unlocked: Dictionary = {}
 var region_victories: Dictionary = {}
 var codex_entries: Dictionary = {}
 var completed_challenges: Dictionary = {}
@@ -92,10 +96,13 @@ func is_unlocked(item_type: String, item_id: String) -> bool:
 func get_max_ascension(region: String = "") -> int:
 	return clampi(int(highest_ascension_unlocked.get(region, 0)), 0, MAX_ASCENSION)
 
+func get_max_threat_protocol(region: String = "") -> int:
+	return clampi(int(highest_threat_protocol_unlocked.get(region, 0)), 0, MAX_THREAT_PROTOCOL)
+
 func record_victory(region: String, level: int) -> void:
 	region_victories[region] = int(region_victories.get(region, 0)) + 1
-	if level <= get_max_ascension(region):
-		highest_ascension_unlocked[region] = maxi(get_max_ascension(region), mini(level + 1, MAX_ASCENSION))
+	if level <= get_max_threat_protocol(region):
+		highest_threat_protocol_unlocked[region] = maxi(get_max_threat_protocol(region), mini(level + 1, MAX_THREAT_PROTOCOL))
 	_sync_contract_supports()
 	save_progress()
 
@@ -110,6 +117,10 @@ func _sync_contract_supports() -> void:
 
 func set_ascension(level: int, region: String = "") -> void:
 	ascension_level = clampi(level, 0, get_max_ascension(region))
+	save_progress()
+
+func set_threat_protocol(level: int, region: String = "") -> void:
+	threat_protocol_level = clampi(level, 0, get_max_threat_protocol(region))
 	save_progress()
 
 func get_ascension_scaling(level: int = -1) -> Dictionary:
@@ -145,8 +156,8 @@ func unlock_item(item_type: String, item_id: String) -> bool:
 func save_progress() -> void:
 	var data := {
 		"unlocked_items": unlocked_items,
-		"ascension_level": ascension_level,
-		"highest_ascension_unlocked": highest_ascension_unlocked,
+		"threat_protocol_level": threat_protocol_level,
+		"highest_threat_protocol_unlocked": highest_threat_protocol_unlocked,
 		"region_victories": region_victories,
 		"codex_entries": codex_entries,
 		"completed_challenges": completed_challenges,
@@ -171,7 +182,21 @@ func load_progress() -> void:
 			for id: Variant in data.get("purchased_cosmetics", []):
 				if id is String and not purchased_cosmetics.has(id):
 					purchased_cosmetics.append(id)
-			highest_ascension_unlocked = data.get("highest_ascension_unlocked", {})
+			if data.has("highest_threat_protocol_unlocked"):
+				highest_threat_protocol_unlocked = data.get("highest_threat_protocol_unlocked", {}).duplicate(true)
+				threat_protocol_level = clampi(int(data.get("threat_protocol_level", 0)), 0, MAX_THREAT_PROTOCOL)
+			else:
+				highest_threat_protocol_unlocked = {}
+				for region: Variant in data.get("highest_ascension_unlocked", {}):
+					var legacy_level := int(data.highest_ascension_unlocked[region])
+					highest_threat_protocol_unlocked[str(region)] = ThreatProtocolsData.from_legacy_ascension(legacy_level)
+				threat_protocol_level = ThreatProtocolsData.from_legacy_ascension(int(data.get("ascension_level", 0)))
+				var migrated_region := str(data.get("current_region", ""))
+				threat_protocol_level = clampi(threat_protocol_level, 0, get_max_threat_protocol(migrated_region)) if highest_threat_protocol_unlocked.has(migrated_region) else threat_protocol_level
+				save_progress()
+			# Keep aliases coherent while older runtime consumers are migrated task-by-task.
+			ascension_level = threat_protocol_level
+			highest_ascension_unlocked = highest_threat_protocol_unlocked.duplicate(true)
 			region_victories = data.get("region_victories", {})
 			completed_challenges = data.get("completed_challenges", {})
 			selected_cosmetics = data.get("selected_cosmetics", {}).duplicate(true) if data.get("selected_cosmetics", {}) is Dictionary else {}
@@ -181,8 +206,6 @@ func load_progress() -> void:
 				unlocked_items = data["unlocked_items"]
 			elif not data.has("ascension_level"):
 				unlocked_items = data
-			if data.has("ascension_level"):
-				ascension_level = int(data["ascension_level"])
 			if data.has("codex_entries"):
 				codex_entries = data["codex_entries"]
 			_sync_contract_supports()
