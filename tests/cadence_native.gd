@@ -83,28 +83,20 @@ func run_checks() -> void:
 	boss.current_hp = 0.0
 	hud._process(0.0)
 	check(not hud._boss_bar.visible, "Boss bar hides on death")
-	arena.spawner._stage_timer = arena.spawner._stage_duration * 0.64
-	arena._process(0.0)
-	check(get_tree().paused, "Checkpoint pauses combat")
+	arena._open_compilation()
+	check(Engine.time_scale < 1.0, "Terminal decision slows combat")
 	var picker: CompilationPicker
 	for child: Node in arena.get_node("CanvasLayer").get_children():
 		if child is CompilationPicker:
 			picker = child
-	check(picker != null, "Checkpoint creates selection UI")
+	check(picker != null, "Standalone arena terminal creates selection UI")
 	if picker:
-		var box := picker.get_child(1).get_child(0)
-		(box.get_child(1) as Button).pressed.emit()
-		check(not get_tree().paused, "Selecting an override resumes combat")
-		check(skill.stage_overrides.size() == 1, "Override applied once")
-		(box.get_child(1) as Button).pressed.emit()
-		check(skill.stage_overrides.size() == 1, "Double click cannot duplicate override")
-	arena.spawner._stage_timer = arena.spawner._stage_duration * 0.29
-	arena._process(0.0)
-	check(get_tree().paused and arena._checkpoint_index == 2, "Second checkpoint")
-	for child: Node in arena.get_node("CanvasLayer").get_children():
-		if child is CompilationPicker and not child.is_queued_for_deletion():
-			child._finish()
-	check(not get_tree().paused, "Skipping resumes combat")
+		var buttons := picker.find_children("*", "Button", true, false).filter(
+			func(button: Node): return button.get_meta("evolution_offer", false))
+		if not buttons.is_empty():
+			(buttons[0] as Button).pressed.emit()
+	check(Engine.time_scale == 1.0, "Selecting a terminal evolution resumes combat")
+	check(skill.evolution_tier > 0 or skill.bonus_support_slots > 0, "Terminal upgrade applies")
 	arena._on_all_waves_cleared()
 	check(skill.stage_overrides.is_empty(), "Stage end clears temporary effects")
 	check(is_equal_approx(skill.computed_stats.damage, skill.base.base_damage), "Base damage restored")

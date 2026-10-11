@@ -257,6 +257,10 @@ func run_checks() -> void:
 		check(spawner.complete_encounter("test_cleanup"), "First completion owns the transition")
 		check(not spawner.complete_encounter("test_cleanup"), "Repeated completion is ignored")
 		spawner._materialize_split_fragments(Vector2.ZERO, 2, old_generation, false, 0)
+		for frame in 8:
+			if completions[0] == 1:
+				break
+			await get_tree().process_frame
 		check(completions[0] == 1 and spawner._pending_split_fragments == 0,
 			"Completion emits once and invalidates deferred fragments")
 		check(spawner.get_remaining_enemies() == 0, "Completion leaves no active encounter entities")

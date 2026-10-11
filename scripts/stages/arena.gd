@@ -147,7 +147,13 @@ func _open_compilation() -> void:
 		return
 	_compilation_open = true
 	Engine.time_scale = 0.08
-	compilation_decision_requested.emit(_compilation_terminal.difficulty)
+	if compilation_decision_requested.get_connections().is_empty():
+		var picker := CompilationPicker.new()
+		$CanvasLayer.add_child(picker)
+		picker.setup((player.get_node("SkillCaster") as SkillCaster).skill_instances, _compilation_terminal.difficulty)
+		picker.chosen.connect(complete_compilation_decision, CONNECT_ONE_SHOT)
+	else:
+		compilation_decision_requested.emit(_compilation_terminal.difficulty)
 
 func complete_compilation_decision() -> void:
 	_restore_combat_time()

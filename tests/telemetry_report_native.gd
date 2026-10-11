@@ -87,6 +87,26 @@ func _ready() -> void:
 	check(aggregated.duplicates == 2 and aggregated.conflicting_duplicates == 1, "Identical copies are deduplicated and conflicting copies are explicit")
 	check(aggregated.cadence.status == "unverified", "Conflicting log copies cannot certify cadence")
 	check(aggregated.completed_playtests == 0, "Disk fixtures never enter real-playtest population")
+	var cohorts_directory := "res://.godot/telemetry_cohort_test_" + Crypto.new().generate_random_bytes(6).hex_encode()
+	DirAccess.make_dir_recursive_absolute(cohorts_directory)
+	var legacy := mock_run(20)
+	legacy.source = "synthetic"
+	legacy.metadata = {"region": "burning_grounds", "ascension": 12, "quality": "low"}
+	write_fixture(cohorts_directory.path_join("legacy.json"), legacy)
+	var current := mock_run(21)
+	current.source = "synthetic"
+	current.metadata = {"region": "burning_grounds", "threat_protocol_level": 3, "quality": "low"}
+	current.death_sequence = [{"source": "tank:contact", "hp_damage": 5.0}]
+	current.events = [{"type": "stage_cleanup", "app_seconds": 1.0, "combat_seconds": 1.0,
+		"data": {"objects": 30, "batches": 3, "duration_ms": 8.0, "worst_batch_ms": 2.0}}]
+	write_fixture(cohorts_directory.path_join("current.json"), current)
+	var cohort_report: Dictionary = reporter.aggregate(cohorts_directory, true)
+	check(cohort_report.cohorts.has("burning_grounds/legacy-A12/low/unknown/standard"),
+		"Legacy Ascension telemetry remains an explicit legacy cohort")
+	check(cohort_report.cohorts.has("burning_grounds/TP3/low/unknown/standard"),
+		"Current telemetry cohorts prefer Threat Protocol")
+	check(cohort_report.death_sequences == 1 and cohort_report.metrics.cleanup_batches.median == 3.0,
+		"Optional death-sequence and cleanup metrics aggregate when present")
 	reporter.free()
 	if failures.is_empty():
 		print("PASS: latest-five cadence, chronology, exact thresholds, final tail, partial resume, synthetic exclusion and malformed logs")

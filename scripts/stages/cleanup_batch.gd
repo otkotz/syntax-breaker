@@ -36,7 +36,7 @@ func _process(_delta: float) -> void:
 	var batch_started := Time.get_ticks_usec()
 	var processed := 0
 	while processed < _max_per_frame and not _nodes.is_empty():
-		var node: Node = _nodes.pop_front()
+		var node: Variant = _nodes.pop_front()
 		if is_instance_valid(node):
 			if release_callable.is_valid():
 				release_callable.call(node)

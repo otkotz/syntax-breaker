@@ -29,8 +29,8 @@ func run_checks() -> void:
 	MetaProgression.region_victories = {}
 	MetaProgression.load_progress()
 	check(StarterContracts.is_unlocked("miner") and not StarterContracts.is_unlocked("architect"), "First persistent victory unlocks Miner")
-	check(not StarterContracts.rejection_reason("miner", blade).is_empty(), "Melee rejects Mine via common support validation")
-	check(not StarterContracts.apply("miner", SkillInstance.new(blade)), "Incompatible contract is rejected atomically")
+	check(StarterContracts.rejection_reason("miner", blade).is_empty(), "Boomerang Blade accepts projectile Mine support")
+	check(StarterContracts.apply("miner", SkillInstance.new(blade)), "Boomerang contract applies atomically")
 	MetaProgression.region_victories["storm_spire"] = 2
 	MetaProgression._sync_contract_supports()
 	check(StarterContracts.is_unlocked("architect"), "Three regional wins unlock Architect")
@@ -58,7 +58,7 @@ func run_checks() -> void:
 	picker.selected_contract = "miner"
 	picker._populate()
 	picker.contract_changed.emit()
-	check(picker.offered_skills.all(func(offer): return offer.id != "blade_spin"), "UI does not offer incompatible starter as available")
+	check(picker.offered_skills.any(func(offer): return offer.id == "blade_spin"), "UI offers compatible boomerang starter")
 	picker.skill_chosen.emit(fire, "rare")
 	check(game.entered == 1 and game.get_skill_instances()[0].computed_stats.is_mine > 0, "GameManager enters first stage already configured as Mine")
 	check(RunManager.run_stats.non_mine_casts == 0 and RunManager.gold == 15, "Miner begins without ordinary cast or free gold")

@@ -32,13 +32,15 @@ func _ready() -> void:
 		"Cleanup disables processing immediately")
 	check(nodes.all(func(node: Node): return (node as CollisionObject2D).collision_layer == 0),
 		"Cleanup disables combat collision immediately")
+	var freed_between_batches: Node = nodes[8]
+	freed_between_batches.free()
 	await get_tree().process_frame
 	check(released[0] <= 3, "Cleanup respects per-frame object bound")
 	for frame in 8:
 		await get_tree().process_frame
 		if not result[0].is_empty():
 			break
-	check(released[0] == 10 and result[0].objects == 10, "Every still-valid object is released once")
+	check(released[0] == 9 and result[0].objects == 10, "Externally freed objects are skipped and every valid object releases once")
 	check(result[0].batches >= 4 and result[0].worst_batch_ms >= 0.0, "Cleanup reports bounded batch metrics")
 	host.queue_free()
 	if failures.is_empty():

@@ -36,12 +36,17 @@ func aggregate(directory: String, include_synthetic: bool) -> Dictionary:
 		"completed_runs": 0, "completed_playtests": 0, "synthetic_excluded": 0,
 		"invalid_files": 0, "duplicates": 0, "conflicting_duplicates": 0, "unfinished_runs": 0, "abandoned_runs": 0,
 		"wins": 0, "deaths_by_source": {}, "cohorts": {}, "choices": {}, "dropped_events": 0,
+		"death_sequences": 0,
 		"limitations": ["Unfinished logs do not prove crashes.", "Frame measurements are not phone performance evidence unless collected on that phone.",
 			"Pick rates cover logged decisions, not causal build strength; capped events can omit choices.",
 			"Synthetic fixtures never satisfy the required real-playtest sample."]}
 	var samples := {"combat_seconds": [], "app_seconds": [], "spawn_wait_seconds": [],
 		"first_decision_seconds": [], "positive_decision_intervals": [], "think_seconds": [],
 		"mean_frame_ms": [], "slow_frame_fraction": []}
+	samples["cleanup_objects"] = []
+	samples["cleanup_batches"] = []
+	samples["cleanup_duration_ms"] = []
+	samples["cleanup_worst_batch_ms"] = []
 	var seen := {}
 	var cadence_runs: Array[Dictionary] = []
 	var folder := DirAccess.open(directory)
@@ -84,8 +89,12 @@ func aggregate(directory: String, include_synthetic: bool) -> Dictionary:
 		report.dropped_events += int(run.get("dropped_events", 0))
 		if run.status == "death":
 			increment(report.deaths_by_source, str(run.get("death_source", "unknown")))
+		if run.get("death_sequence") is Array and not run.death_sequence.is_empty():
+			report.death_sequences += 1
 		var metadata: Dictionary = run.metadata
-		var cohort_key := "%s/A%s/%s/%s/%s" % [metadata.get("region", "unknown"), metadata.get("ascension", "?"),
+		var protocol_label := "TP%d" % int(metadata.threat_protocol_level) if metadata.has("threat_protocol_level") else (
+			"legacy-A%d" % int(metadata.ascension) if metadata.has("ascension") else "legacy-A?")
+		var cohort_key := "%s/%s/%s/%s/%s" % [metadata.get("region", "unknown"), protocol_label,
 			metadata.get("quality", "unknown"), metadata.get("starter", "unknown"), metadata.get("starter_contract", "standard")]
 		if not report.cohorts.has(cohort_key):
 			report.cohorts[cohort_key] = {"runs": 0, "wins": 0}
@@ -103,6 +112,13 @@ func aggregate(directory: String, include_synthetic: bool) -> Dictionary:
 			samples.mean_frame_ms.append(float(run.get("frame_ms_sum", 0)) / frames)
 			samples.slow_frame_fraction.append(float(run.get("frames_over_33ms", 0)) / frames)
 		collect_choices(run.events, report.choices, samples.think_seconds)
+		for event: Dictionary in run.events:
+			if event.type != "stage_cleanup":
+				continue
+			for metric: String in ["objects", "batches", "duration_ms", "worst_batch_ms"]:
+				var value: Variant = event.data.get(metric)
+				if value is int or value is float:
+					samples["cleanup_" + metric].append(float(value))
 	report["win_rate"] = float(report.wins) / report.completed_runs if report.completed_runs > 0 else null
 	report["metrics"] = {}
 	for key in samples:

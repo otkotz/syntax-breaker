@@ -199,7 +199,11 @@ func run_checks() -> void:
 			check(projectile_pool.active_count() == 0, "Every boss projectile releases after its range")
 		final_spawner._spawn_enemy_at(Vector2(300, 300), "split_fragment", false, true)
 		final_boss.take_damage(final_boss.current_hp + 1.0)
-		check(final_completions[0] == 1, "Boss death immediately completes final map")
+		for frame in 4:
+			if final_completions[0] == 1:
+				break
+			await get_tree().process_frame
+		check(final_completions[0] == 1, "Boss death completes final map after bounded cleanup")
 		check(final_spawner.get_remaining_enemies() == 0, "Mechanic adds do not gate final victory")
 	final_spawner.queue_free()
 	final_target.queue_free()

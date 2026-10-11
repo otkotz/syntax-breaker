@@ -57,6 +57,7 @@ func run_checks() -> void:
 		fragment._physics_process(0.51)
 		check(fragment.collision_mask == 5 and fragment.collision_layer == 2, "Contact activates after full warning")
 		fragment.take_damage(99999.0)
+	await get_tree().process_frame
 	check(spawner._enemies_alive == 0 and completions[0] == 1, "Wave completes exactly once after last fragment")
 	check(living_fragments(spawner).is_empty(), "Fragments never split recursively")
 	check(is_equal_approx(RunManager.run_stats.gold_earned, 1.2), "Whole family reward is conserved without integer truncation")
@@ -75,6 +76,7 @@ func run_checks() -> void:
 	var outsider := preload("res://scenes/enemies/basic_melee.tscn").instantiate() as EnemyBase
 	add_child(outsider)
 	spawner.force_complete()
+	await get_tree().process_frame
 	check(spawner._enemies_alive == 0 and living_fragments(spawner).is_empty(), "Forced completion suppresses offspring and kills all owned enemies")
 	check(spawner.get_active_role_count("split_fragment") == 0 and spawner.get_active_role_count("splitter") == 0, "Forced completion clears role counts")
 	check(outsider.is_alive(), "Forced completion cannot kill enemies outside its spawner")

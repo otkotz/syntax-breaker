@@ -526,6 +526,9 @@ func start_batched_cleanup(emit_completion: bool = true) -> void:
 			targets.append(child)
 	_enemies_alive = 0
 	_active_role_counts.clear()
+	for target: Node in targets:
+		if is_instance_valid(target) and target is EnemyBase:
+			(target as EnemyBase).deactivate_without_rewards()
 	_cleanup_batch = CleanupBatchData.new()
 	add_child(_cleanup_batch)
 	_cleanup_batch.release_callable = _release_cleanup_target
