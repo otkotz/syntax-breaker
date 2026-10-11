@@ -192,6 +192,9 @@ func take_damage(amount: float, source: String = "unknown", context: Dictionary 
 		"shield_absorbed": absorbed, "shield_before": shield_before, "shield_after": current_shield,
 		"hp_before": before, "hp_after": maxf(0.0, before - hp_damage), "x": global_position.x, "y": global_position.y}, true)
 	RunTelemetry.record("player_damage", hit)
+	RunManager.record_damage_event({"source": source, "hp_damage": minf(current_hp, hp_damage),
+		"shield_absorbed": absorbed, "hp_before": before, "hp_after": maxf(0.0, before - hp_damage),
+		"raw_amount": amount, "mitigated_amount": final_amount})
 	RunManager.record_stat("damage_taken", minf(current_hp, hp_damage))
 	RunManager.run_stats["shield_absorbed"] = float(RunManager.run_stats.get("shield_absorbed", 0.0)) + absorbed
 	current_hp = max(current_hp - hp_damage, 0.0)

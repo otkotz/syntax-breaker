@@ -75,6 +75,8 @@ func run_checks() -> void:
 	player.take_damage(10.0, "basic_ranged:projectile")
 	player.take_damage(10.0, "ignored_iframe")
 	check(RunManager.run_stats.last_damage_source == "basic_ranged:projectile", "I-frame rejected hits cannot replace actual source")
+	check(RunManager.get_death_sequence().size() == 1 and RunManager.get_death_sequence()[0].source == "basic_ranged:projectile",
+		"I-frame rejected hits cannot enter the death sequence")
 	RunManager.add_consumable(load("res://resources/consumables/auto_revive.tres"))
 	var manager := ConsumableManager.new()
 	add_child(manager)
@@ -87,6 +89,8 @@ func run_checks() -> void:
 	Player.hurt(player, 999.0, "storm_boss:beam")
 	check(RunManager.run_stats.death_source == "storm_boss:beam", "Lethal damage records precise attack source")
 	RunTelemetry.finish("death", [])
+	check(RunTelemetry.data.death_sequence.size() == 3 and RunTelemetry.data.death_sequence[-1].source == "storm_boss:beam",
+		"Finished telemetry preserves accepted shield/HP hits and the final blow")
 	player.queue_free()
 	manager.queue_free()
 	RunTelemetry.begin({"fixture": "bounded_events"}, true)

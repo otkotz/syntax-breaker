@@ -23,6 +23,7 @@ var current_region: String = ""
 var ascension_level: int = 0
 var threat_protocol_level: int = 0
 var stage_tree: StageTree
+const MAX_DEATH_SEQUENCE := 5
 
 func start_run(region: String = "", protocol: int = -1) -> void:
 	current_stage = 0
@@ -85,7 +86,21 @@ func start_run(region: String = "", protocol: int = -1) -> void:
 		"region": region,
 		"ascension_level": ascension_level,
 		"threat_protocol_level": threat_protocol_level,
+		"death_sequence": [],
 	}
+
+func record_damage_event(event: Dictionary) -> void:
+	var sequence: Array = run_stats.get("death_sequence", [])
+	sequence.append(event.duplicate(true))
+	while sequence.size() > MAX_DEATH_SEQUENCE:
+		sequence.pop_front()
+	run_stats["death_sequence"] = sequence
+
+func get_death_sequence() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for event: Dictionary in run_stats.get("death_sequence", []):
+		result.append(event.duplicate(true))
+	return result
 
 func add_gold(amount: float) -> void:
 	if amount <= 0.0:

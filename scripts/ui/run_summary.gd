@@ -29,6 +29,7 @@ func setup(victory: bool, new_unlocks: Array[String] = []) -> void:
 	_add_stat("Damage Taken", "%.0f" % RunManager.run_stats.get("damage_taken", 0.0))
 	if not victory:
 		_add_stat("Death Source", str(RunManager.run_stats.get("death_source", "unknown")))
+		_add_death_sequence()
 	_add_stat("Healing Received", "%.0f" % RunManager.run_stats.get("healing_received", 0.0))
 	_add_stat("Combat Time", "%.0fs" % RunManager.run_stats.get("time_played", 0.0))
 	_add_stat("Shop Rerolls", str(RunManager.run_stats.get("rerolls", 0)))
@@ -60,7 +61,33 @@ func setup(victory: bool, new_unlocks: Array[String] = []) -> void:
 	else:
 		unlocks_label.text = "NEW UNLOCKS:\n" + "\n".join(new_unlocks)
 
-func _add_stat(stat_name: String, value: String) -> void:
+func _add_death_sequence() -> void:
+	var sequence := RunManager.get_death_sequence()
+	if sequence.is_empty():
+		return
+	var hp_total := 0.0
+	var shield_total := 0.0
+	for event: Dictionary in sequence:
+		hp_total += float(event.get("hp_damage", 0.0))
+		shield_total += float(event.get("shield_absorbed", 0.0))
+	_add_stat("Final blow", _source_display(str(sequence[-1].get("source", "unknown"))))
+	_add_stat("Recent burst", "%.0f HP | %.0f Shield" % [hp_total, shield_total])
+	for event: Dictionary in sequence:
+		var row := _add_stat("  " + _source_display(str(event.get("source", "unknown"))),
+			"-%.0f HP  -%.0f Shield" % [float(event.get("hp_damage", 0.0)), float(event.get("shield_absorbed", 0.0))])
+		row.set_meta("death_hit", true)
+
+func _source_display(source: String) -> String:
+	var parts := source.replace("_", " ").split(":")
+	var words: Array[String] = []
+	for part: String in parts:
+		for word: String in part.split(" "):
+			words.append(word.capitalize())
+	if words.size() > 1 and words[0] == "Basic":
+		words.pop_front()
+	return " ".join(words) if not words.is_empty() else "Unknown"
+
+func _add_stat(stat_name: String, value: String) -> HBoxContainer:
 	var hbox := HBoxContainer.new()
 	var lbl := Label.new()
 	lbl.text = stat_name
@@ -75,3 +102,4 @@ func _add_stat(stat_name: String, value: String) -> void:
 	hbox.add_child(lbl)
 	hbox.add_child(val)
 	stats_container.add_child(hbox)
+	return hbox

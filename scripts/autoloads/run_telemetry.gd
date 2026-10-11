@@ -191,6 +191,7 @@ func finish(result: String, build: Array) -> bool:
 	data.final_build = build.duplicate(true)
 	data.run_stats = RunManager.run_stats.duplicate(true)
 	data.death_source = RunManager.run_stats.get("death_source", "")
+	data.death_sequence = RunManager.get_death_sequence()
 	if _has_opportunity:
 		data.decision_intervals.append(data.combat_seconds - _last_opportunity)
 	record("run_end", {"result": result})
