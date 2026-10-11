@@ -1,6 +1,8 @@
 class_name FirewallBreachEvolution
 extends EvolutionBehavior
 
+const Hazard = preload("res://scripts/effects/evolution_hazard.gd")
+
 static func simulate(value: int) -> Dictionary:
 	return {"crossing_walls": 2 if value >= 3 else (1 if value >= 1 else 0)}
 
@@ -11,4 +13,18 @@ func on_hit(_skill: SkillInstance, target: Node2D, attack: Node2D) -> void:
 	context.metadata["firewall_breach_emitted"] = true
 	var root := attack.get_tree().current_scene
 	if root:
-		AftermathEffect.spawn(root, target.global_position, "scorch", 90.0 + tier * 20.0, 3.0 + tier)
+		Hazard.spawn(root, target.global_position, "firewall", _skill, context, tier)
+
+func on_expire(skill: SkillInstance, effect: Node2D) -> void:
+	if tier < 2 or not skill.request_recast.is_valid():
+		return
+	var context: AttackContext = effect.attack_context if "attack_context" in effect else null
+	if not context or not context.can_derive("firewall_breach", "firewall_return"):
+		return
+	var returned := context.derive("firewall_breach", "firewall_return")
+	var direction := Vector2.LEFT
+	if "direction" in effect:
+		direction = -effect.direction
+	skill.request_recast.call_deferred(direction, returned, {})
+	if tier >= 3 and returned.can_derive("firewall_cross", "firewall_cross"):
+		skill.request_recast.call_deferred(direction.rotated(PI / 2.0), returned.derive("firewall_cross", "firewall_cross"), {})

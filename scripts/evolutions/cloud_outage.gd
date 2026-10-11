@@ -1,6 +1,8 @@
 class_name CloudOutageEvolution
 extends EvolutionBehavior
 
+const Hazard = preload("res://scripts/effects/evolution_hazard.gd")
+
 static func simulate(value: int) -> Dictionary:
 	return {"network_pulses": 1 if value >= 3 else 0}
 
@@ -10,7 +12,13 @@ func on_cast(_skill: SkillInstance, cast: Dictionary) -> void:
 
 func on_hit(skill: SkillInstance, target: Node2D, attack: Node2D) -> void:
 	var context: AttackContext = attack.attack_context if "attack_context" in attack else null
-	if tier < 3 or not context or context.metadata.get("cloud_pulsed", false):
+	if not context:
+		return
+	if not context.metadata.get("cloud_rod_spawned", false):
+		context.metadata["cloud_rod_spawned"] = true
+		Hazard.spawn(attack.get_tree().current_scene, target.global_position,
+			"lightning_rod", skill, context, tier)
+	if tier < 3 or context.metadata.get("cloud_pulsed", false):
 		return
 	context.metadata["cloud_pulsed"] = true
 	for enemy: Node2D in Targeting.find_enemies_in_range(target.global_position, 150.0, 6):
