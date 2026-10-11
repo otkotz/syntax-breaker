@@ -59,6 +59,10 @@ var _power_pulse_interval: int = 5
 
 const MIN_PULSE_COOLDOWN := 2.0
 const EliteAffix = preload("res://scripts/enemies/elite_affix.gd")
+const CleanupBatchData = preload("res://scripts/stages/cleanup_batch.gd")
+const CLEANUP_MAX_PER_FRAME := 12
+const CLEANUP_MAX_USEC := 1400
+var _cleanup_batch: Node
 # Load scenes at encounter creation, not while parsing this global class. Regional
 # bosses reference Player -> SkillCaster -> Arena -> Spawner; preloading their
 # inherited scenes here creates an export-time resource loading cycle.
@@ -500,20 +504,51 @@ func complete_encounter(reason: String, boss_killed: bool = false) -> bool:
 	_spawn_generation += 1
 	_pending_split_fragments = 0
 	_pending_boss_add_requests.clear()
-	clear_transients()
-	all_waves_cleared.emit()
+	start_batched_cleanup()
 	return true
 
 func clear_transients() -> void:
+	start_batched_cleanup(false)
+
+func start_batched_cleanup(emit_completion: bool = true) -> void:
+	if _cleanup_batch and is_instance_valid(_cleanup_batch):
+		return
+	var targets: Array[Node] = []
 	for child: Node in get_children().duplicate():
 		if child is ObjectPool:
-			(child as ObjectPool).release_all()
+			for active_node: Node in (child as ObjectPool).get_active().duplicate():
+				if is_instance_valid(active_node):
+					active_node.set_meta("cleanup_pool", child)
+					targets.append(active_node)
 		elif child is EnemyBase and child.visible:
-			_release_enemy_without_rewards(child as EnemyBase)
+			targets.append(child)
 		elif child.is_in_group("boss_hazards") or child.is_in_group("elite_hazards") or child.is_in_group("denial_zones"):
-			child.queue_free()
+			targets.append(child)
 	_enemies_alive = 0
 	_active_role_counts.clear()
+	_cleanup_batch = CleanupBatchData.new()
+	add_child(_cleanup_batch)
+	_cleanup_batch.release_callable = _release_cleanup_target
+	_cleanup_batch.finished.connect(func(metrics: Dictionary):
+		RunTelemetry.record("stage_cleanup", metrics)
+		_cleanup_batch.queue_free()
+		_cleanup_batch = null
+		if emit_completion:
+			all_waves_cleared.emit()
+	, CONNECT_ONE_SHOT)
+	_cleanup_batch.start(targets, CLEANUP_MAX_PER_FRAME, CLEANUP_MAX_USEC)
+
+func _release_cleanup_target(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	var pool: Variant = node.get_meta("cleanup_pool") if node.has_meta("cleanup_pool") else null
+	if pool is ObjectPool and is_instance_valid(pool):
+		node.remove_meta("cleanup_pool")
+		(pool as ObjectPool).release(node)
+	elif node is EnemyBase:
+		_release_enemy_without_rewards(node as EnemyBase)
+	else:
+		node.queue_free()
 
 func _release_enemy_without_rewards(enemy: EnemyBase) -> void:
 	Targeting.unregister(enemy)
