@@ -56,6 +56,11 @@ func _check_migration_and_persistence() -> void:
 		"highest_ascension_unlocked": {
 			"zero": 0, "one": 4, "two": 5, "three": 10, "four": 15, "capped": 20,
 		},
+		"region_victories": {"three": 7},
+		"completed_challenges": {"legacy_challenge": true, "no_healing": true},
+		"selected_cosmetics": {"player": "silver_cloak"},
+		"unlocked_items": {"skills": ["legacy_skill"], "supports": ["legacy_support"]},
+		"codex_entries": {"legacy_entry": true},
 	}
 	var file := FileAccess.open(MetaProgression.save_path, FileAccess.WRITE)
 	file.store_string(JSON.stringify(legacy))
@@ -66,6 +71,18 @@ func _check_migration_and_persistence() -> void:
 	check(MetaProgression.threat_protocol_level == 3, "Selected legacy Ascension migrates")
 	for pair in [["zero", 0], ["one", 1], ["two", 2], ["three", 3], ["four", 4], ["capped", 4]]:
 		check(MetaProgression.get_max_threat_protocol(pair[0]) == pair[1], "Regional legacy maximum migrates for %s" % pair[0])
+	# Simulate a clean restart: the migration write must retain the whole legacy profile.
+	MetaProgression.region_victories = {}
+	MetaProgression.completed_challenges = {}
+	MetaProgression.selected_cosmetics = {}
+	MetaProgression.unlocked_items = {}
+	MetaProgression.codex_entries = {}
+	MetaProgression.load_progress()
+	check(MetaProgression.region_victories.get("three", 0) == 7, "Legacy migration preserves regional victories across restart")
+	check(MetaProgression.completed_challenges.get("legacy_challenge", false), "Legacy migration preserves completed challenges across restart")
+	check(MetaProgression.selected_cosmetics.get("player", "") == "silver_cloak", "Legacy migration preserves selected cosmetics across restart")
+	check(MetaProgression.unlocked_items.get("skills", []).has("legacy_skill"), "Legacy migration preserves unlocked items across restart")
+	check(MetaProgression.codex_entries.get("legacy_entry", false), "Legacy migration preserves Codex entries across restart")
 	MetaProgression.threat_protocol_level = 1
 	MetaProgression.highest_threat_protocol_unlocked["three"] = 4
 	MetaProgression.save_progress()

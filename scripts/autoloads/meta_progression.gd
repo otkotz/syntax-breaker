@@ -177,6 +177,7 @@ func load_progress() -> void:
 		var json := JSON.new()
 		if json.parse(file.get_as_text()) == OK:
 			var data: Dictionary = json.data
+			var migrated_legacy_progress := false
 			cosmetic_points = maxi(0, int(data.get("cosmetic_points", 0)))
 			purchased_cosmetics.clear()
 			for id: Variant in data.get("purchased_cosmetics", []):
@@ -193,7 +194,7 @@ func load_progress() -> void:
 				threat_protocol_level = ThreatProtocolsData.from_legacy_ascension(int(data.get("ascension_level", 0)))
 				var migrated_region := str(data.get("current_region", ""))
 				threat_protocol_level = clampi(threat_protocol_level, 0, get_max_threat_protocol(migrated_region)) if highest_threat_protocol_unlocked.has(migrated_region) else threat_protocol_level
-				save_progress()
+				migrated_legacy_progress = true
 			# Keep aliases coherent while older runtime consumers are migrated task-by-task.
 			ascension_level = threat_protocol_level
 			highest_ascension_unlocked = highest_threat_protocol_unlocked.duplicate(true)
@@ -222,3 +223,5 @@ func load_progress() -> void:
 			for support_id in ["copy_paste", "spaghetti_code", "works_on_my_machine", "lag_spike", "alt_f4", "rubber_duck", "firewall", "reply_all", "frozen_process", "wifi_extender", "malware", "background_process", "undo_history"]:
 				if not unlocked_items.supports.has(support_id):
 					unlocked_items.supports.append(support_id)
+			if migrated_legacy_progress:
+				save_progress()
