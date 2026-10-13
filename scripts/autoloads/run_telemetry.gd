@@ -73,7 +73,11 @@ func end_stage(result: String, spawn_summary: Dictionary = {}) -> void:
 	stage.end_gold = RunManager.gold + RunManager.gold_fraction
 	stage.spawn_summary = spawn_summary.duplicate(true)
 	record("stage_end", {"depth": stage.depth, "result": result})
-	flush()
+	# The full run log can already be tens of thousands of lines by stage end.
+	# Serializing and replacing it here blocks the render thread precisely while
+	# combat transitions to the reward screen (especially on Android storage).
+	# RunManager's next autosave retains the in-memory telemetry snapshot, while
+	# finish() still persists the completed standalone log atomically.
 
 func tick_combat(delta: float, waiting_for_spawn: bool) -> void:
 	if not active:

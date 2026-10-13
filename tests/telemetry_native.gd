@@ -54,7 +54,11 @@ func run_checks() -> void:
 		RunManager.save_run([])
 		RunManager.restore_from_save(RunManager.load_run())
 		check(RunTelemetry.data.run_id == run_id and RunTelemetry.data.events[-1].type == "run_resumed", "Resume retains run ID and earlier samples")
+		var checkpoint_path := RunTelemetry.log_directory.path_join(run_id + ".json")
+		var checkpoint_before := FileAccess.get_modified_time(checkpoint_path)
 		RunTelemetry.end_stage("cleared", {"normal_spawned": 1})
+		check(FileAccess.get_modified_time(checkpoint_path) == checkpoint_before,
+			"Stage completion does not synchronously rewrite the complete telemetry log")
 		check(RunTelemetry.finish("victory", [{"skill_id": "fireball"}]), "Atomic JSON write works, including overwrite after checkpoints")
 		check(not RunTelemetry.finish("victory", []), "Finish cannot count run twice")
 		var path := RunTelemetry.log_directory.path_join(run_id + ".json")
