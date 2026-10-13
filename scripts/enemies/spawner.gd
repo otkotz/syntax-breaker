@@ -523,10 +523,16 @@ func start_batched_cleanup(emit_completion: bool = true) -> void:
 			targets.append(child)
 	var caster := _player.get_node_or_null("SkillCaster") if is_instance_valid(_player) else null
 	if caster:
+		if caster.has_method("shutdown_for_cleanup"):
+			caster.shutdown_for_cleanup()
 		for child: Node in caster.get_children().duplicate():
 			if child is ObjectPool:
 				targets.append_array((child as ObjectPool).drain_instances())
 				targets.append(child)
+	if is_inside_tree():
+		for hazard: Node in get_tree().get_nodes_in_group("stage_transient_hazards"):
+			if is_instance_valid(hazard):
+				targets.append(hazard)
 	_pools.clear()
 	_enemies_alive = 0
 	_active_role_counts.clear()

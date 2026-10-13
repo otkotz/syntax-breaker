@@ -23,6 +23,7 @@ static func spawn(parent: Node, from: Vector2, to: Vector2, tick_damage: float, 
 	wall.damage = tick_damage
 	wall.source = skill
 	parent.add_child(wall)
+	wall.add_to_group("stage_transient_hazards")
 	active_count += 1
 	return wall
 

@@ -55,4 +55,4 @@ func _fire_projectile(dir: Vector2) -> void:
 	var proj := _projectile_pool.get_instance() as EnemyProjectile
 	if not proj:
 		return
-	proj.initialize(dir, projectile_speed, projectile_damage, global_position, _projectile_pool, get_enemy_id() + ":projectile", get_damage_context())
+	proj.initialize(dir, projectile_speed, projectile_damage, global_position, _projectile_pool, get_enemy_id() + ":projectile", get_damage_context(), 0.0, is_hijacked())

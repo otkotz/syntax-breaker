@@ -42,6 +42,7 @@ func _ready() -> void:
 		active_count += 1
 		_registered = true
 	add_to_group("evolution_hazards")
+	add_to_group("stage_transient_hazards")
 	add_to_group("evolution_%s" % kind)
 	queue_redraw()
 

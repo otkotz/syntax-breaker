@@ -19,7 +19,7 @@ var _slow_timer: float = 0.0
 var _debugged_remaining: float = 0.0
 var _debugged_multiplier: float = 1.0
 var _debugged_source: SkillResource
-var _hijacked_until_msec := 0
+var _hijacked_remaining := 0.0
 var _base_max_hp: float
 var _base_move_speed: float
 var _base_contact_damage: float
@@ -27,7 +27,7 @@ var _base_gold_value: float
 var _sprite: Sprite2D
 var _facing_right: bool = true
 var _kill_source: SkillResource
-var _contact_ready_at_msec := 0
+var _contact_cooldown_remaining := 0.0
 var life_generation := 0
 
 static var _gremlin_variants: Array = []
@@ -129,11 +129,11 @@ func _update_facing() -> void:
 		_sprite.flip_h = not _facing_right
 
 func apply_hijack(duration: float) -> void:
-	_hijacked_until_msec = maxi(_hijacked_until_msec, Time.get_ticks_msec() + int(maxf(0.0, duration) * 1000.0))
+	_hijacked_remaining = maxf(_hijacked_remaining, duration)
 	queue_redraw()
 
 func is_hijacked() -> bool:
-	return Time.get_ticks_msec() < _hijacked_until_msec
+	return _hijacked_remaining > 0.0
 
 func get_effective_target() -> Node2D:
 	if not is_hijacked() or not is_inside_tree():
@@ -278,16 +278,16 @@ func get_contact_source() -> String:
 	return get_enemy_id() + ":contact"
 
 func advance_contact_cooldown(delta: float) -> void:
-	_contact_ready_at_msec -= int(maxf(0.0, delta) * 1000.0)
+	_contact_cooldown_remaining = maxf(0.0, _contact_cooldown_remaining - maxf(0.0, delta))
 
 func _attempt_contact(player: Player) -> bool:
-	if Time.get_ticks_msec() < _contact_ready_at_msec or not is_instance_valid(player):
+	if _contact_cooldown_remaining > 0.0 or not is_instance_valid(player):
 		return false
 	var context := get_damage_context()
 	context["per_attacker_contact"] = true
 	if not Player.hurt(player, contact_damage, get_contact_source(), context):
 		return false
-	_contact_ready_at_msec = Time.get_ticks_msec() + int(maxf(0.75, contact_damage_cooldown) * 1000.0)
+	_contact_cooldown_remaining = maxf(0.75, contact_damage_cooldown)
 	record_malware_action()
 	player.apply_contact_separation(global_position, 180.0)
 	return true
@@ -331,6 +331,8 @@ func _pick_wander_dir() -> void:
 	_wander_timer = randf_range(1.5, 3.0)
 
 func _process(delta: float) -> void:
+	_contact_cooldown_remaining = maxf(0.0, _contact_cooldown_remaining - delta)
+	_hijacked_remaining = maxf(0.0, _hijacked_remaining - delta)
 	if _debugged_remaining > 0.0:
 		_debugged_remaining -= delta
 		if _debugged_remaining <= 0.0:
@@ -454,7 +456,7 @@ func deactivate_without_rewards() -> void:
 	_debugged_multiplier = 1.0
 	_debugged_source = null
 	velocity = Vector2.ZERO
-	_contact_ready_at_msec = 0
+	_contact_cooldown_remaining = 0.0
 	var affix := get_node_or_null("EliteAffix")
 	if affix and affix.has_method("reset_affix"):
 		affix.reset_affix()
@@ -479,8 +481,8 @@ func reset() -> void:
 	gold_value = _base_gold_value
 	modulate = Color.WHITE
 	velocity = Vector2.ZERO
-	_contact_ready_at_msec = 0
-	_hijacked_until_msec = 0
+	_contact_cooldown_remaining = 0.0
+	_hijacked_remaining = 0.0
 	if has_meta("malware_actions"):
 		remove_meta("malware_actions")
 	if has_meta("malware_source"):

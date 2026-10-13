@@ -268,11 +268,16 @@ func _remove_slam_indicator() -> void:
 
 func _slam_hit() -> void:
 	var damage := _slam_damage
-	var players := get_tree().get_nodes_in_group("player")
-	for p: Node2D in players:
+	var targets := get_tree().get_nodes_in_group("enemies") if is_hijacked() else get_tree().get_nodes_in_group("player")
+	for p: Node2D in targets:
+		if p == self or not p.visible:
+			continue
 		if p.global_position.distance_to(_slam_target) <= SLAM_RADIUS:
 			if p.has_method("take_damage"):
-				Player.hurt(p, damage, get_enemy_id() + ":slam", get_damage_context())
+				if is_hijacked() and p is EnemyBase:
+					p.take_damage(damage, false, null, "proc")
+				else:
+					Player.hurt(p, damage, get_enemy_id() + ":slam", get_damage_context())
 	_spawn_slam_shockwave()
 
 func _spawn_slam_shockwave() -> void:

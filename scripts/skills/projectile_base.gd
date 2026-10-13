@@ -199,7 +199,8 @@ static func resolve_skill_hit(si: SkillInstance, body: Node2D, hit_source: Node2
 	var hit_damage := raw_damage
 	var is_crit := false
 	if si:
-		var forced_crit: bool = bool("attack_context" in hit_source and hit_source.attack_context and hit_source.attack_context.metadata.get("works_mode", "") == "critical")
+		var context: AttackContext = hit_source.attack_context if "attack_context" in hit_source else (hit_source.context if "context" in hit_source else null)
+		var forced_crit: bool = bool(context and context.metadata.get("works_mode", "") == "critical")
 		var roll := CombatUtils.roll_damage(raw_damage, si, forced_crit)
 		hit_damage = roll["damage"]
 		is_crit = roll["is_crit"]

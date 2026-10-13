@@ -18,6 +18,7 @@ var attack_context: AttackContext
 var _expire_notified := false
 var _active_registered := false
 var _next_daemon_pulse := INF
+var direction := Vector2.RIGHT
 
 var _arc_data: Array = []
 var _wave_hit_set: Array = []
@@ -26,11 +27,12 @@ const ARC_COUNT := 6
 func _ready() -> void:
 	pass
 
-func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool, context: AttackContext = null) -> void:
+func initialize(si: SkillInstance, cast_direction: Vector2, pool: ObjectPool, context: AttackContext = null) -> void:
 	if not _active_registered:
 		active_count += 1
 		_active_registered = true
 	skill_instance = si
+	direction = cast_direction.normalized() if cast_direction != Vector2.ZERO else Vector2.RIGHT
 	attack_context = context if context else si.create_attack_context()
 	damage = si.computed_stats.get("damage", 10.0) * float(attack_context.metadata.get("damage_mult", 1.0))
 	area_radius = si.computed_stats.get("range", 100.0) * si.computed_stats.get("area_mult", 1.0) * float(attack_context.metadata.get("area_mult", 1.0))
@@ -194,6 +196,10 @@ func _hit_enemies_in_radius(radius: float) -> void:
 	var enemies := Targeting.find_enemies_in_range(global_position, radius, 50)
 	_detonation_mult = EngineTracker.get_detonation_mult(enemies.size())
 	for enemy in enemies:
+		if skill_instance and skill_instance.evolution_id == "firewall_breach" \
+				and attack_context and attack_context.depth > 0 \
+				and direction.dot(global_position.direction_to(enemy.global_position)) < 0.35:
+			continue
 		_damage_enemy(enemy)
 
 func _damage_enemy(enemy: Node2D) -> void:

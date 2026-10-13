@@ -23,9 +23,12 @@ func on_expire(skill: SkillInstance, effect: Node2D) -> void:
 		return
 	var returned := context.derive("firewall_breach", "firewall_return")
 	returned.metadata["origin"] = effect.global_position
+	returned.metadata.erase("firewall_breach_emitted")
 	var direction := Vector2.LEFT
 	if "direction" in effect:
 		direction = -effect.direction
 	skill.request_recast.call_deferred(direction, returned, {})
 	if tier >= 3 and returned.can_derive("firewall_cross", "firewall_cross"):
-		skill.request_recast.call_deferred(direction.rotated(PI / 2.0), returned.derive("firewall_cross", "firewall_cross"), {})
+		var crossing := returned.derive("firewall_cross", "firewall_cross")
+		crossing.metadata.erase("firewall_breach_emitted")
+		skill.request_recast.call_deferred(direction.rotated(PI / 2.0), crossing, {})

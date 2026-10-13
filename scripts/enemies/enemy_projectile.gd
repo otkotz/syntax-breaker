@@ -10,6 +10,7 @@ var source_id: String = "enemy_projectile"
 var damage_context: Dictionary = {}
 var warning_remaining: float = 0.0
 var _active: bool = false
+var friendly_fire := false
 
 static var _orb_texture: ImageTexture
 static var _orb_offset: Vector2
@@ -44,7 +45,7 @@ static func _build_orb_texture() -> Dictionary:
 
 var _pool_ref: ObjectPool
 
-func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile", context: Dictionary = {}, warning_duration: float = 0.0) -> void:
+func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: ObjectPool, source: String = "enemy_projectile", context: Dictionary = {}, warning_duration: float = 0.0, attacks_enemies: bool = false) -> void:
 	source_id = source
 	damage_context = context.duplicate()
 	direction = dir
@@ -55,6 +56,8 @@ func initialize(dir: Vector2, spd: float, dmg: float, pos: Vector2, pool: Object
 	_pool_ref = pool
 	_active = true
 	warning_remaining = maxf(0.0, warning_duration)
+	friendly_fire = attacks_enemies
+	collision_mask = 2 if friendly_fire else 1
 	modulate.a = 0.42 if warning_remaining > 0.0 else 1.0
 
 func _physics_process(delta: float) -> void:
@@ -76,7 +79,10 @@ func _on_body_entered(body: Node2D) -> void:
 	if not _active or not visible or warning_remaining > 0.0:
 		return
 	if body.has_method("take_damage"):
-		Player.hurt(body, damage, source_id, damage_context)
+		if friendly_fire and body is EnemyBase:
+			body.take_damage(damage, false, null, "proc")
+		elif not friendly_fire:
+			Player.hurt(body, damage, source_id, damage_context)
 	_return_to_pool()
 
 func _return_to_pool() -> void:
@@ -93,3 +99,5 @@ func reset() -> void:
 	_pool_ref = null
 	warning_remaining = 0.0
 	modulate.a = 1.0
+	friendly_fire = false
+	collision_mask = 1

@@ -8,6 +8,7 @@ var _cooldown_timers: Array[float] = []
 var _pools: Dictionary = {}
 var _active_totems: Array[SkillTotem] = []
 var _active_mines: Array[SkillMine] = []
+var _shutting_down := false
 
 const MAX_TOTEMS := 2
 const MAX_MINES := 5
@@ -132,6 +133,8 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 		)
 
 func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D, context: AttackContext = null) -> void:
+	if _shutting_down:
+		return
 	if si.base.scene_path.is_empty():
 		return
 	if si.get_all_tags().has("beam"):
@@ -166,6 +169,8 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D, contex
 	si.notify_spawn(projectile)
 
 func _request_recast(direction: Vector2, context: AttackContext, metadata: Dictionary, si: SkillInstance) -> void:
+	if _shutting_down:
+		return
 	if not AttackContext.can_spawn_child("gameplay_effect", _active_gameplay_effect_count(), QualitySettings.projectile_cap):
 		return
 	var cast := si.notify_cast(direction, context, metadata)
@@ -175,6 +180,19 @@ func _request_recast(direction: Vector2, context: AttackContext, metadata: Dicti
 
 func _active_gameplay_effect_count() -> int:
 	return ProjectileBase.active_count + Rollback.active_count + AoeSkillBase.active_count
+
+func shutdown_for_cleanup() -> void:
+	_shutting_down = true
+	set_process(false)
+	set_physics_process(false)
+	for totem: SkillTotem in _active_totems:
+		if is_instance_valid(totem):
+			totem.queue_free()
+	_active_totems.clear()
+	for mine: SkillMine in _active_mines:
+		if is_instance_valid(mine):
+			mine.queue_free()
+	_active_mines.clear()
 
 func _place_totem(si: SkillInstance) -> bool:
 	var pool: ObjectPool = _pools.get(si.base.scene_path)
