@@ -369,10 +369,8 @@ func spawn_compilation_wave(origin: Vector2, encounter: Variant) -> int:
 			enemy.set_meta("compilation_wave", true)
 			spawned += 1
 	for i in int(definition.get("elite_count", 0)):
-		var before := _enemies_alive
-		_spawn_elite()
-		if _enemies_alive > before:
-			var elite: Node = get_children().filter(func(node: Node): return node.get_meta("combat_role", "") == "elite" and not node.get_meta("compilation_wave", false)).back()
+		var elite := _spawn_elite()
+		if elite:
 			elite.set_meta("compilation_wave", true)
 			spawned += 1
 	if definition.get("miniboss", false):
@@ -422,9 +420,9 @@ func _materialize_split_fragments(origin: Vector2, count: int, generation: int, 
 		var offset := Vector2(-24 if i == 0 else 24, 0)
 		_spawn_enemy_at(origin + offset, "split_fragment", false, cleansing)
 
-func _spawn_elite() -> void:
+func _spawn_elite() -> EnemyBase:
 	if not mini_boss_scene:
-		return
+		return null
 	var pos := SpawnFormation.random_edge_position(_arena_rect, _player.global_position)
 	var enemy := _get_from_pool(mini_boss_scene)
 	enemy.set_meta("combat_role", "elite")
@@ -447,6 +445,7 @@ func _spawn_elite() -> void:
 	_elite_spawn_count += 1
 	_enemies_alive += 1
 	RunTelemetry.enemy_spawned("elite")
+	return enemy
 
 func _spawn_mini_boss() -> void:
 	if not mini_boss_scene:
@@ -516,14 +515,19 @@ func start_batched_cleanup(emit_completion: bool = true) -> void:
 	var targets: Array[Node] = []
 	for child: Node in get_children().duplicate():
 		if child is ObjectPool:
-			for active_node: Node in (child as ObjectPool).get_active().duplicate():
-				if is_instance_valid(active_node):
-					active_node.set_meta("cleanup_pool", child)
-					targets.append(active_node)
-		elif child is EnemyBase and child.visible:
+			targets.append_array((child as ObjectPool).drain_instances())
+			targets.append(child)
+		elif child is EnemyBase:
 			targets.append(child)
 		elif child.is_in_group("boss_hazards") or child.is_in_group("elite_hazards") or child.is_in_group("denial_zones"):
 			targets.append(child)
+	var caster := _player.get_node_or_null("SkillCaster") if is_instance_valid(_player) else null
+	if caster:
+		for child: Node in caster.get_children().duplicate():
+			if child is ObjectPool:
+				targets.append_array((child as ObjectPool).drain_instances())
+				targets.append(child)
+	_pools.clear()
 	_enemies_alive = 0
 	_active_role_counts.clear()
 	for target: Node in targets:
@@ -544,14 +548,9 @@ func start_batched_cleanup(emit_completion: bool = true) -> void:
 func _release_cleanup_target(node: Node) -> void:
 	if not is_instance_valid(node):
 		return
-	var pool: Variant = node.get_meta("cleanup_pool") if node.has_meta("cleanup_pool") else null
-	if pool is ObjectPool and is_instance_valid(pool):
-		node.remove_meta("cleanup_pool")
-		(pool as ObjectPool).release(node)
-	elif node is EnemyBase:
-		_release_enemy_without_rewards(node as EnemyBase)
-	else:
-		node.queue_free()
+	if node is EnemyBase:
+		Targeting.unregister(node as EnemyBase)
+	node.queue_free()
 
 func _release_enemy_without_rewards(enemy: EnemyBase) -> void:
 	Targeting.unregister(enemy)

@@ -11,6 +11,13 @@ func enqueue(kind: StringName, payload: Dictionary = {}, priority: int = 0) -> i
 	_sequence += 1
 	var request := {"id": _sequence, "kind": kind, "payload": payload.duplicate(true),
 		"priority": priority, "sequence": _sequence}
+	if not _active.is_empty() and priority > int(_active.get("priority", 0)):
+		_pending.append(_active)
+		_active = request
+		_pending.sort_custom(func(a: Dictionary, b: Dictionary):
+			return a.priority > b.priority if a.priority != b.priority else a.sequence < b.sequence)
+		decision_ready.emit(_active.duplicate(true))
+		return _sequence
 	_pending.append(request)
 	_pending.sort_custom(func(a: Dictionary, b: Dictionary):
 		return a.priority > b.priority if a.priority != b.priority else a.sequence < b.sequence)

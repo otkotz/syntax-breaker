@@ -69,10 +69,10 @@ func run_checks() -> void:
 	check(spawner.get_active_role_count("split_fragment") == 8 and spawner._enemies_alive == 8, "Fragment cap cannot fall back to unlimited trash")
 	for fragment in living_fragments(spawner):
 		check(fragment.activation_remaining == 1.0 and fragment.collision_mask == 0, "Pool reuse restores warning and no contact")
-	spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
+	splitter = spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
 	splitter.take_damage(99999.0)
 	check(spawner.get_active_role_count("split_fragment") == 8, "Splitter death respects saturated fragment cap")
-	spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
+	splitter = spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
 	var outsider := preload("res://scenes/enemies/basic_melee.tscn").instantiate() as EnemyBase
 	add_child(outsider)
 	spawner.force_complete()
@@ -82,7 +82,7 @@ func run_checks() -> void:
 	check(outsider.is_alive(), "Forced completion cannot kill enemies outside its spawner")
 	check(completions[0] == 2, "Forced completion emits only one completion event")
 	spawner.setup(target, Rect2(-200, -200, 400, 400))
-	spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
+	splitter = spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
 	splitter.take_damage(99999.0)
 	check(spawner._pending_split_fragments == 2, "New death reserves offspring")
 	spawner.force_complete()
@@ -92,7 +92,7 @@ func run_checks() -> void:
 	# Exercise the actual collision-signal path, not just a direct method call.
 	spawner.setup(target, Rect2(-200, -200, 400, 400))
 	spawner._total_budget = 1
-	spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
+	splitter = spawner._spawn_enemy_at(Vector2.ZERO, "splitter")
 	splitter.set_physics_process(false)
 	var hit_area := Area2D.new()
 	hit_area.collision_layer = 0

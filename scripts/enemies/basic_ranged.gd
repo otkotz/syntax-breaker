@@ -23,11 +23,12 @@ func _get_body_variants() -> Array:
 	return _oracle_variants
 
 func _physics_process(delta: float) -> void:
-	if not _target or not is_instance_valid(_target):
+	var combat_target := get_effective_target()
+	if not combat_target or not is_instance_valid(combat_target):
 		return
 
-	var dist := global_position.distance_to(_target.global_position)
-	var dir := global_position.direction_to(_target.global_position)
+	var dist := global_position.distance_to(combat_target.global_position)
+	var dir := global_position.direction_to(combat_target.global_position)
 
 	if dist > preferred_distance + 30.0:
 		velocity = dir * move_speed
@@ -48,6 +49,7 @@ func _physics_process(delta: float) -> void:
 		_fire_timer = 0.0
 
 func _fire_projectile(dir: Vector2) -> void:
+	record_malware_action()
 	if not _projectile_pool or not is_instance_valid(_projectile_pool._parent):
 		_projectile_pool = ObjectPool.new(ENEMY_PROJECTILE_SCENE, 10, get_parent())
 	var proj := _projectile_pool.get_instance() as EnemyProjectile

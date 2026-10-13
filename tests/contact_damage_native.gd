@@ -6,6 +6,8 @@ class TestPlayer extends Player:
 		add_child(_anim_sprite)
 	func _spawn_damage_number(_amount: float) -> void:
 		pass
+	func _update_animation() -> void:
+		pass
 
 var failures: Array[String] = []
 
@@ -28,6 +30,9 @@ func _ready() -> void:
 	check(first._attempt_contact(player), "First overlap hit is accepted")
 	check(not first._attempt_contact(player), "One overlap cannot multi-hit during its cooldown")
 	check(player.velocity.x > 0.0, "Contact separation pushes the player away from the attacker")
+	player._physics_process(0.016)
+	check(player.velocity.x > 0.0 and player._contact_impulse.x > 0.0,
+		"Contact separation survives input velocity assignment until movement consumes it")
 	var second := EnemyBase.new()
 	add_child(second)
 	second.set_physics_process(false)
@@ -43,6 +48,15 @@ func _ready() -> void:
 	var tank := preload("res://scenes/enemies/tank_enemy.tscn").instantiate() as EnemyBase
 	add_child(tank)
 	check(tank.contact_damage_cooldown >= 0.9, "Tank contact cooldown is at least 0.9 seconds")
+	var ranged := preload("res://scenes/enemies/basic_ranged.tscn").instantiate() as EnemyBase
+	add_child(ranged)
+	ranged.global_position = Vector2(-1000, 0)
+	ranged.initialize(player)
+	ranged.contact_damage = 1.0
+	ranged.contact_damage_cooldown = 0.75
+	check(ranged._attempt_contact(player), "Ranged override accepts its first contact")
+	await get_tree().create_timer(1.0).timeout
+	check(ranged._attempt_contact(player), "Contact cooldown expires even when an enemy overrides physics processing")
 	if failures.is_empty():
 		print("PASS: per-attacker contact cooldown, separation and pool reset")
 	else:

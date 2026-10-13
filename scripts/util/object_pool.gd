@@ -66,3 +66,14 @@ func get_active() -> Array[Node]:
 
 func pool_count() -> int:
 	return _pool.size()
+
+func drain_instances() -> Array[Node]:
+	var instances: Array[Node] = []
+	var seen := {}
+	for instance: Node in _active + _pool:
+		if is_instance_valid(instance) and not seen.has(instance.get_instance_id()):
+			seen[instance.get_instance_id()] = true
+			instances.append(instance)
+	_active.clear()
+	_pool.clear()
+	return instances

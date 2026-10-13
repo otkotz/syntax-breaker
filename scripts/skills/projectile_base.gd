@@ -199,11 +199,10 @@ static func resolve_skill_hit(si: SkillInstance, body: Node2D, hit_source: Node2
 	var hit_damage := raw_damage
 	var is_crit := false
 	if si:
-		var roll := CombatUtils.roll_damage(raw_damage, si)
+		var forced_crit: bool = bool("attack_context" in hit_source and hit_source.attack_context and hit_source.attack_context.metadata.get("works_mode", "") == "critical")
+		var roll := CombatUtils.roll_damage(raw_damage, si, forced_crit)
 		hit_damage = roll["damage"]
 		is_crit = roll["is_crit"]
-	if "attack_context" in hit_source and hit_source.attack_context and hit_source.attack_context.metadata.get("works_mode", "") == "critical":
-		is_crit = true
 	var skill_name := si.base.name if si else "unknown"
 	body.take_damage(hit_damage, is_crit, si.base if si else null)
 	CombatLog.hit(skill_name, body.name, hit_damage, is_crit)
@@ -300,7 +299,7 @@ func reset() -> void:
 	_skill_id = ""
 	_cosmetic_style = "projectile_default"
 	scale = Vector2.ONE
-	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:
+	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus", "spaghetti_resolved", "stored_frost"]:
 		if has_meta(key):
 			remove_meta(key)
 

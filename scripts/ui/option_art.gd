@@ -27,7 +27,9 @@ static func resolve(offer: Variant) -> Texture2D:
 				return loaded
 		var evolution_id := str(offer.get("evolution_id", ""))
 		if not evolution_id.is_empty():
-			return _load_icon(EVOLUTION_DIR + evolution_id + ".png")
+			var evolution_art := _load_icon(EVOLUTION_DIR + evolution_id + ".png")
+			if evolution_art:
+				return evolution_art
 		var id := str(offer.get("id", ""))
 		if not id.is_empty():
 			var mutation_art := _load_icon(MUTATION_DIR + id + ".png")
@@ -36,7 +38,9 @@ static func resolve(offer: Variant) -> Texture2D:
 		var semantic: String = {"support_slot": "hot_socket", "gold": "gold", "heal": "heal",
 			"target_selection": "target_selection", "reroll": "reroll"}.get(str(offer.get("type", "")), "")
 		if not semantic.is_empty():
-			return _load_icon(SYSTEM_DIR + semantic + ".png")
+			var system_art := _load_icon(SYSTEM_DIR + semantic + ".png")
+			if system_art:
+				return system_art
 	return fallback()
 
 static func badge(offer: Variant) -> String:

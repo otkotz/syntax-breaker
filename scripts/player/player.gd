@@ -14,6 +14,7 @@ var _damage_cooldown: float = 0.0
 var _base_move_speed: float
 var _speed_mult: float = 1.0
 var _passive_speed_mult: float = 1.0
+var _contact_impulse := Vector2.ZERO
 
 const IFRAME_DURATION := 0.5
 
@@ -90,9 +91,10 @@ func _process(delta: float) -> void:
 	if _cast_timer > 0.0:
 		_cast_timer -= delta
 
-func _physics_process(_delta: float) -> void:
-	velocity = InputManager.movement_vector * move_speed
+func _physics_process(delta: float) -> void:
+	velocity = InputManager.movement_vector * move_speed + _contact_impulse
 	move_and_slide()
+	_contact_impulse = _contact_impulse.move_toward(Vector2.ZERO, 900.0 * delta)
 	_update_animation()
 
 func _setup_animated_sprite() -> void:
@@ -218,6 +220,7 @@ func apply_contact_separation(from_position: Vector2, strength: float) -> void:
 	var away := from_position.direction_to(global_position)
 	if away == Vector2.ZERO:
 		away = Vector2.RIGHT
+	_contact_impulse += away * maxf(0.0, strength)
 	velocity += away * maxf(0.0, strength)
 
 func _get_damage_taken_mult() -> float:

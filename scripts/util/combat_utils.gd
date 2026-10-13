@@ -1,13 +1,13 @@
 class_name CombatUtils
 extends RefCounted
 
-static func roll_damage(base_damage: float, si: SkillInstance) -> Dictionary:
+static func roll_damage(base_damage: float, si: SkillInstance, forced_crit: bool = false) -> Dictionary:
 	var crit_chance: float = si.computed_stats.get("crit_chance", 0.05)
 	crit_chance += EngineTracker.get_crit_streak_bonus()
 	crit_chance += CritCascadeBehavior.get_cascade_bonus()
 	crit_chance = minf(crit_chance, 0.8)
 	var crit_mult: float = si.computed_stats.get("crit_mult", 1.5)
-	var is_crit := randf() < crit_chance
+	var is_crit := forced_crit or randf() < crit_chance
 	if is_crit and CritCascadeBehavior.get_cascade_bonus() > 0.0:
 		CritCascadeBehavior.consume()
 	var final_damage := base_damage * crit_mult if is_crit else base_damage

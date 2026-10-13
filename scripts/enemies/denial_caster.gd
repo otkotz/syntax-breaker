@@ -24,19 +24,21 @@ func reset() -> void:
 
 func _physics_process(delta: float) -> void:
 	cast_timer -= delta
-	if not is_instance_valid(_target) or global_position.distance_to(_target.global_position) > 240.0:
+	var combat_target := get_effective_target()
+	if not is_instance_valid(combat_target) or global_position.distance_to(combat_target.global_position) > 240.0:
 		super._physics_process(delta)
 		return
 	_update_slow(delta)
 	velocity = Vector2.ZERO
 	if cast_timer <= 0.0 and get_tree().get_nodes_in_group("denial_zones").size() < MAX_ZONES:
+		record_malware_action()
 		var zone := Zone.new()
-		zone.target = _target
+		zone.target = combat_target
 		zone.source_id = get_enemy_id() + ":zone"
 		zone.damage_context = get_damage_context()
 		zone.damage = contact_damage * 0.6
 		get_parent().add_child(zone)
-		zone.global_position = _target.global_position
+		zone.global_position = combat_target.global_position
 		RunTelemetry.record("hazard_warning", {"source": zone.source_id, "warning_seconds": zone.WARNING_TIME, "x": zone.global_position.x, "y": zone.global_position.y})
 		cast_timer = 4.0
 	queue_redraw()

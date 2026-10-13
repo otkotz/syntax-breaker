@@ -14,11 +14,14 @@ func on_hit(skill_instance, target: Node2D, projectile: Node2D) -> void:
 	if not context or not context.can_derive("lag_spike", "lagged"):
 		return
 	var raw_damage := float(projectile.get("damage")) if "damage" in projectile else float(skill_instance.computed_stats.get("damage", 10.0))
-	_delayed_hit(skill_instance, target, projectile.get_tree(), raw_damage, context.derive("lag_spike", "lagged"))
+	var generation := int(target.get("life_generation")) if "life_generation" in target else -1
+	_delayed_hit(skill_instance, target, projectile.get_tree(), raw_damage, context.derive("lag_spike", "lagged"), generation)
 
-func _delayed_hit(skill_instance, target: Node2D, tree: SceneTree, raw_damage: float, _context: AttackContext) -> void:
+func _delayed_hit(skill_instance, target: Node2D, tree: SceneTree, raw_damage: float, _context: AttackContext, generation: int = -1) -> void:
 	await tree.create_timer(DELAY_SECONDS).timeout
 	if not is_instance_valid(target) or not target.has_method("is_alive") or not target.is_alive():
+		return
+	if generation >= 0 and (not "life_generation" in target or int(target.get("life_generation")) != generation):
 		return
 	# Resolve only damage and attribution; the delayed packet must not fan out through
 	# every linked on-hit support a second time.

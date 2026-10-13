@@ -21,6 +21,13 @@ func _ready() -> void:
 	var redirect := SpaghettiCodeBehavior.redirect_plan(4)
 	check(redirect.unique_targets == 4 and redirect.damage_steps == [1.0, 1.25, 1.5, 1.75],
 		"Spaghetti Code redirects with bounded growth")
+	for pooled_attack: Node2D in [ProjectileBase.new(), AoeSkillBase.new()]:
+		pooled_attack.set_meta("spaghetti_resolved", true)
+		pooled_attack.set_meta("stored_frost", true)
+		pooled_attack.reset()
+		check(not pooled_attack.has_meta("spaghetti_resolved") and not pooled_attack.has_meta("stored_frost"),
+			"Pooled attacks clear one-cast support latches before reuse")
+		pooled_attack.free()
 	for seed in 64:
 		var mode := WorksOnMyMachineBehavior.roll_mode(seed)
 		check(mode in ["size", "projectiles", "critical", "cooldown"],
@@ -31,6 +38,13 @@ func _ready() -> void:
 	var inherited := root.derive("test_child", "test_child")
 	check(inherited.metadata.get("works_mode", "") == works_cast.metadata.get("works_mode", ""),
 		"Works mode is rolled once and inherited by derived attacks")
+	RunManager.current_stage = 0
+	ComboTracker.current_multiplier = 1.0
+	fireball.computed_stats["crit_chance"] = 0.0
+	fireball.computed_stats["crit_mult"] = 2.0
+	var forced_crit := CombatUtils.roll_damage(10.0, fireball, true)
+	check(forced_crit.is_crit and is_equal_approx(float(forced_crit.damage), 20.0),
+		"Works critical mode multiplies damage instead of changing only the crit flag")
 
 	check(not AltF4Behavior.should_execute_ratio(0.121, false),
 		"Alt+F4 leaves normal enemies above 12% alive")

@@ -43,6 +43,9 @@ func _ready() -> void:
 func _on_decision_ready(request: Dictionary) -> void:
 	match request.kind:
 		&"terminal":
+			# A terminal can arrive after a lower-priority stage reward in the same
+			# frame. Remove that transient UI before presenting the preempting choice.
+			_clear_ui()
 			var picker := CompilationPicker.new()
 			_ui_layer.add_child(picker)
 			picker.setup(_skill_instances, int(request.payload.get("difficulty", 0)))
@@ -243,6 +246,8 @@ func _show_mutation_picker(from_queue: bool = false) -> void:
 			"title": m["name"],
 			"desc": m["desc"],
 			"color": Color(1.0, 0.55, 0.2),
+			"mutation": m,
+			"id": m.get("id", ""),
 		})
 
 	var chest := CHEST_REWARD_SCENE.instantiate() as ChestReward

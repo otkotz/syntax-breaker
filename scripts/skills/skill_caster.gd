@@ -146,7 +146,7 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D, contex
 
 	var projectile := pool.get_instance()
 	RunManager.record_challenge_cast(false)
-	projectile.global_position = global_position
+	projectile.global_position = context.metadata.get("origin", global_position) if context else global_position
 
 	if projectile.has_method("initialize"):
 		if projectile is Rollback:

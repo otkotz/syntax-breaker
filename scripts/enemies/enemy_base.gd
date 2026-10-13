@@ -19,7 +19,7 @@ var _slow_timer: float = 0.0
 var _debugged_remaining: float = 0.0
 var _debugged_multiplier: float = 1.0
 var _debugged_source: SkillResource
-var _hijacked_remaining := 0.0
+var _hijacked_until_msec := 0
 var _base_max_hp: float
 var _base_move_speed: float
 var _base_contact_damage: float
@@ -27,7 +27,8 @@ var _base_gold_value: float
 var _sprite: Sprite2D
 var _facing_right: bool = true
 var _kill_source: SkillResource
-var _contact_cooldown_remaining := 0.0
+var _contact_ready_at_msec := 0
+var life_generation := 0
 
 static var _gremlin_variants: Array = []
 
@@ -85,9 +86,7 @@ func initialize(target: Node2D) -> void:
 	set_physics_process(true)
 
 func _physics_process(delta: float) -> void:
-	advance_contact_cooldown(delta)
 	_update_slow(delta)
-	_hijacked_remaining = maxf(0.0, _hijacked_remaining - delta)
 	_move_toward_target()
 
 func _update_slow(delta: float) -> void:
@@ -130,11 +129,11 @@ func _update_facing() -> void:
 		_sprite.flip_h = not _facing_right
 
 func apply_hijack(duration: float) -> void:
-	_hijacked_remaining = maxf(_hijacked_remaining, duration)
+	_hijacked_until_msec = maxi(_hijacked_until_msec, Time.get_ticks_msec() + int(maxf(0.0, duration) * 1000.0))
 	queue_redraw()
 
 func is_hijacked() -> bool:
-	return _hijacked_remaining > 0.0
+	return Time.get_ticks_msec() < _hijacked_until_msec
 
 func get_effective_target() -> Node2D:
 	if not is_hijacked() or not is_inside_tree():
@@ -142,7 +141,9 @@ func get_effective_target() -> Node2D:
 	var nearest: Node2D
 	var nearest_distance := INF
 	for candidate: Node in get_tree().get_nodes_in_group("enemies"):
-		if candidate == self or not candidate is Node2D or candidate.is_queued_for_deletion():
+		if candidate == self or not candidate is Node2D or candidate.is_queued_for_deletion() or not candidate.visible:
+			continue
+		if candidate.has_method("is_alive") and not candidate.is_alive():
 			continue
 		var distance := global_position.distance_squared_to(candidate.global_position)
 		if distance < nearest_distance:
@@ -277,18 +278,27 @@ func get_contact_source() -> String:
 	return get_enemy_id() + ":contact"
 
 func advance_contact_cooldown(delta: float) -> void:
-	_contact_cooldown_remaining = maxf(0.0, _contact_cooldown_remaining - maxf(0.0, delta))
+	_contact_ready_at_msec -= int(maxf(0.0, delta) * 1000.0)
 
 func _attempt_contact(player: Player) -> bool:
-	if _contact_cooldown_remaining > 0.0 or not is_instance_valid(player):
+	if Time.get_ticks_msec() < _contact_ready_at_msec or not is_instance_valid(player):
 		return false
 	var context := get_damage_context()
 	context["per_attacker_contact"] = true
 	if not Player.hurt(player, contact_damage, get_contact_source(), context):
 		return false
-	_contact_cooldown_remaining = maxf(0.75, contact_damage_cooldown)
+	_contact_ready_at_msec = Time.get_ticks_msec() + int(maxf(0.75, contact_damage_cooldown) * 1000.0)
+	record_malware_action()
 	player.apply_contact_separation(global_position, 180.0)
 	return true
+
+func record_malware_action() -> void:
+	if not has_meta("malware_source"):
+		return
+	var actions := int(get_meta("malware_actions", 0)) + 1
+	set_meta("malware_actions", actions)
+	apply_dot("malware", MalwareBehavior.damage_after_actions(2.0, actions), 4.0, 0.5,
+		get_meta("malware_source") as SkillResource)
 
 const SEPARATION_RADIUS := 40.0
 const SEPARATION_STRENGTH := 0.6
@@ -444,7 +454,7 @@ func deactivate_without_rewards() -> void:
 	_debugged_multiplier = 1.0
 	_debugged_source = null
 	velocity = Vector2.ZERO
-	_contact_cooldown_remaining = 0.0
+	_contact_ready_at_msec = 0
 	var affix := get_node_or_null("EliteAffix")
 	if affix and affix.has_method("reset_affix"):
 		affix.reset_affix()
@@ -455,6 +465,7 @@ func deactivate_without_rewards() -> void:
 	hide()
 
 func reset() -> void:
+	life_generation += 1
 	_kill_source = null
 	if has_meta("combat_role"):
 		remove_meta("combat_role")
@@ -468,7 +479,12 @@ func reset() -> void:
 	gold_value = _base_gold_value
 	modulate = Color.WHITE
 	velocity = Vector2.ZERO
-	_contact_cooldown_remaining = 0.0
+	_contact_ready_at_msec = 0
+	_hijacked_until_msec = 0
+	if has_meta("malware_actions"):
+		remove_meta("malware_actions")
+	if has_meta("malware_source"):
+		remove_meta("malware_source")
 	collision_layer = 2
 	collision_mask = 5
 	_target = null

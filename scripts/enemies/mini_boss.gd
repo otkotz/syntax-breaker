@@ -134,8 +134,11 @@ func _pick_attack() -> Attack:
 # --- Phase machine ---
 
 func _physics_process(delta: float) -> void:
-	if not _target or not is_instance_valid(_target):
+	var original_target := _target
+	var combat_target := get_effective_target()
+	if not combat_target or not is_instance_valid(combat_target):
 		return
+	_target = combat_target
 
 	match _phase:
 		Phase.CHASE:
@@ -146,6 +149,7 @@ func _physics_process(delta: float) -> void:
 			_do_attack(delta)
 		Phase.COOLDOWN:
 			_cooldown(delta)
+	_target = original_target
 
 func _chase(delta: float) -> void:
 	var dist := global_position.distance_to(_target.global_position)
@@ -168,6 +172,7 @@ func _chase(delta: float) -> void:
 		_begin_telegraph()
 
 func _begin_telegraph() -> void:
+	record_malware_action()
 	_current_attack = _pick_attack()
 	_phase = Phase.TELEGRAPH
 	velocity = Vector2.ZERO

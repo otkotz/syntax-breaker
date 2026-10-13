@@ -42,6 +42,7 @@ func run_checks() -> void:
 		check(OptionArtData.resolve(mutation) != null, "Mutation has selectable artwork: " + mutation.id)
 	for system_offer: Dictionary in [
 		{"type": "support_slot"}, {"type": "gold"}, {"type": "heal"}, {"type": "target_selection"},
+		{"type": "evolution", "evolution_id": "removed_evolution"},
 		{"type": "unknown", "icon_path": "res://assets/icons/definitely_missing.png"},
 	]:
 		check(OptionArtData.resolve(system_offer) != null, "System or malformed offer has guaranteed fallback art")

@@ -17,6 +17,7 @@ var _detonation_mult: float = 1.0
 var attack_context: AttackContext
 var _expire_notified := false
 var _active_registered := false
+var _next_daemon_pulse := INF
 
 var _arc_data: Array = []
 var _wave_hit_set: Array = []
@@ -32,7 +33,7 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool, contex
 	skill_instance = si
 	attack_context = context if context else si.create_attack_context()
 	damage = si.computed_stats.get("damage", 10.0) * float(attack_context.metadata.get("damage_mult", 1.0))
-	area_radius = si.computed_stats.get("range", 100.0) * si.computed_stats.get("area_mult", 1.0)
+	area_radius = si.computed_stats.get("range", 100.0) * si.computed_stats.get("area_mult", 1.0) * float(attack_context.metadata.get("area_mult", 1.0))
 	pool_ref = pool
 	_timer = 0.0
 	_has_hit = false
@@ -48,6 +49,9 @@ func initialize(si: SkillInstance, _direction: Vector2, pool: ObjectPool, contex
 			_lifetime = 0.8
 		"static_field":
 			_lifetime = 0.6
+			if si.evolution_id == "daemon_process" and si.evolution_tier >= 1:
+				_lifetime = 1.8 + si.evolution_tier * 0.4
+				_next_daemon_pulse = 0.0
 			_generate_arcs()
 		"frost_nova":
 			_lifetime = 0.6
@@ -70,6 +74,10 @@ func _physics_process(delta: float) -> void:
 	_timer += delta
 	if _skill_id == "flame_wave" or _skill_id == "frost_nova":
 		_hit_wave()
+	elif _skill_id == "static_field" and _next_daemon_pulse < INF:
+		if _timer >= _next_daemon_pulse:
+			_hit_enemies_in_radius(area_radius)
+			_next_daemon_pulse += 0.45
 	elif not _has_hit:
 		_has_hit = true
 		_hit_enemies_in_radius(area_radius)
@@ -203,7 +211,8 @@ func _damage_enemy(enemy: Node2D) -> void:
 	var hit_damage := damage
 	var is_crit := false
 	if skill_instance:
-		var roll := CombatUtils.roll_damage(damage, skill_instance)
+		var forced_crit: bool = bool(attack_context and attack_context.metadata.get("works_mode", "") == "critical")
+		var roll := CombatUtils.roll_damage(damage, skill_instance, forced_crit)
 		hit_damage = roll["damage"]
 		is_crit = roll["is_crit"]
 		if is_crit:
@@ -283,9 +292,13 @@ func reset() -> void:
 	_detonation_mult = 1.0
 	attack_context = null
 	_expire_notified = false
+	_next_daemon_pulse = INF
 	_arc_data.clear()
 	_wave_hit_set.clear()
 	scale = Vector2.ONE
+	for key in ["spaghetti_resolved", "stored_frost"]:
+		if has_meta(key):
+			remove_meta(key)
 
 func _return_to_pool() -> void:
 	_release_active_count()

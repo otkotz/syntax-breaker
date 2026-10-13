@@ -31,13 +31,15 @@ func reset() -> void:
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
-	if not is_instance_valid(_target):
+	var combat_target := get_effective_target()
+	if not is_instance_valid(combat_target):
 		super._physics_process(delta)
 		return
 	attack_timer -= delta
 	if attack_state == "chase":
-		if attack_timer <= 0.0 and global_position.distance_to(_target.global_position) <= 200.0:
-			charge_direction = global_position.direction_to(_target.global_position)
+		if attack_timer <= 0.0 and global_position.distance_to(combat_target.global_position) <= 200.0:
+			charge_direction = global_position.direction_to(combat_target.global_position)
+			record_malware_action()
 			attack_state = "windup"
 			attack_timer = WINDUP
 			velocity = Vector2.ZERO

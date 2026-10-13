@@ -197,6 +197,7 @@ func run_checks() -> void:
 	game = make_game(StageData.Type.COMBAT, 1)
 	game._arena.compilation_decision_requested.emit(CompilationTerminal.Difficulty.KERNEL_BREACH)
 	game._arena._on_all_waves_cleared()
+	await get_tree().process_frame
 	var terminal_picker := find_ui(game, preload("res://scripts/ui/compilation_picker.gd")) as CompilationPicker
 	check(terminal_picker != null and find_ui(game, preload("res://scripts/ui/reward_picker.gd")) == null,
 		"Same-frame terminal completion stays ahead of the stage reward")
@@ -207,6 +208,23 @@ func run_checks() -> void:
 	await get_tree().process_frame
 	check(find_ui(game, preload("res://scripts/ui/reward_picker.gd")) != null,
 		"Queued stage reward appears once after the terminal choice")
+	game.queue_free()
+	await get_tree().process_frame
+	game = make_game(StageData.Type.COMBAT, 1)
+	var reverse_arena := game._arena
+	game._arena._on_all_waves_cleared()
+	reverse_arena.compilation_decision_requested.emit(CompilationTerminal.Difficulty.KERNEL_BREACH)
+	await get_tree().process_frame
+	terminal_picker = find_ui(game, preload("res://scripts/ui/compilation_picker.gd")) as CompilationPicker
+	check(terminal_picker != null and find_ui(game, preload("res://scripts/ui/reward_picker.gd")) == null,
+		"Same-frame terminal outranks a reward enqueued first")
+	if terminal_picker:
+		var reverse_terminal_buttons := terminal_picker.find_children("*", "Button", true, false)
+		if not reverse_terminal_buttons.is_empty():
+			(reverse_terminal_buttons[0] as Button).pressed.emit()
+	await get_tree().process_frame
+	check(find_ui(game, preload("res://scripts/ui/reward_picker.gd")) != null,
+		"First-enqueued stage reward resumes exactly once after terminal choice")
 	game.queue_free()
 	await get_tree().process_frame
 	game = make_game(StageData.Type.BOSS, 10)

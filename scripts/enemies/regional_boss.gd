@@ -32,8 +32,11 @@ func configure_encounter(depth: int) -> void:
 			collision.scale = Vector2.ONE
 
 func _physics_process(delta: float) -> void:
-	if not is_alive() or not is_instance_valid(_target):
+	var original_target := _target
+	var combat_target := get_effective_target()
+	if not is_alive() or not is_instance_valid(combat_target):
 		return
+	_target = combat_target
 	_update_slow(delta)
 	_move_toward_target()
 	_update_phase()
@@ -41,8 +44,10 @@ func _physics_process(delta: float) -> void:
 	if attack_cooldown <= 0.0 and global_position.distance_to(_target.global_position) <= 210.0:
 		_perform_attack()
 		attack_cooldown = PHASE_COOLDOWNS[phase_index - 1] if final_encounter else 4.0
+	_target = original_target
 
 func _perform_attack() -> void:
+	record_malware_action()
 	encounter_attack_count += 1
 	match boss_region:
 		"storm_spire":

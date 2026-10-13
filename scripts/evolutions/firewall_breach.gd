@@ -22,6 +22,7 @@ func on_expire(skill: SkillInstance, effect: Node2D) -> void:
 	if not context or not context.can_derive("firewall_breach", "firewall_return"):
 		return
 	var returned := context.derive("firewall_breach", "firewall_return")
+	returned.metadata["origin"] = effect.global_position
 	var direction := Vector2.LEFT
 	if "direction" in effect:
 		direction = -effect.direction

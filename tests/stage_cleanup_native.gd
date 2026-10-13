@@ -42,6 +42,19 @@ func _ready() -> void:
 			break
 	check(released[0] == 9 and result[0].objects == 10, "Externally freed objects are skipped and every valid object releases once")
 	check(result[0].batches >= 4 and result[0].worst_batch_ms >= 0.0, "Cleanup reports bounded batch metrics")
+	var packed := PackedScene.new()
+	var template := Node2D.new()
+	packed.pack(template)
+	template.free()
+	var pool_host := Node2D.new()
+	host.add_child(pool_host)
+	var pool := ObjectPool.new(packed, 4, pool_host)
+	pool.get_instance()
+	var drained := pool.drain_instances()
+	check(drained.size() == 4 and pool.active_count() == 0 and pool.pool_count() == 0,
+		"Stage teardown can drain active and inactive pooled instances into the batch")
+	for instance: Node in drained:
+		instance.queue_free()
 	host.queue_free()
 	if failures.is_empty():
 		print("PASS: bounded detach-first stage cleanup")
