@@ -6,7 +6,7 @@ const SESSION_SAVE_PATH := "user://active_expedition.json"
 var profile_path: String = PROFILE_SAVE_PATH
 var session_path: String = SESSION_SAVE_PATH
 var profile: ExpeditionProfile = ExpeditionProfile.new()
-var session: Variant = null
+var session: ExpeditionSession = null
 
 func start_new_profile() -> void:
 	profile = ExpeditionProfile.new()
@@ -31,6 +31,33 @@ func load_profile() -> bool:
 		return false
 	profile = ExpeditionProfile.from_dict(data)
 	return true
+
+func has_saved_session() -> bool:
+	return FileAccess.file_exists(session_path)
+
+func start_expedition(seed_value: int, region_id: String) -> bool:
+	if profile == null or not profile.unlocked_regions.has(region_id):
+		return false
+	session = ExpeditionSession.create(seed_value, region_id)
+	return save_session()
+
+func save_session() -> bool:
+	if session == null:
+		return false
+	return _write_json_atomic(session_path, session.to_dict())
+
+func load_session() -> bool:
+	session = null
+	if not FileAccess.file_exists(session_path):
+		return false
+	var file := FileAccess.open(session_path, FileAccess.READ)
+	if file == null:
+		return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if not parsed is Dictionary:
+		return false
+	session = ExpeditionSession.from_dict(parsed)
+	return session != null
 
 func clear_active_session() -> void:
 	session = null
