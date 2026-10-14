@@ -28,6 +28,7 @@ RunManager="*res://scripts/autoloads/run_manager.gd"
 MetaProgression="*res://scripts/autoloads/meta_progression.gd"
 QualitySettings="*res://scripts/autoloads/quality_settings.gd"
 RunTelemetry="*res://scripts/autoloads/run_telemetry.gd"
+ExpeditionManager="*res://scripts/autoloads/expedition_manager.gd"
 
 [display]
 
