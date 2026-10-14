@@ -4,6 +4,7 @@ extends Node
 
 var _main_menu: MainMenu
 var _canvas: CanvasLayer
+var _expedition_game: ExpeditionGameManager
 
 func _ready() -> void:
 	_canvas = CanvasLayer.new()
@@ -13,6 +14,7 @@ func _ready() -> void:
 	_main_menu = preload("res://scenes/ui/main_menu.tscn").instantiate() as MainMenu
 	_canvas.add_child(_main_menu)
 	_main_menu.start_pressed.connect(_on_start_run)
+	_main_menu.expedition_pressed.connect(_on_start_expedition)
 	_main_menu.unlocks_pressed.connect(_on_unlocks)
 	_main_menu.codex_pressed.connect(_on_codex)
 	_main_menu.hide()
@@ -41,6 +43,19 @@ func _on_start_run() -> void:
 	_main_menu.hide()
 	var region := _main_menu.get_selected_region()
 	game_manager.start_run(region)
+
+func _on_start_expedition() -> void:
+	_main_menu.hide()
+	_expedition_game = preload("res://scenes/main/expedition_game_manager.tscn").instantiate() as ExpeditionGameManager
+	add_child(_expedition_game)
+	_expedition_game.return_to_main_menu.connect(_on_expedition_return, CONNECT_ONE_SHOT)
+	_expedition_game.open_hub()
+
+func _on_expedition_return() -> void:
+	if _expedition_game != null:
+		_expedition_game.queue_free()
+		_expedition_game = null
+	_main_menu.show()
 
 func _on_return_to_menu() -> void:
 	_main_menu._refresh_ascension()

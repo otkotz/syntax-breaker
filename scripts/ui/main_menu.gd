@@ -2,6 +2,7 @@ class_name MainMenu
 extends Control
 
 signal start_pressed
+signal expedition_pressed
 signal unlocks_pressed
 signal codex_pressed
 
@@ -281,6 +282,13 @@ func _build_actions(parent: Control) -> void:
 	var start := _make_cta("START RUN")
 	start.pressed.connect(func() -> void: start_pressed.emit())
 	parent.add_child(start)
+	parent.add_child(_gap(10))
+
+	var expedition := _make_ghost("EXPEDITION RPG")
+	expedition.name = "ExpeditionButton"
+	expedition.custom_minimum_size = Vector2(600, 96)
+	expedition.pressed.connect(func() -> void: expedition_pressed.emit())
+	parent.add_child(expedition)
 	parent.add_child(_gap(10))
 
 	var row := HBoxContainer.new()

@@ -7,21 +7,44 @@ signal return_to_main_menu
 
 const ARENA_SCENE := preload("res://scenes/stages/arena.tscn")
 const FIREBALL := preload("res://resources/skills/fireball.tres")
+const HUB_SCENE := preload("res://scenes/ui/expedition_hub.tscn")
+const MAP_SCENE := preload("res://scenes/ui/expedition_map.tscn")
 
 var state: State = State.HUB
 var arena: Arena
 var skill_instances: Array[SkillInstance] = []
 var last_result: String = ""
+var hub: ExpeditionHub
+var map_ui: ExpeditionMapUI
 var _active_room_id: String = ""
+var _ui_layer: CanvasLayer
 
 func _ready() -> void:
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.layer = 20
+	add_child(_ui_layer)
 	GameBus.player_died.connect(_on_player_died)
 
 func open_hub() -> void:
+	_clear_ui()
 	state = State.HUB
+	hub = HUB_SCENE.instantiate() as ExpeditionHub
+	_ui_layer.add_child(hub)
+	hub.setup(ExpeditionManager.profile, ExpeditionManager.has_saved_session(), last_result)
+	hub.new_expedition_pressed.connect(func() -> void:
+		start_new_expedition(int(Time.get_unix_time_from_system()))
+	, CONNECT_ONE_SHOT)
+	hub.resume_pressed.connect(resume_expedition, CONNECT_ONE_SHOT)
+	hub.back_pressed.connect(func() -> void: return_to_main_menu.emit(), CONNECT_ONE_SHOT)
 
 func show_map() -> void:
+	_clear_ui()
 	state = State.MAP
+	map_ui = MAP_SCENE.instantiate() as ExpeditionMapUI
+	_ui_layer.add_child(map_ui)
+	map_ui.setup(ExpeditionManager.session)
+	map_ui.room_chosen.connect(enter_room)
+	map_ui.abandon_pressed.connect(abandon_expedition, CONNECT_ONE_SHOT)
 
 func start_new_expedition(seed_value: int) -> bool:
 	if ExpeditionManager.profile == null:
@@ -32,6 +55,16 @@ func start_new_expedition(seed_value: int) -> bool:
 		return false
 	skill_instances.clear()
 	skill_instances.append(SkillInstance.new(FIREBALL))
+	last_result = ""
+	show_map()
+	return true
+
+func resume_expedition() -> bool:
+	if not ExpeditionManager.load_session():
+		open_hub()
+		return false
+	if skill_instances.is_empty():
+		skill_instances.append(SkillInstance.new(FIREBALL))
 	last_result = ""
 	show_map()
 	return true
@@ -60,6 +93,7 @@ func abandon_expedition() -> void:
 
 func _start_combat(room: DungeonRoomData) -> void:
 	state = State.COMBAT
+	_clear_ui()
 	_clear_arena()
 	var session := ExpeditionManager.session
 	RunManager.current_hp = session.current_hp
@@ -124,3 +158,11 @@ func _clear_arena() -> void:
 	if arena != null:
 		arena.queue_free()
 		arena = null
+
+func _clear_ui() -> void:
+	hub = null
+	map_ui = null
+	if _ui_layer == null:
+		return
+	for child: Node in _ui_layer.get_children():
+		child.queue_free()

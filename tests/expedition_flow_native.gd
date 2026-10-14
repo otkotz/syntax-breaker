@@ -52,6 +52,47 @@ func run_checks() -> void:
 	death_game.queue_free()
 	await get_tree().process_frame
 
+	ExpeditionManager.clear_active_session()
+	var main_scene := preload("res://scenes/main/main.tscn").instantiate()
+	main_scene.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(main_scene)
+	await get_tree().process_frame
+	var menu := main_scene.get("_main_menu") as MainMenu
+	menu.show()
+	var expedition_button := _find_named(menu, "ExpeditionButton") as Button
+	check(expedition_button != null, "Main menu exposes ExpeditionButton")
+	if expedition_button != null:
+		check(expedition_button.custom_minimum_size.x >= 600.0 and expedition_button.custom_minimum_size.y >= 88.0, "Expedition menu target is touch-sized")
+		expedition_button.pressed.emit()
+		var ui_game: Node = main_scene.get("_expedition_game")
+		check(ui_game != null and not menu.visible, "Expedition button opens separate game manager")
+		if ui_game != null:
+			var hub: Node = ui_game.get("hub")
+			check(hub != null, "Expedition manager shows hub")
+			if hub != null:
+				var new_button := hub.get("new_button") as Button
+				check(new_button != null, "Hub exposes new expedition action")
+				if new_button != null:
+					new_button.pressed.emit()
+					var map_ui: Node = ui_game.get("map_ui")
+					check(map_ui != null, "New expedition opens map UI")
+					if map_ui != null:
+						var room_buttons: Dictionary = map_ui.get("room_buttons")
+						var available_buttons: Array[Button] = []
+						for room_id: String in ExpeditionManager.session.get_available_room_ids():
+							var room_button := room_buttons.get(room_id) as Button
+							check(room_button != null and room_button.custom_minimum_size.y >= 96.0, "Available room uses a full touch tile")
+							if room_button != null:
+								available_buttons.append(room_button)
+						if not available_buttons.is_empty():
+							available_buttons[0].pressed.emit()
+							check(ui_game.get("state") == ExpeditionGameManager.State.COMBAT, "Room tile enters combat")
+							var ui_arena := ui_game.get("arena") as Arena
+							ui_arena._on_all_waves_cleared()
+							check(ui_game.get("state") == ExpeditionGameManager.State.MAP and ui_game.get("map_ui") != null, "Combat clear rebuilds map UI")
+	main_scene.queue_free()
+	await get_tree().process_frame
+
 	_cleanup_files()
 	print(JSON.stringify({"failures": failures, "flow": "combat-clear-death"}))
 	get_tree().quit(0 if failures.is_empty() else 1)
@@ -66,3 +107,12 @@ func _cleanup_files() -> void:
 	]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+func _find_named(root: Node, target_name: String) -> Node:
+	if root.name == target_name:
+		return root
+	for child: Node in root.get_children():
+		var found := _find_named(child, target_name)
+		if found != null:
+			return found
+	return null
