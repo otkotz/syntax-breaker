@@ -28,12 +28,35 @@ func run_checks() -> void:
 	check(game.state == ExpeditionGameManager.State.COMBAT, "Combat room opens arena")
 	check(game.arena != null, "Existing arena is reused")
 	check(game.skill_instances.size() == 1 and game.skill_instances[0].base.id == "fireball", "Prototype has stable starter skill")
+	game.arena.player.current_hp = 63.0
 	game.arena._on_all_waves_cleared()
 	check(ExpeditionManager.session.completed_room_ids.has(chosen_room_id), "Arena clear completes room")
 	check(game.state == ExpeditionGameManager.State.MAP, "Clear returns to expedition map")
 	check(ExpeditionManager.has_saved_session(), "Clear checkpoints session")
 	check(RunManager.gold == 321 and not RunManager.has_saved_run(), "Expedition does not write roguelite economy or save")
 	game.queue_free()
+	await get_tree().process_frame
+	ExpeditionManager.session = null
+	check(ExpeditionManager.load_session(), "Active expedition resumes")
+	check(ExpeditionManager.session.current_hp == 63.0, "Resume preserves health")
+	check(ExpeditionManager.session.completed_room_ids.has(chosen_room_id), "Resume preserves cleared room")
+	check(ExpeditionManager.session.layout.seed_value == 20261014, "Resume preserves seed")
+	check(not ExpeditionManager.session.can_enter(chosen_room_id), "Resume cannot replay cleared room")
+
+	var resume_game := ExpeditionGameManager.new()
+	resume_game.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(resume_game)
+	check(resume_game.resume_expedition(), "Game manager resumes checkpoint")
+	check(resume_game.enter_room("room_3"), "Resumed route reaches merge room")
+	if resume_game.state == ExpeditionGameManager.State.COMBAT:
+		resume_game.arena._on_all_waves_cleared()
+	check(ExpeditionManager.session.completed_room_ids.has("room_3"), "Merge room completes")
+	check(resume_game.enter_room("room_4"), "Completed route unlocks boss")
+	check(resume_game.state == ExpeditionGameManager.State.COMBAT, "Boss uses arena combat")
+	resume_game.arena._on_all_waves_cleared()
+	check(resume_game.last_result == "victory" and resume_game.state == ExpeditionGameManager.State.HUB, "Boss victory returns to hub")
+	check(ExpeditionManager.session == null and not ExpeditionManager.has_saved_session(), "Victory clears active checkpoint")
+	resume_game.queue_free()
 	await get_tree().process_frame
 
 	var death_game := ExpeditionGameManager.new()

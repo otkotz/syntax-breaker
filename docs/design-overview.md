@@ -11,6 +11,19 @@ Current implementation audit and unverified playtest gates: [gameplay audit](gam
 Resource counts and exported RegionResource fields are checked by the native
 [catalog snapshot test](catalog-snapshot.md); catalog size is not demo-readiness evidence.
 
+## Expedition prototype
+
+An isolated RPG-mode foundation is available from the main menu as **Expedition RPG**. It uses a
+separate versioned profile and active-session save, a deterministic five-room Burning Grounds
+layout with one route split, the existing combat arena, and Fireball as the fixed prototype
+starter. The active session checkpoints its seed, cleared rooms and player HP, so it can resume
+the same route after leaving the mode. Clearing the boss returns to the Expedition hub; death or
+abandonment removes only the active Expedition checkpoint and preserves the persistent profile.
+
+This is a navigation and persistence prototype, not the complete RPG mode. Artifacts, item sets,
+loot tables, XP, the character progression board, the three-region campaign and Fractured Realms
+endgame described in the Expedition design spec are not implemented yet.
+
 ---
 
 ## Game Loop

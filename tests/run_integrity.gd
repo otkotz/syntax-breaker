@@ -13,6 +13,8 @@ func run_checks() -> void:
 	# Test saves stay in the project cache, never in the player's profile.
 	RunManager.save_path = "res://.godot/run_integrity_test.json"
 	MetaProgression.save_path = "res://.godot/meta_integrity_test.json"
+	ExpeditionManager.profile_path = "res://.godot/expedition_integrity_profile_test.json"
+	ExpeditionManager.session_path = "res://.godot/expedition_integrity_session_test.json"
 	MetaProgression.highest_ascension_unlocked = {}
 	MetaProgression.region_victories = {}
 	MetaProgression.ascension_level = 0
@@ -91,7 +93,18 @@ func run_checks() -> void:
 	MetaProgression.set_ascension(20, "storm_spire")
 	check(MetaProgression.ascension_level == 1, "Victory unlocks only next level")
 	check(MetaProgression.get_max_ascension("toxic_depths") == 0, "Regional progression independent")
+	ExpeditionManager.start_new_profile()
+	check(ExpeditionManager.save_profile(), "Expedition profile saves independently")
+	check(ExpeditionManager.start_expedition(20261014, "burning_grounds"), "Expedition session saves independently")
+	RunManager.save_run(skill_data)
+	check(RunManager.has_saved_run() and ExpeditionManager.has_saved_session(), "Both modes can hold independent checkpoints")
+	ExpeditionManager.clear_active_session()
+	check(RunManager.has_saved_run(), "Clearing Expedition keeps roguelite checkpoint")
+	check(FileAccess.file_exists(ExpeditionManager.profile_path), "Clearing Expedition session keeps Expedition profile")
+	RunManager.clear_saved_run()
+	check(FileAccess.file_exists(ExpeditionManager.profile_path), "Clearing roguelite keeps Expedition profile")
 	RunManager.clear_saved_run()
 	DirAccess.remove_absolute(MetaProgression.save_path)
+	DirAccess.remove_absolute(ExpeditionManager.profile_path)
 	print(JSON.stringify({"save_cycles": 100, "failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)

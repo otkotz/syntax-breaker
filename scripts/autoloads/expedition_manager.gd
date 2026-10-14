@@ -23,10 +23,10 @@ func load_profile() -> bool:
 	var file := FileAccess.open(profile_path, FileAccess.READ)
 	if file == null:
 		return false
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if not parsed is Dictionary:
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
 		return false
-	var data := parsed as Dictionary
+	var data := json.data as Dictionary
 	if int(data.get("schema_version", -1)) != ExpeditionProfile.SCHEMA_VERSION:
 		return false
 	profile = ExpeditionProfile.from_dict(data)
@@ -53,10 +53,10 @@ func load_session() -> bool:
 	var file := FileAccess.open(session_path, FileAccess.READ)
 	if file == null:
 		return false
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if not parsed is Dictionary:
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
 		return false
-	session = ExpeditionSession.from_dict(parsed)
+	session = ExpeditionSession.from_dict(json.data)
 	return session != null
 
 func clear_active_session() -> void:
