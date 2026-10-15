@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SetBonusResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/set_bonus_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "covenant_of_embers"
+display_name = "Covenant of Embers"
+description = "Two pieces stack burns. Three pieces detonate a fully kindled enemy."
+tier_behavior_keys = {2: "kindling_engine", 3: "chain_conflagration"}
+behavior_parameters = {"stack_limit": 5, "max_generations": 2}

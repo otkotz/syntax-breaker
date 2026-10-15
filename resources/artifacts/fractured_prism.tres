@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ArtifactResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/artifact_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fractured_prism"
+display_name = "Fractured Prism"
+description = "The first projectile hit splits into two fragments at 55% damage."
+behavior_key = "fractured_prism"
+behavior_parameters = {"fragment_count": 2, "fragment_damage_mult": 0.55}

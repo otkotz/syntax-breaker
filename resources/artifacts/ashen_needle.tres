@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ArtifactResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/artifact_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ashen_needle"
+display_name = "Ashen Needle"
+description = "Projectiles pierce burning enemies and leave a trail of fire."
+behavior_key = "ashen_needle"
+behavior_parameters = {"bonus_pierce": 1}
+set_id = "covenant_of_embers"
+set_piece_name = "Needle"
