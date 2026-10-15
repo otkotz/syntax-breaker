@@ -190,6 +190,9 @@ func _on_body_entered(body: Node2D) -> void:
 		artifact_hooks.emit_event(&"projectile_hit", {"projectile": self, "skill": skill_instance, "target": body,
 			"damage": damage, "world_position": body.global_position, "origin_flags": artifact_origin_flags,
 			"spawn_fragment": artifact_spawn_fragment})
+		if body.has_method("is_alive") and not body.is_alive():
+			artifact_hooks.emit_event(&"enemy_killed", {"target": body, "skill": skill_instance,
+				"projectile": self, "world_position": body.global_position, "origin_flags": artifact_origin_flags})
 
 	if get_meta("chain_redirected", false):
 		remove_meta("chain_redirected")
@@ -217,7 +220,7 @@ static func resolve_skill_hit(si: SkillInstance, body: Node2D, hit_source: Node2
 	_spawn_resolved_aftermath(hit_source, body.global_position, si)
 	if not si:
 		return
-	_apply_resolved_elemental_effects(body, si, raw_damage)
+	_apply_resolved_elemental_effects(body, si, raw_damage, hit_source)
 	TagInteractions.process_hit(body, hit_damage, si.get_all_tags(), hit_source, si.base)
 	si.notify_hit(body, hit_source)
 	if is_crit:
@@ -252,11 +255,13 @@ static func _spawn_resolved_aftermath(hit_source: Node2D, pos: Vector2, si: Skil
 	elif tags.has("lightning"):
 		AftermathEffect.spawn(parent_node, pos, "static_crackle", 30.0, 1.5)
 
-static func _apply_resolved_elemental_effects(body: Node2D, si: SkillInstance, raw_damage: float) -> void:
+static func _apply_resolved_elemental_effects(body: Node2D, si: SkillInstance, raw_damage: float, hit_source: Node2D = null) -> void:
 	if not body.has_method("apply_dot"):
 		return
 	var tags := si.get_all_tags()
-	if tags.has("fire"):
+	var furnace_active: bool = hit_source is ProjectileBase and hit_source.artifact_hooks != null \
+		and hit_source.artifact_hooks.active_artifact_ids.has("furnace_heart")
+	if tags.has("fire") and not furnace_active:
 		body.apply_dot("burn", raw_damage * 0.3, 3.0, 0.5, si.base)
 		CombatLog.dot_applied("burn", body.name, raw_damage * 0.3, 3.0)
 		si.notify_status_apply(body, "burn")

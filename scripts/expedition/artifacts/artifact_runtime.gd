@@ -22,6 +22,7 @@ func setup(ids: Array[String], skills: Array, arena: Node) -> void:
 	_skills = skills
 	_arena = arena
 	var normalized := ArtifactLoadout.normalize(ArtifactCatalog.all_ids(), ids)
+	hooks.active_artifact_ids = normalized.duplicate()
 	for artifact_id in normalized:
 		if artifact_id.is_empty(): continue
 		var artifact := ArtifactCatalog.get_artifact(artifact_id)
@@ -66,6 +67,7 @@ func teardown() -> void:
 	if hooks.combat_event.is_connected(_on_combat_event):
 		hooks.combat_event.disconnect(_on_combat_event)
 	hooks.deactivate()
+	hooks.active_artifact_ids.clear()
 	for behavior in behaviors:
 		behavior.teardown()
 		behavior.runtime = null

@@ -8,6 +8,11 @@ static func with_defaults() -> ArtifactRegistry:
 	result.register_factory(&"fractured_prism", func(): return IndependentArtifactBehaviors.create(&"fractured_prism"))
 	result.register_factory(&"echoing_hourglass", func(): return IndependentArtifactBehaviors.create(&"echoing_hourglass"))
 	result.register_factory(&"bloodwritten_sigil", func(): return IndependentArtifactBehaviors.create(&"bloodwritten_sigil"))
+	result.register_factory(&"furnace_heart", func(): return EmberArtifactBehaviors.create(&"furnace_heart"))
+	result.register_factory(&"ashen_needle", func(): return EmberArtifactBehaviors.create(&"ashen_needle"))
+	result.register_factory(&"cinder_crown", func(): return EmberArtifactBehaviors.create(&"cinder_crown"))
+	result.register_factory(&"kindling_engine", func(): return EmberArtifactBehaviors.create(&"kindling_engine"))
+	result.register_factory(&"chain_conflagration", func(): return EmberArtifactBehaviors.create(&"chain_conflagration"))
 	return result
 
 func register_factory(behavior_key: StringName, factory: Callable) -> void:

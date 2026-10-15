@@ -115,7 +115,7 @@ func run_checks() -> void:
 	var skill := SkillInstance.new(fire)
 	PoisonOnHitBehavior.new().on_hit(skill, support_target, self)
 	support_target._process(0.5)
-	check(support_target._dots.poison.source == fire, "Support-applied DoT carries parent skill source")
+	check(support_target.get_dot_stacks("poison")[0].source == fire, "Support-applied DoT carries parent skill source")
 	var unknown := dummy(5.0)
 	unknown.take_damage(50.0)
 	check(RunManager.run_stats.unattributed_damage == 5.0 and RunManager.run_stats.unattributed_kills == 1, "Unknown/consumable source is separate, not guessed")

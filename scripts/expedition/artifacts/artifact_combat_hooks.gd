@@ -5,6 +5,7 @@ signal combat_event(event_name: StringName, context: Dictionary)
 
 var active := true
 var _next_event_id := 1
+var active_artifact_ids: Array[String] = []
 
 func emit_event(event_name: StringName, context: Dictionary = {}) -> void:
 	if not active:

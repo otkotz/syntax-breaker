@@ -267,23 +267,23 @@ func _pick_wander_dir() -> void:
 	_wander_timer = randf_range(1.5, 3.0)
 
 func _process(delta: float) -> void:
-	var expired: Array = []
+	var expired_types: Array[String] = []
 	for dot_type: String in _dots:
-		var dot: Dictionary = _dots[dot_type]
-		dot["timer"] += delta
-		dot["remaining"] -= delta
-		if dot["timer"] >= dot["interval"]:
-			dot["timer"] -= dot["interval"]
-			var tick_dmg: float = dot["damage"]
-			if dot_type == "poison":
-				tick_dmg *= EngineTracker.get_virulence_mult(self)
-			take_damage(tick_dmg, false, dot.get("source"), "dot")
-			if not is_alive():
-				return
-		if dot["remaining"] <= 0.0:
-			expired.append(dot_type)
-	if not expired.is_empty():
-		for key: String in expired:
+		var stacks: Array = _dots[dot_type]
+		for index in range(stacks.size() - 1, -1, -1):
+			var dot: Dictionary = stacks[index]
+			dot["timer"] += delta
+			dot["remaining"] -= delta
+			if dot["timer"] >= dot["interval"]:
+				dot["timer"] -= dot["interval"]
+				var tick_dmg: float = dot["damage"]
+				if dot_type == "poison": tick_dmg *= EngineTracker.get_virulence_mult(self)
+				take_damage(tick_dmg, false, dot.get("source"), "dot")
+				if not is_alive(): return
+			if dot["remaining"] <= 0.0: stacks.remove_at(index)
+		if stacks.is_empty(): expired_types.append(dot_type)
+	if not expired_types.is_empty():
+		for key: String in expired_types:
 			_dots.erase(key)
 		queue_redraw()
 
@@ -325,15 +325,36 @@ func apply_slow(factor: float, duration: float) -> void:
 
 func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float, source: SkillResource = null) -> void:
 	var is_new := dot_type not in _dots
-	_dots[dot_type] = {
+	_dots[dot_type] = [{
 		"damage": damage_per_tick,
 		"remaining": duration,
 		"interval": tick_interval,
 		"timer": 0.0,
 		"source": source,
-	}
+		"stack_id": "legacy",
+	}]
 	if is_new:
 		queue_redraw()
+
+func apply_dot_stack(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float,
+		source: SkillResource = null, stack_id: String = "", limit: int = 1) -> void:
+	var stacks: Array = _dots.get(dot_type, [])
+	stacks.append({"damage": damage_per_tick, "remaining": duration, "interval": tick_interval,
+		"timer": 0.0, "source": source, "stack_id": stack_id})
+	while stacks.size() > maxi(1, limit): stacks.pop_front()
+	_dots[dot_type] = stacks
+	queue_redraw()
+
+func get_dot_stacks(dot_type: String) -> Array:
+	return (_dots.get(dot_type, []) as Array).duplicate(true)
+
+func consume_dot_stacks(dot_type: String, count: int) -> Array:
+	var stacks: Array = _dots.get(dot_type, [])
+	var consumed: Array = []
+	for index in mini(maxi(0, count), stacks.size()): consumed.append(stacks.pop_front())
+	if stacks.is_empty(): _dots.erase(dot_type)
+	queue_redraw()
+	return consumed
 
 func _die() -> void:
 	DeathEffect.spawn(get_parent(), global_position + Vector2(0, -14), _dots)

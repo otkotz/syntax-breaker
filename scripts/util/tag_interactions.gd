@@ -7,12 +7,11 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 
 	# Fire + Poison = Ignite: converts poison DoT to burst damage
 	if tags.has("fire") and target.has_method("apply_dot"):
-		var dots: Dictionary = target.get("_dots")
-		if dots and dots.has("poison"):
-			var remaining: float = dots["poison"]["remaining"]
-			var tick_dmg: float = dots["poison"]["damage"]
-			var burst := tick_dmg * remaining * 3.0
-			dots.erase("poison")
+		var poison_stacks: Array = target.get_dot_stacks("poison") if target.has_method("get_dot_stacks") else []
+		if not poison_stacks.is_empty():
+			var burst := 0.0
+			for dot: Dictionary in poison_stacks: burst += float(dot.damage) * float(dot.remaining) * 3.0
+			target.consume_dot_stacks("poison", poison_stacks.size())
 			target.take_damage(burst, false, skill, "proc")
 			CombatLog.interaction("Ignite", target.name, "burst %.1f from consumed poison" % burst)
 
@@ -33,8 +32,7 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 
 	# Poison skill hits burning enemy = toxic cloud (AoE poison spread)
 	if tags.has("poison") and target.has_method("apply_dot"):
-		var dots: Dictionary = target.get("_dots")
-		if dots and dots.has("burn"):
+		if target.has_method("get_dot_stacks") and not target.get_dot_stacks("burn").is_empty():
 			var nearby := Targeting.find_enemies_in_range(target.global_position, 120.0, 10)
 			var spread_count := 0
 			for enemy: Node2D in nearby:
@@ -48,12 +46,11 @@ static func process_hit(target: Node2D, damage: float, tags: Array, source: Node
 
 	# Physical + bleeding enemy hit by fire = Cauterize (burst from consumed bleed)
 	if tags.has("fire") and target.has_method("apply_dot"):
-		var dots: Dictionary = target.get("_dots")
-		if dots and dots.has("bleed"):
-			var remaining: float = dots["bleed"]["remaining"]
-			var tick_dmg: float = dots["bleed"]["damage"]
-			var burst := tick_dmg * remaining * 3.5
-			dots.erase("bleed")
+		var bleed_stacks: Array = target.get_dot_stacks("bleed") if target.has_method("get_dot_stacks") else []
+		if not bleed_stacks.is_empty():
+			var burst := 0.0
+			for dot: Dictionary in bleed_stacks: burst += float(dot.damage) * float(dot.remaining) * 3.5
+			target.consume_dot_stacks("bleed", bleed_stacks.size())
 			target.take_damage(burst, false, skill, "proc")
 			CombatLog.interaction("Cauterize", target.name, "burst %.1f from consumed bleed" % burst)
 
