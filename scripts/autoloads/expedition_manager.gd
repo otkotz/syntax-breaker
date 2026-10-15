@@ -21,12 +21,34 @@ func load_profile() -> bool:
 	for candidate: String in [profile_path, profile_path + ".bak", profile_path + ".tmp"]:
 		var data := _read_json_dictionary(candidate)
 		if data.is_empty() or typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
-			or int(data.get("schema_version")) != ExpeditionProfile.SCHEMA_VERSION:
+			or int(data.get("schema_version")) not in [1, ExpeditionProfile.SCHEMA_VERSION]:
 			continue
 		profile = ExpeditionProfile.from_dict(data)
 		if candidate != profile_path:
 			save_profile()
 		return true
+	return false
+
+func equip_artifact(artifact_id: String, slot: int) -> bool:
+	if profile == null or slot < 0 or slot >= ArtifactLoadout.SLOT_COUNT:
+		return false
+	if not profile.owned_artifact_ids.has(artifact_id) or profile.equipped_artifact_ids.has(artifact_id):
+		return false
+	var previous := profile.equipped_artifact_ids.duplicate()
+	profile.equipped_artifact_ids[slot] = artifact_id
+	if save_profile():
+		return true
+	profile.equipped_artifact_ids = previous
+	return false
+
+func unequip_artifact(slot: int) -> bool:
+	if profile == null or slot < 0 or slot >= ArtifactLoadout.SLOT_COUNT:
+		return false
+	var previous := profile.equipped_artifact_ids.duplicate()
+	profile.equipped_artifact_ids[slot] = ""
+	if save_profile():
+		return true
+	profile.equipped_artifact_ids = previous
 	return false
 
 func has_saved_session() -> bool:

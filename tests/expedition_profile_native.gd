@@ -12,11 +12,24 @@ func _ready() -> void:
 	_cleanup_files()
 
 	ExpeditionManager.start_new_profile()
+	check(ExpeditionManager.profile.owned_artifact_ids == ArtifactCatalog.all_ids(), "New profile owns prototype artifacts")
+	check(ExpeditionManager.profile.equipped_artifact_ids == ["", "", "", ""], "New profile has four empty slots")
 	ExpeditionManager.profile.level = 7
 	check(ExpeditionManager.save_profile(), "Profile saves")
 	ExpeditionManager.profile = null
 	check(ExpeditionManager.load_profile(), "Profile loads")
 	check(ExpeditionManager.profile.level == 7, "Level survives roundtrip")
+	check(ExpeditionManager.profile.equipped_artifact_ids.size() == 4, "Artifact slots survive roundtrip")
+
+	var migrated := ExpeditionProfile.from_dict({"schema_version": 1, "level": 9, "experience": 23})
+	check(migrated.level == 9 and migrated.experience == 23, "Schema one preserves progression")
+	check(migrated.owned_artifact_ids == ArtifactCatalog.all_ids(), "Schema one unlocks prototype artifacts")
+	var normalized := ExpeditionProfile.from_dict({
+		"schema_version": 2,
+		"owned_artifact_ids": ["furnace_heart", "ashen_needle"],
+		"equipped_artifact_ids": ["furnace_heart", null, "furnace_heart", "missing", "ashen_needle"],
+	})
+	check(normalized.equipped_artifact_ids == ["furnace_heart", "", "", ""], "Schema two normalizes corrupt slots")
 
 	var broken := FileAccess.open(ExpeditionManager.profile_path, FileAccess.WRITE)
 	broken.store_string("{broken")
