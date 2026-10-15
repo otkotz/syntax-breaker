@@ -17,6 +17,8 @@ func run_checks() -> void:
 	_cleanup_files()
 	ExpeditionManager.profile = null
 	ExpeditionManager.session = null
+	ExpeditionManager.start_new_profile()
+	ExpeditionManager.profile.equipped_artifact_ids = ["fractured_prism", "furnace_heart", "ashen_needle", "cinder_crown"]
 	RunManager.gold = 321
 	RunManager.current_shield = 17.0
 	RunManager.owned_passives = [load("res://resources/passives/thick_skin.tres")]
@@ -31,6 +33,11 @@ func run_checks() -> void:
 	check(game.enter_room(chosen_room_id), "Reachable combat room opens")
 	check(game.state == ExpeditionGameManager.State.COMBAT, "Combat room opens arena")
 	check(game.arena != null, "Existing arena is reused")
+	check(game.artifact_runtime != null and game.artifact_runtime.active, "Combat creates artifact runtime")
+	check(game.artifact_runtime.behaviors.size() == 6, "Prism plus full Ember set activates six behaviors")
+	check((game.arena.player.get_node("SkillCaster") as SkillCaster).artifact_hooks == game.artifact_runtime.hooks, "Real caster receives artifact hooks")
+	ExpeditionManager.profile.equipped_artifact_ids = ["bloodwritten_sigil", "", "", ""]
+	check(ExpeditionManager.session.artifact_loadout_ids[0] == "fractured_prism", "Combat keeps frozen session loadout")
 	check(RunManager.owned_passives.is_empty() and RunManager.owned_consumables.is_empty(), "Expedition combat hides roguelite build and inventory")
 	check(game.skill_instances.size() == 1 and game.skill_instances[0].base.id == "fireball", "Prototype has stable starter skill")
 	RunManager.add_gold(99)
@@ -41,6 +48,7 @@ func run_checks() -> void:
 	check(ExpeditionManager.has_saved_session(), "Clear checkpoints session")
 	check(RunManager.gold == 321 and RunManager.current_shield == 17.0, "Expedition restores roguelite economy and shield")
 	check(RunManager.owned_passives.size() == 1 and RunManager.owned_consumables.size() == 1 and not RunManager.has_saved_run(), "Expedition restores roguelite build and inventory")
+	check(game.artifact_runtime == null, "Leaving combat tears artifact runtime down")
 	game.queue_free()
 	await get_tree().process_frame
 	ExpeditionManager.session = null

@@ -18,6 +18,7 @@ var last_result: String = ""
 var hub: ExpeditionHub
 var map_ui: ExpeditionMapUI
 var artifacts_ui: ExpeditionArtifactsUI
+var artifact_runtime: ArtifactRuntime
 var _active_room_id: String = ""
 var _ui_layer: CanvasLayer
 var _run_snapshot: Dictionary = {}
@@ -134,8 +135,16 @@ func _start_combat(room: DungeonRoomData) -> void:
 	_prepare_expedition_run_state(session, room)
 	arena = ARENA_SCENE.instantiate() as Arena
 	add_child(arena)
+	artifact_runtime = ArtifactRuntime.new()
+	artifact_runtime.setup(session.artifact_loadout_ids, skill_instances, arena)
+	artifact_runtime.artifact_triggered.connect(_on_artifact_triggered)
+	(arena.player.get_node("SkillCaster") as SkillCaster).set_artifact_hooks(artifact_runtime.hooks)
 	arena.stage_completed.connect(_on_stage_completed, CONNECT_ONE_SHOT)
 	arena.start_stage(room.depth + 1, skill_instances, _make_stage_data(room))
+
+func _on_artifact_triggered(artifact_id: String, world_position: Vector2) -> void:
+	if arena != null:
+		ArtifactVFX.spawn(arena, artifact_id, world_position)
 
 func _make_stage_data(room: DungeonRoomData) -> StageData:
 	var stage := StageData.new()
@@ -199,6 +208,9 @@ func _finish_expedition(result: String) -> void:
 	open_hub()
 
 func _clear_arena() -> void:
+	if artifact_runtime != null:
+		artifact_runtime.teardown()
+		artifact_runtime = null
 	_restore_run_state()
 	if arena != null:
 		arena.queue_free()
@@ -214,7 +226,7 @@ func _clear_ui() -> void:
 		child.queue_free()
 
 func _exit_tree() -> void:
-	_restore_run_state()
+	_clear_arena()
 
 func _capture_run_state() -> void:
 	if not _run_snapshot.is_empty():

@@ -20,9 +20,16 @@ starter. The active session checkpoints its seed, cleared rooms and player HP, s
 the same route after leaving the mode. Clearing the boss returns to the Expedition hub; death or
 abandonment removes only the active Expedition checkpoint and preserves the persistent profile.
 
-This is a navigation and persistence prototype, not the complete RPG mode. Artifacts, item sets,
-loot tables, XP, the character progression board, the three-region campaign and Fractured Realms
-endgame described in the Expedition design spec are not implemented yet.
+Expedition also has four ordered artifact slots. The loadout is frozen when a session starts and
+restored unchanged on resume. The first six artifacts are `furnace_heart`, `ashen_needle`,
+`cinder_crown`, `fractured_prism`, `echoing_hourglass`, and `bloodwritten_sigil`. The first three
+form Covenant of Embers: 2/3 enables five independent burn stacks and 3/3 adds capped chained
+detonation while retaining the 2/3 bonus. Artifact combat state is created only for an Expedition
+arena and torn down before the roguelite snapshot is restored.
+
+This remains an RPG-mode vertical slice. Artifact loot tables, duplicates, pity counters, Codex
+discovery, XP, the character progression board, the three-region campaign and Fractured Realms
+endgame are intentionally deferred.
 
 ---
 
