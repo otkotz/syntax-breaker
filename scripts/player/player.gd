@@ -29,6 +29,15 @@ signal hp_changed(current: float, maximum: float)
 signal shield_changed(current: float, maximum: float)
 signal died
 
+func try_spend_artifact_health(percent: float) -> bool:
+	if percent <= 0.0 or current_hp <= 1.0:
+		return false
+	var cost := max_hp * percent
+	current_hp = maxf(1.0, current_hp - cost)
+	hp_changed.emit(current_hp, max_hp)
+	queue_redraw()
+	return true
+
 func _ready() -> void:
 	_base_move_speed = move_speed
 	_apply_run_passives()

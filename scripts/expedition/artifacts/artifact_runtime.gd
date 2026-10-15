@@ -11,7 +11,7 @@ var _skills: Array = []
 var _arena: Node
 
 func _init(custom_registry: ArtifactRegistry = null, custom_hooks: ArtifactCombatHooks = null) -> void:
-	registry = custom_registry if custom_registry != null else ArtifactRegistry.new()
+	registry = custom_registry if custom_registry != null else ArtifactRegistry.with_defaults()
 	hooks = custom_hooks if custom_hooks != null else ArtifactCombatHooks.new()
 
 func setup(ids: Array[String], skills: Array, arena: Node) -> void:

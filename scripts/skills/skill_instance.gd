@@ -8,6 +8,7 @@ var behaviors: Array[BehaviorBase] = []
 var mutations: Array[Dictionary] = []
 var rarity_tier: String = ""
 var stage_overrides: Array[Dictionary] = []
+var runtime_overrides: Array[Dictionary] = []
 
 func _init(skill_resource: SkillResource) -> void:
 	base = skill_resource
@@ -84,6 +85,12 @@ func recompute(passives: Array = []) -> void:
 		computed_stats["damage"] *= RarityTiers.damage_mult(rarity_tier)
 	_apply_mutations()
 	for override_stats: Dictionary in stage_overrides:
+		for key: String in override_stats:
+			if key.ends_with("_mult") and computed_stats.has(key.trim_suffix("_mult")):
+				computed_stats[key.trim_suffix("_mult")] *= override_stats[key]
+			elif computed_stats.has(key):
+				computed_stats[key] += override_stats[key]
+	for override_stats: Dictionary in runtime_overrides:
 		for key: String in override_stats:
 			if key.ends_with("_mult") and computed_stats.has(key.trim_suffix("_mult")):
 				computed_stats[key.trim_suffix("_mult")] *= override_stats[key]

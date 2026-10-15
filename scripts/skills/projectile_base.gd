@@ -13,6 +13,9 @@ var _hit_targets: Array[Node2D] = []
 var _color: Color = Color(1.0, 0.8, 0.1)
 var _skill_id: String = ""
 var _cosmetic_style: String = "projectile_default"
+var artifact_hooks: ArtifactCombatHooks
+var artifact_origin_flags: Array = []
+var artifact_spawn_fragment: Callable
 
 var _trail_positions: Array[Vector2] = []
 var _last_trail_position: Vector2 = Vector2.ZERO
@@ -183,6 +186,10 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	_hit_targets.append(body)
 	resolve_skill_hit(skill_instance, body, self, damage)
+	if artifact_hooks != null and artifact_hooks.active:
+		artifact_hooks.emit_event(&"projectile_hit", {"projectile": self, "skill": skill_instance, "target": body,
+			"damage": damage, "world_position": body.global_position, "origin_flags": artifact_origin_flags,
+			"spawn_fragment": artifact_spawn_fragment})
 
 	if get_meta("chain_redirected", false):
 		remove_meta("chain_redirected")
@@ -295,6 +302,9 @@ func reset() -> void:
 	_bolt_segments.clear()
 	_skill_id = ""
 	_cosmetic_style = "projectile_default"
+	artifact_hooks = null
+	artifact_origin_flags.clear()
+	artifact_spawn_fragment = Callable()
 	scale = Vector2.ONE
 	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:
 		if has_meta(key):
