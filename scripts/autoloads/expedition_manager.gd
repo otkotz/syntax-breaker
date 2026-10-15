@@ -18,19 +18,16 @@ func save_profile() -> bool:
 
 func load_profile() -> bool:
 	profile = ExpeditionProfile.new()
-	if not FileAccess.file_exists(profile_path):
-		return false
-	var file := FileAccess.open(profile_path, FileAccess.READ)
-	if file == null:
-		return false
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
-		return false
-	var data := json.data as Dictionary
-	if int(data.get("schema_version", -1)) != ExpeditionProfile.SCHEMA_VERSION:
-		return false
-	profile = ExpeditionProfile.from_dict(data)
-	return true
+	for candidate: String in [profile_path, profile_path + ".bak", profile_path + ".tmp"]:
+		var data := _read_json_dictionary(candidate)
+		if data.is_empty() or typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
+			or int(data.get("schema_version")) != ExpeditionProfile.SCHEMA_VERSION:
+			continue
+		profile = ExpeditionProfile.from_dict(data)
+		if candidate != profile_path:
+			save_profile()
+		return true
+	return false
 
 func has_saved_session() -> bool:
 	return FileAccess.file_exists(session_path)
@@ -48,21 +45,22 @@ func save_session() -> bool:
 
 func load_session() -> bool:
 	session = null
-	if not FileAccess.file_exists(session_path):
-		return false
-	var file := FileAccess.open(session_path, FileAccess.READ)
-	if file == null:
-		return false
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
-		return false
-	session = ExpeditionSession.from_dict(json.data)
-	return session != null
+	for candidate: String in [session_path, session_path + ".bak", session_path + ".tmp"]:
+		var data := _read_json_dictionary(candidate)
+		if data.is_empty():
+			continue
+		session = ExpeditionSession.from_dict(data)
+		if session != null:
+			if candidate != session_path:
+				save_session()
+			return true
+	return false
 
 func clear_active_session() -> void:
 	session = null
 	_remove_file(session_path)
 	_remove_file(session_path + ".tmp")
+	_remove_file(session_path + ".bak")
 
 func _write_json_atomic(path: String, data: Dictionary) -> bool:
 	var temporary_path := path + ".tmp"
@@ -70,14 +68,39 @@ func _write_json_atomic(path: String, data: Dictionary) -> bool:
 	if file == null:
 		return false
 	file.store_string(JSON.stringify(data))
+	file.flush()
+	var write_error := file.get_error()
 	file.close()
-	if FileAccess.file_exists(path) and not _remove_file(path):
+	if write_error != OK:
+		return false
+	var absolute_path := ProjectSettings.globalize_path(path)
+	var absolute_temporary_path := ProjectSettings.globalize_path(temporary_path)
+	var backup_path := path + ".bak"
+	var absolute_backup_path := ProjectSettings.globalize_path(backup_path)
+	_remove_file(backup_path)
+	if FileAccess.file_exists(path) and DirAccess.rename_absolute(absolute_path, absolute_backup_path) != OK:
 		return false
 	var error := DirAccess.rename_absolute(
-		ProjectSettings.globalize_path(temporary_path),
-		ProjectSettings.globalize_path(path)
+		absolute_temporary_path,
+		absolute_path
 	)
-	return error == OK
+	if error != OK:
+		if FileAccess.file_exists(backup_path):
+			DirAccess.rename_absolute(absolute_backup_path, absolute_path)
+		return false
+	_remove_file(backup_path)
+	return true
+
+func _read_json_dictionary(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		return {}
+	return json.data as Dictionary
 
 func _remove_file(path: String) -> bool:
 	if not FileAccess.file_exists(path):

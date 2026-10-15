@@ -18,8 +18,16 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> DungeonRoomData:
 	var room := DungeonRoomData.new()
-	room.id = str(data.get("id", ""))
-	room.depth = maxi(0, int(data.get("depth", 0)))
-	room.type = clampi(int(data.get("type", Type.COMBAT)), Type.START, Type.BOSS) as Type
-	room.region_id = str(data.get("region_id", ""))
+	if not data.get("id") is String or not data.get("region_id") is String \
+		or typeof(data.get("depth")) not in [TYPE_INT, TYPE_FLOAT] \
+		or typeof(data.get("type")) not in [TYPE_INT, TYPE_FLOAT]:
+		return room
+	if data.get("id") is String:
+		room.id = data.get("id")
+	if typeof(data.get("depth")) in [TYPE_INT, TYPE_FLOAT]:
+		room.depth = maxi(0, int(data.get("depth")))
+	if typeof(data.get("type")) in [TYPE_INT, TYPE_FLOAT]:
+		room.type = clampi(int(data.get("type")), Type.START, Type.BOSS) as Type
+	if data.get("region_id") is String:
+		room.region_id = data.get("region_id")
 	return room

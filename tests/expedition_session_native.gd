@@ -13,6 +13,7 @@ func _ready() -> void:
 	check(not session.enter_room("room_4"), "Locked boss cannot be entered")
 	check(session.current_room_id == "room_0", "Rejected entry does not mutate current room")
 	check(session.enter_room("room_1"), "Reachable room can be entered")
+	check(session.get_available_room_ids().is_empty(), "Unfinished room blocks forward navigation")
 	check(session.complete_current_room("clear-room-1", 72.0, 100.0), "Room completes once")
 	check(not session.complete_current_room("clear-room-1", 10.0, 100.0), "Duplicate completion is ignored")
 	check(session.current_hp == 72.0, "Duplicate completion cannot overwrite state")
@@ -34,6 +35,12 @@ func _ready() -> void:
 	invalid_health_data["current_hp"] = -1.0
 	invalid_health_data["max_hp"] = 0.0
 	check(ExpeditionSession.from_dict(invalid_health_data) == null, "Session rejects invalid persisted health")
+	var invalid_shape_data := session.to_dict()
+	invalid_shape_data["completed_room_ids"] = null
+	check(ExpeditionSession.from_dict(invalid_shape_data) == null, "Session rejects malformed collection types")
+	var invalid_nested_data := session.to_dict().duplicate(true)
+	invalid_nested_data["layout"]["rooms"][0]["depth"] = {"bad": true}
+	check(ExpeditionSession.from_dict(invalid_nested_data) == null, "Session rejects malformed nested room fields")
 
 	ExpeditionManager.profile_path = "res://.godot/expedition_session_profile_test.json"
 	ExpeditionManager.session_path = "res://.godot/expedition_session_test.json"

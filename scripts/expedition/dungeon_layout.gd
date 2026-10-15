@@ -64,8 +64,13 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> DungeonLayout:
 	var layout := DungeonLayout.new()
-	layout.seed_value = int(data.get("seed_value", 0))
-	layout.region_id = str(data.get("region_id", ""))
+	if not data.get("rooms", []) is Array or not data.get("edges", {}) is Dictionary \
+		or not data.get("completed_room_ids", []) is Array:
+		return layout
+	if typeof(data.get("seed_value")) in [TYPE_INT, TYPE_FLOAT]:
+		layout.seed_value = int(data.get("seed_value"))
+	if data.get("region_id") is String:
+		layout.region_id = data.get("region_id")
 	for room_data: Variant in data.get("rooms", []):
 		if not room_data is Dictionary:
 			continue
@@ -77,7 +82,10 @@ static func deserialize(data: Dictionary) -> DungeonLayout:
 		if not layout.rooms.has(source_id):
 			continue
 		var valid_targets: Array[String] = []
-		for target: Variant in data.get("edges", {})[source]:
+		var targets: Variant = data.get("edges", {})[source]
+		if not targets is Array:
+			return DungeonLayout.new()
+		for target: Variant in targets:
 			var target_id := str(target)
 			if layout.rooms.has(target_id) and not valid_targets.has(target_id):
 				valid_targets.append(target_id)
@@ -85,9 +93,12 @@ static func deserialize(data: Dictionary) -> DungeonLayout:
 	for room_id: String in layout.rooms:
 		if not layout.edges.has(room_id):
 			layout.edges[room_id] = [] as Array[String]
-	layout.start_room_id = str(data.get("start_room_id", ""))
-	layout.boss_room_id = str(data.get("boss_room_id", ""))
-	layout.current_room_id = str(data.get("current_room_id", ""))
+	if data.get("start_room_id") is String:
+		layout.start_room_id = data.get("start_room_id")
+	if data.get("boss_room_id") is String:
+		layout.boss_room_id = data.get("boss_room_id")
+	if data.get("current_room_id") is String:
+		layout.current_room_id = data.get("current_room_id")
 	for completed_id: Variant in data.get("completed_room_ids", []):
 		var room_id := str(completed_id)
 		if layout.rooms.has(room_id) and not layout.completed_room_ids.has(room_id):

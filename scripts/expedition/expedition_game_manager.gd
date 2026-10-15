@@ -18,6 +18,8 @@ var hub: ExpeditionHub
 var map_ui: ExpeditionMapUI
 var _active_room_id: String = ""
 var _ui_layer: CanvasLayer
+var _run_snapshot: Dictionary = {}
+var _profile_loaded := false
 
 func _ready() -> void:
 	_ui_layer = CanvasLayer.new()
@@ -26,6 +28,11 @@ func _ready() -> void:
 	GameBus.player_died.connect(_on_player_died)
 
 func open_hub() -> void:
+	if not _profile_loaded:
+		if not ExpeditionManager.load_profile():
+			ExpeditionManager.start_new_profile()
+			ExpeditionManager.save_profile()
+		_profile_loaded = true
 	_clear_ui()
 	state = State.HUB
 	hub = HUB_SCENE.instantiate() as ExpeditionHub
@@ -66,15 +73,23 @@ func resume_expedition() -> bool:
 	if skill_instances.is_empty():
 		skill_instances.append(SkillInstance.new(FIREBALL))
 	last_result = ""
+	if not ExpeditionManager.session.completed_room_ids.has(ExpeditionManager.session.current_room_id):
+		return _open_entered_room(ExpeditionManager.session.current_room_id)
 	show_map()
 	return true
 
 func enter_room(room_id: String) -> bool:
 	var session := ExpeditionManager.session
+	var snapshot := session.to_dict().duplicate(true) if session != null else {}
 	if session == null or not session.enter_room(room_id):
 		return false
 	if not ExpeditionManager.save_session():
+		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 		return false
+	return _open_entered_room(room_id)
+
+func _open_entered_room(room_id: String) -> bool:
+	var session := ExpeditionManager.session
 	_active_room_id = room_id
 	var room := session.layout.rooms.get(room_id) as DungeonRoomData
 	if room == null:
@@ -96,8 +111,7 @@ func _start_combat(room: DungeonRoomData) -> void:
 	_clear_ui()
 	_clear_arena()
 	var session := ExpeditionManager.session
-	RunManager.current_hp = session.current_hp
-	RunManager.max_hp = session.max_hp
+	_prepare_expedition_run_state(session, room)
 	arena = ARENA_SCENE.instantiate() as Arena
 	add_child(arena)
 	arena.stage_completed.connect(_on_stage_completed, CONNECT_ONE_SHOT)
@@ -124,21 +138,31 @@ func _on_stage_completed() -> void:
 	var hp := arena.player.current_hp
 	var hp_max := arena.player.max_hp
 	var completion_id := "%s:%s" % [ExpeditionManager.session.session_id, _active_room_id]
+	var snapshot := ExpeditionManager.session.to_dict().duplicate(true)
 	if not ExpeditionManager.session.complete_current_room(completion_id, hp, hp_max):
 		return
 	var won := ExpeditionManager.session.status == "victory"
+	if not won and not ExpeditionManager.save_session():
+		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
+		var retry_room := ExpeditionManager.session.layout.rooms.get(_active_room_id) as DungeonRoomData
+		_clear_arena()
+		_start_combat(retry_room)
+		return
 	_clear_arena()
 	if won:
 		_finish_expedition("victory")
 	else:
-		ExpeditionManager.save_session()
 		show_map()
 
 func _complete_non_combat_room() -> void:
 	var session := ExpeditionManager.session
+	var snapshot := session.to_dict().duplicate(true)
 	var completion_id := "%s:%s" % [session.session_id, _active_room_id]
-	if session.complete_current_room(completion_id, session.current_hp, session.max_hp):
-		ExpeditionManager.save_session()
+	if session.complete_current_room(completion_id, session.current_hp, session.max_hp) \
+		and not ExpeditionManager.save_session():
+		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
+		show_map()
+		return
 	show_map()
 
 func _on_player_died() -> void:
@@ -155,6 +179,7 @@ func _finish_expedition(result: String) -> void:
 	open_hub()
 
 func _clear_arena() -> void:
+	_restore_run_state()
 	if arena != null:
 		arena.queue_free()
 		arena = null
@@ -166,3 +191,49 @@ func _clear_ui() -> void:
 		return
 	for child: Node in _ui_layer.get_children():
 		child.queue_free()
+
+func _exit_tree() -> void:
+	_restore_run_state()
+
+func _capture_run_state() -> void:
+	if not _run_snapshot.is_empty():
+		return
+	for property_name: String in [
+		"current_stage", "gold", "gold_fraction", "current_hp", "max_hp",
+		"current_shield", "shield_recharge_remaining", "skill_slots_unlocked",
+		"equipped_skills", "owned_supports", "owned_passives", "owned_consumables",
+		"run_stats", "shop_bonuses", "reroll_cost", "current_stage_data",
+		"current_region", "ascension_level", "stage_tree",
+	]:
+		var value: Variant = RunManager.get(property_name)
+		_run_snapshot[property_name] = value.duplicate(true) if value is Array or value is Dictionary else value
+
+func _prepare_expedition_run_state(session: ExpeditionSession, room: DungeonRoomData) -> void:
+	_capture_run_state()
+	RunManager.current_stage = room.depth + 1
+	RunManager.gold = 0
+	RunManager.gold_fraction = 0.0
+	RunManager.current_hp = session.current_hp
+	RunManager.max_hp = session.max_hp
+	RunManager.current_shield = 0.0
+	RunManager.shield_recharge_remaining = 0.0
+	RunManager.skill_slots_unlocked = 1
+	RunManager.equipped_skills = []
+	RunManager.owned_supports = []
+	RunManager.owned_passives = []
+	RunManager.owned_consumables = []
+	RunManager.run_stats = {}
+	RunManager.shop_bonuses = {}
+	RunManager.reroll_cost = 2
+	RunManager.current_stage_data = null
+	RunManager.current_region = session.region_id
+	RunManager.ascension_level = 0
+	RunManager.stage_tree = null
+
+func _restore_run_state() -> void:
+	if _run_snapshot.is_empty():
+		return
+	for property_name: String in _run_snapshot:
+		RunManager.set(property_name, _run_snapshot[property_name])
+	_run_snapshot.clear()
+	RunManager.consumables_changed.emit()

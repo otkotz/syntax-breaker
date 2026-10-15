@@ -17,6 +17,10 @@ func run_checks() -> void:
 	_cleanup_files()
 	ExpeditionManager.profile = null
 	ExpeditionManager.session = null
+	RunManager.gold = 321
+	RunManager.current_shield = 17.0
+	RunManager.owned_passives = [load("res://resources/passives/thick_skin.tres")]
+	RunManager.owned_consumables = [{"id": "damage_flask", "charges": 2, "resource": load("res://resources/consumables/damage_flask.tres")}]
 
 	var game := ExpeditionGameManager.new()
 	game.process_mode = Node.PROCESS_MODE_DISABLED
@@ -27,13 +31,16 @@ func run_checks() -> void:
 	check(game.enter_room(chosen_room_id), "Reachable combat room opens")
 	check(game.state == ExpeditionGameManager.State.COMBAT, "Combat room opens arena")
 	check(game.arena != null, "Existing arena is reused")
+	check(RunManager.owned_passives.is_empty() and RunManager.owned_consumables.is_empty(), "Expedition combat hides roguelite build and inventory")
 	check(game.skill_instances.size() == 1 and game.skill_instances[0].base.id == "fireball", "Prototype has stable starter skill")
+	RunManager.add_gold(99)
 	game.arena.player.current_hp = 63.0
 	game.arena._on_all_waves_cleared()
 	check(ExpeditionManager.session.completed_room_ids.has(chosen_room_id), "Arena clear completes room")
 	check(game.state == ExpeditionGameManager.State.MAP, "Clear returns to expedition map")
 	check(ExpeditionManager.has_saved_session(), "Clear checkpoints session")
-	check(RunManager.gold == 321 and not RunManager.has_saved_run(), "Expedition does not write roguelite economy or save")
+	check(RunManager.gold == 321 and RunManager.current_shield == 17.0, "Expedition restores roguelite economy and shield")
+	check(RunManager.owned_passives.size() == 1 and RunManager.owned_consumables.size() == 1 and not RunManager.has_saved_run(), "Expedition restores roguelite build and inventory")
 	game.queue_free()
 	await get_tree().process_frame
 	ExpeditionManager.session = null
@@ -59,6 +66,51 @@ func run_checks() -> void:
 	resume_game.queue_free()
 	await get_tree().process_frame
 
+	var interrupted_game := ExpeditionGameManager.new()
+	interrupted_game.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(interrupted_game)
+	check(interrupted_game.start_new_expedition(20261016), "Interrupted-room fixture starts")
+	check(interrupted_game.enter_room("room_1"), "Interrupted-room fixture enters combat")
+	interrupted_game.queue_free()
+	await get_tree().process_frame
+	ExpeditionManager.session = null
+	var interrupted_resume := ExpeditionGameManager.new()
+	interrupted_resume.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(interrupted_resume)
+	check(interrupted_resume.resume_expedition(), "Unfinished room session loads")
+	check(interrupted_resume.state == ExpeditionGameManager.State.COMBAT and ExpeditionManager.session.current_room_id == "room_1", "Resume restarts unfinished combat room")
+	interrupted_resume.abandon_expedition()
+	interrupted_resume.queue_free()
+	await get_tree().process_frame
+
+	var transaction_game := ExpeditionGameManager.new()
+	transaction_game.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(transaction_game)
+	check(transaction_game.start_new_expedition(20261017), "Transaction fixture starts")
+	var valid_session_path := ExpeditionManager.session_path
+	ExpeditionManager.session_path = "res://.godot/missing/subdir/session.json"
+	check(not transaction_game.enter_room("room_1"), "Failed entry checkpoint reports failure")
+	check(ExpeditionManager.session.current_room_id == "room_0", "Failed entry checkpoint rolls back navigation")
+	ExpeditionManager.session_path = valid_session_path
+	transaction_game.abandon_expedition()
+	transaction_game.queue_free()
+	await get_tree().process_frame
+
+	var completion_transaction := ExpeditionGameManager.new()
+	completion_transaction.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(completion_transaction)
+	check(completion_transaction.start_new_expedition(20261018), "Completion transaction fixture starts")
+	check(completion_transaction.enter_room("room_1"), "Completion transaction enters combat")
+	valid_session_path = ExpeditionManager.session_path
+	ExpeditionManager.session_path = "res://.godot/missing/subdir/session.json"
+	completion_transaction.arena._on_all_waves_cleared()
+	check(not ExpeditionManager.session.completed_room_ids.has("room_1"), "Failed completion checkpoint rolls back room completion")
+	check(completion_transaction.state == ExpeditionGameManager.State.COMBAT and completion_transaction.arena != null, "Failed completion checkpoint restarts combat")
+	ExpeditionManager.session_path = valid_session_path
+	completion_transaction.abandon_expedition()
+	completion_transaction.queue_free()
+	await get_tree().process_frame
+
 	var death_game := ExpeditionGameManager.new()
 	death_game.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(death_game)
@@ -76,6 +128,10 @@ func run_checks() -> void:
 	await get_tree().process_frame
 
 	ExpeditionManager.clear_active_session()
+	ExpeditionManager.start_new_profile()
+	ExpeditionManager.profile.level = 9
+	check(ExpeditionManager.save_profile(), "Main-entry fixture profile saves")
+	ExpeditionManager.profile = ExpeditionProfile.new()
 	var main_scene := preload("res://scenes/main/main.tscn").instantiate()
 	main_scene.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(main_scene)
@@ -87,6 +143,7 @@ func run_checks() -> void:
 	if expedition_button != null:
 		check(expedition_button.custom_minimum_size.x >= 600.0 and expedition_button.custom_minimum_size.y >= 88.0, "Expedition menu target is touch-sized")
 		expedition_button.pressed.emit()
+		check(ExpeditionManager.profile.level == 9, "Opening Expedition loads persisted profile")
 		var ui_game: Node = main_scene.get("_expedition_game")
 		check(ui_game != null and not menu.visible, "Expedition button opens separate game manager")
 		if ui_game != null:

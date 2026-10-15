@@ -29,6 +29,18 @@ func _ready() -> void:
 	future.close()
 	check(not ExpeditionManager.load_profile(), "Unknown schema reports failure")
 	check(ExpeditionManager.profile != null and ExpeditionManager.profile.level == 1, "Unknown schema falls back safely")
+	var malformed_shape := ExpeditionProfile.from_dict({"schema_version": 1, "level": "bad", "unlocked_regions": null})
+	check(malformed_shape.level == 1 and malformed_shape.unlocked_regions == ["burning_grounds"], "Invalid field types fall back safely")
+
+	var recoverable := ExpeditionProfile.new()
+	recoverable.level = 8
+	var interrupted := FileAccess.open(ExpeditionManager.profile_path + ".tmp", FileAccess.WRITE)
+	interrupted.store_string(JSON.stringify(recoverable.to_dict()))
+	interrupted.close()
+	if FileAccess.file_exists(ExpeditionManager.profile_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(ExpeditionManager.profile_path))
+	check(ExpeditionManager.load_profile(), "Interrupted profile commit recovers temporary save")
+	check(ExpeditionManager.profile.level == 8, "Recovered temporary save preserves data")
 	check(ExpeditionManager.profile_path != RunManager.save_path, "Expedition never aliases roguelite save")
 
 	_cleanup_files()

@@ -29,6 +29,8 @@ static func create(seed_value: int, region_id: String) -> ExpeditionSession:
 func get_available_room_ids() -> Array[String]:
 	if layout == null:
 		return []
+	if not completed_room_ids.has(current_room_id):
+		return []
 	_sync_layout()
 	return layout.get_available_room_ids()
 
@@ -76,9 +78,13 @@ func to_dict() -> Dictionary:
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionSession:
-	if int(data.get("schema_version", -1)) != SCHEMA_VERSION:
+	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
+		or int(data.get("schema_version")) != SCHEMA_VERSION:
 		return null
 	if not data.get("layout", {}) is Dictionary:
+		return null
+	if not data.get("completed_room_ids", []) is Array \
+		or not data.get("completion_ids", []) is Array:
 		return null
 	var restored_layout := DungeonLayout.deserialize(data.get("layout", {}))
 	if restored_layout.start_room_id.is_empty() or restored_layout.boss_room_id.is_empty():
@@ -87,8 +93,11 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 		or not restored_layout.rooms.has(restored_layout.boss_room_id) \
 		or not restored_layout.has_path(restored_layout.start_room_id, restored_layout.boss_room_id):
 		return null
-	var restored_max_hp := float(data.get("max_hp", 0.0))
-	var restored_hp := float(data.get("current_hp", -1.0))
+	if typeof(data.get("max_hp")) not in [TYPE_INT, TYPE_FLOAT] \
+		or typeof(data.get("current_hp")) not in [TYPE_INT, TYPE_FLOAT]:
+		return null
+	var restored_max_hp := float(data.get("max_hp"))
+	var restored_hp := float(data.get("current_hp"))
 	if restored_max_hp <= 0.0 or restored_hp < 0.0 or restored_hp > restored_max_hp:
 		return null
 	var restored_status := str(data.get("status", ""))
@@ -100,7 +109,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 
 	var result := ExpeditionSession.new()
 	result.session_id = str(data.get("session_id", ""))
-	result.seed_value = int(data.get("seed_value", restored_layout.seed_value))
+	result.seed_value = int(data.get("seed_value")) if typeof(data.get("seed_value")) in [TYPE_INT, TYPE_FLOAT] else restored_layout.seed_value
 	result.region_id = str(data.get("region_id", restored_layout.region_id))
 	result.layout = restored_layout
 	result.current_room_id = restored_current_room_id
