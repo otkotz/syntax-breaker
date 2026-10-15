@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -14,8 +14,9 @@ var completion_ids: Array[String] = []
 var current_hp: float = 100.0
 var max_hp: float = 100.0
 var status: String = "active"
+var artifact_loadout_ids: Array[String] = ["", "", "", ""]
 
-static func create(seed_value: int, region_id: String) -> ExpeditionSession:
+static func create(seed_value: int, region_id: String, artifact_ids: Array[String] = []) -> ExpeditionSession:
 	var result := ExpeditionSession.new()
 	result.session_id = "%d-%d" % [int(Time.get_unix_time_from_system()), seed_value]
 	result.seed_value = seed_value
@@ -23,6 +24,7 @@ static func create(seed_value: int, region_id: String) -> ExpeditionSession:
 	result.layout = DungeonGenerator.generate(seed_value, region_id)
 	result.current_room_id = result.layout.start_room_id
 	result.completed_room_ids = [result.layout.start_room_id]
+	result.artifact_loadout_ids = ArtifactLoadout.normalize(ArtifactCatalog.all_ids(), artifact_ids)
 	result._sync_layout()
 	return result
 
@@ -75,11 +77,14 @@ func to_dict() -> Dictionary:
 		"current_hp": current_hp,
 		"max_hp": max_hp,
 		"status": status,
+		"artifact_loadout_ids": artifact_loadout_ids,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionSession:
-	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
-		or int(data.get("schema_version")) != SCHEMA_VERSION:
+	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
+		return null
+	var schema_version := int(data.get("schema_version"))
+	if schema_version not in [1, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -116,6 +121,10 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	result.current_hp = restored_hp
 	result.max_hp = restored_max_hp
 	result.status = restored_status
+	result.artifact_loadout_ids = ArtifactLoadout.normalize(
+		ArtifactCatalog.all_ids(),
+		data.get("artifact_loadout_ids", []) if schema_version == SCHEMA_VERSION else []
+	)
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):

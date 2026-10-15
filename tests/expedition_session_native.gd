@@ -7,7 +7,8 @@ func check(value: bool, message: String) -> void:
 		failures.append(message)
 
 func _ready() -> void:
-	var session := ExpeditionSession.create(20261014, "burning_grounds")
+	var session := ExpeditionSession.create(20261014, "burning_grounds", ["fractured_prism", "", "furnace_heart", ""])
+	check(session.artifact_loadout_ids == ["fractured_prism", "", "furnace_heart", ""], "Session captures four artifact slots")
 	check(session.get_available_room_ids().size() == 2, "Start exposes two routes")
 	check(not session.enter_room("missing"), "Unknown room cannot be entered")
 	check(not session.enter_room("room_4"), "Locked boss cannot be entered")
@@ -20,6 +21,15 @@ func _ready() -> void:
 	check(not session.enter_room("room_1"), "Completed room cannot be entered again")
 	var restored := ExpeditionSession.from_dict(session.to_dict())
 	check(restored != null and restored.to_dict() == session.to_dict(), "Session survives roundtrip")
+	var schema_one := session.to_dict()
+	schema_one["schema_version"] = 1
+	schema_one.erase("artifact_loadout_ids")
+	var migrated := ExpeditionSession.from_dict(schema_one)
+	check(migrated != null and migrated.artifact_loadout_ids == ["", "", "", ""], "Schema one session migrates to empty slots")
+	var corrupt_slots := session.to_dict()
+	corrupt_slots["artifact_loadout_ids"] = ["furnace_heart", null, "furnace_heart", "missing", "ashen_needle"]
+	var normalized := ExpeditionSession.from_dict(corrupt_slots)
+	check(normalized != null and normalized.artifact_loadout_ids == ["furnace_heart", "", "", ""], "Corrupt session slots normalize safely")
 
 	var clamped := ExpeditionSession.create(7, "burning_grounds")
 	check(clamped.enter_room("room_1"), "Clamp fixture enters room")
@@ -46,14 +56,18 @@ func _ready() -> void:
 	ExpeditionManager.session_path = "res://.godot/expedition_session_test.json"
 	_cleanup_files()
 	ExpeditionManager.start_new_profile()
+	ExpeditionManager.profile.equipped_artifact_ids = ["fractured_prism", "furnace_heart", "", ""]
 	check(not ExpeditionManager.start_expedition(1, "locked_region"), "Locked region cannot start")
 	check(ExpeditionManager.start_expedition(20261014, "burning_grounds"), "Unlocked expedition starts and saves")
+	ExpeditionManager.profile.equipped_artifact_ids[0] = "bloodwritten_sigil"
+	check(ExpeditionManager.session.artifact_loadout_ids[0] == "fractured_prism", "Active session ignores later profile changes")
 	ExpeditionManager.session.enter_room("room_1")
 	ExpeditionManager.session.complete_current_room("manager-clear", 61.0, 100.0)
 	check(ExpeditionManager.save_session(), "Session checkpoint saves")
 	ExpeditionManager.session = null
 	check(ExpeditionManager.load_session(), "Session checkpoint loads")
 	check(ExpeditionManager.session.current_hp == 61.0, "Manager roundtrip preserves health")
+	check(ExpeditionManager.session.artifact_loadout_ids == ["fractured_prism", "furnace_heart", "", ""], "Manager roundtrip preserves frozen artifacts")
 
 	_cleanup_files()
 	print(JSON.stringify({"failures": failures, "available": session.get_available_room_ids()}))
