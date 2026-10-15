@@ -4,6 +4,7 @@ extends Control
 signal new_expedition_pressed
 signal resume_pressed
 signal back_pressed
+signal artifacts_pressed
 
 var new_button: Button
 var resume_button: Button
@@ -75,6 +76,10 @@ func _build_ui() -> void:
 	resume_button.name = "ResumeExpeditionButton"
 	resume_button.pressed.connect(func() -> void: resume_pressed.emit())
 	content.add_child(resume_button)
+	var artifacts_button := _make_button("ARTIFACTS")
+	artifacts_button.name = "ArtifactsButton"
+	artifacts_button.pressed.connect(func() -> void: artifacts_pressed.emit())
+	content.add_child(artifacts_button)
 
 	back_button = _make_button("BACK")
 	back_button.name = "BackButton"

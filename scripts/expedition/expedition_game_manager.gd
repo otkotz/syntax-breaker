@@ -9,6 +9,7 @@ const ARENA_SCENE := preload("res://scenes/stages/arena.tscn")
 const FIREBALL := preload("res://resources/skills/fireball.tres")
 const HUB_SCENE := preload("res://scenes/ui/expedition_hub.tscn")
 const MAP_SCENE := preload("res://scenes/ui/expedition_map.tscn")
+const ARTIFACTS_SCENE := preload("res://scenes/ui/expedition_artifacts.tscn")
 
 var state: State = State.HUB
 var arena: Arena
@@ -16,6 +17,7 @@ var skill_instances: Array[SkillInstance] = []
 var last_result: String = ""
 var hub: ExpeditionHub
 var map_ui: ExpeditionMapUI
+var artifacts_ui: ExpeditionArtifactsUI
 var _active_room_id: String = ""
 var _ui_layer: CanvasLayer
 var _run_snapshot: Dictionary = {}
@@ -43,6 +45,24 @@ func open_hub() -> void:
 	, CONNECT_ONE_SHOT)
 	hub.resume_pressed.connect(resume_expedition, CONNECT_ONE_SHOT)
 	hub.back_pressed.connect(func() -> void: return_to_main_menu.emit(), CONNECT_ONE_SHOT)
+	hub.artifacts_pressed.connect(open_artifacts, CONNECT_ONE_SHOT)
+
+func open_artifacts() -> void:
+	_clear_ui()
+	artifacts_ui = ARTIFACTS_SCENE.instantiate() as ExpeditionArtifactsUI
+	_ui_layer.add_child(artifacts_ui)
+	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null)
+	artifacts_ui.equip_requested.connect(_on_equip_artifact)
+	artifacts_ui.unequip_requested.connect(_on_unequip_artifact)
+	artifacts_ui.back_pressed.connect(open_hub, CONNECT_ONE_SHOT)
+
+func _on_equip_artifact(artifact_id: String, slot: int) -> void:
+	if not ExpeditionManager.equip_artifact(artifact_id, slot): artifacts_ui.show_message("COULD NOT SAVE LOADOUT")
+	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null)
+
+func _on_unequip_artifact(slot: int) -> void:
+	if not ExpeditionManager.unequip_artifact(slot): artifacts_ui.show_message("COULD NOT SAVE LOADOUT")
+	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null)
 
 func show_map() -> void:
 	_clear_ui()
@@ -187,6 +207,7 @@ func _clear_arena() -> void:
 func _clear_ui() -> void:
 	hub = null
 	map_ui = null
+	artifacts_ui = null
 	if _ui_layer == null:
 		return
 	for child: Node in _ui_layer.get_children():
