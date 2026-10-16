@@ -21,6 +21,10 @@ func _ready() -> void:
 	check(not ExpeditionManager.equip_artifact("fractured_prism", 1), "Duplicate artifact is rejected")
 	check(ExpeditionManager.unequip_artifact(0), "Artifact unequips")
 	check(ExpeditionManager.profile.equipped_artifact_ids[0].is_empty(), "Unequip clears slot")
+	ExpeditionManager.session = ExpeditionSession.create(77, "burning_grounds")
+	check(not ExpeditionManager.equip_artifact("fractured_prism", 0), "Active expedition locks equip API")
+	check(not ExpeditionManager.unequip_artifact(0), "Active expedition locks unequip API")
+	ExpeditionManager.session = null
 	var before := ExpeditionManager.profile.equipped_artifact_ids.duplicate()
 	ExpeditionManager.profile_path = "res://missing_directory/profile.json"
 	check(not ExpeditionManager.equip_artifact("bloodwritten_sigil", 2), "Failed save reports failure")

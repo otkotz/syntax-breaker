@@ -121,10 +121,8 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	result.current_hp = restored_hp
 	result.max_hp = restored_max_hp
 	result.status = restored_status
-	result.artifact_loadout_ids = ArtifactLoadout.normalize(
-		ArtifactCatalog.all_ids(),
-		data.get("artifact_loadout_ids", []) if schema_version == SCHEMA_VERSION else []
-	)
+	result.artifact_loadout_ids = ArtifactLoadout.normalize_snapshot(
+		data.get("artifact_loadout_ids", []) if schema_version == SCHEMA_VERSION else [])
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):

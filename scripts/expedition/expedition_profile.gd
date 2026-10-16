@@ -48,7 +48,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 		var raw_owned: Variant = data.get("owned_artifact_ids", [])
 		if raw_owned is Array:
 			for value: Variant in raw_owned:
-				if value is String and ArtifactCatalog.get_artifact(value) != null and not profile.owned_artifact_ids.has(value):
+				if value is String and not value.is_empty() and not profile.owned_artifact_ids.has(value):
 					profile.owned_artifact_ids.append(value)
 	profile.equipped_artifact_ids = ArtifactLoadout.normalize(
 		profile.owned_artifact_ids,

@@ -15,6 +15,7 @@ var _skill_id: String = ""
 var _cosmetic_style: String = "projectile_default"
 var artifact_hooks: ArtifactCombatHooks
 var artifact_origin_flags: Array = []
+var artifact_generation: int = 0
 var artifact_spawn_fragment: Callable
 
 var _trail_positions: Array[Vector2] = []
@@ -189,11 +190,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if artifact_hooks != null and artifact_hooks.active:
 		artifact_hooks.emit_event(&"projectile_hit", {"projectile": self, "skill": skill_instance, "target": body,
 			"damage": damage, "world_position": body.global_position, "origin_flags": artifact_origin_flags,
-			"spawn_fragment": artifact_spawn_fragment})
-		if body.has_method("is_alive") and not body.is_alive():
-			artifact_hooks.emit_event(&"enemy_killed", {"target": body, "skill": skill_instance,
-				"projectile": self, "world_position": body.global_position, "origin_flags": artifact_origin_flags})
-
+			"generation": artifact_generation, "spawn_fragment": artifact_spawn_fragment})
 	if get_meta("chain_redirected", false):
 		remove_meta("chain_redirected")
 	elif pierce_remaining <= 0:
@@ -309,6 +306,7 @@ func reset() -> void:
 	_cosmetic_style = "projectile_default"
 	artifact_hooks = null
 	artifact_origin_flags.clear()
+	artifact_generation = 0
 	artifact_spawn_fragment = Callable()
 	scale = Vector2.ONE
 	for key in ["pierce_return", "is_returning", "return_damage_mult", "return_target", "chains_remaining", "is_split", "chain_redirected", "ricochet_bonus"]:

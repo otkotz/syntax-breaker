@@ -25,3 +25,12 @@ static func active_set_tiers(slots: Array[String]) -> Dictionary:
 		if int(counts[set_id]) >= 2:
 			tiers[set_id] = mini(3, int(counts[set_id]))
 	return tiers
+
+static func normalize_snapshot(raw: Variant) -> Array[String]:
+	var result: Array[String] = ["", "", "", ""]
+	if not raw is Array: return result
+	for index in mini(SLOT_COUNT, raw.size()):
+		var value: Variant = raw[index]
+		var artifact_id := value as String if value is String else ""
+		if not artifact_id.is_empty() and not result.has(artifact_id): result[index] = artifact_id
+	return result

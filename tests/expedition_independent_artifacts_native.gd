@@ -25,15 +25,25 @@ func _ready() -> void:
 	runtime.setup(["fractured_prism", "echoing_hourglass", "bloodwritten_sigil", ""], [skill], self)
 	check(is_equal_approx(skill.computed_stats.cooldown, 1.2), "Hourglass lengthens cooldown by twenty percent")
 	var fragments: Array[Dictionary] = []
-	hooks.emit_event(&"projectile_hit", {"damage": 100.0, "spawn_fragment": func(data): fragments.append(data)})
+	var prism_projectile := ProjectileBase.new()
+	add_child(prism_projectile)
+	var prism_context := {"projectile": prism_projectile, "damage": 100.0,
+		"origin_flags": prism_projectile.artifact_origin_flags, "generation": 0,
+		"spawn_fragment": func(data): fragments.append(data)}
+	hooks.emit_event(&"projectile_hit", prism_context)
 	check(fragments.size() == 2 and is_equal_approx(fragments[0].damage, 55.0), "Prism creates two 55% fragments")
-	hooks.emit_event(&"projectile_hit", {"damage": 100.0, "origin_flags": ["fractured_prism"], "spawn_fragment": func(data): fragments.append(data)})
+	hooks.emit_event(&"projectile_hit", prism_context)
 	check(fragments.size() == 2, "Prism fragments never split recursively")
+	check(fragments[0].generation == 1, "Prism increments fragment generation")
 	var echoes := [0]
 	for i in 6:
 		hooks.emit_event(&"skill_cast", {"spawn_echo": func(): echoes[0] += 1})
 	await get_tree().create_timer(0.4).timeout
 	check(echoes[0] == 2, "Hourglass echoes every third cast")
+	for i in 3:
+		hooks.emit_event(&"skill_cast", {"origin_flags": ["echoing_hourglass", "secondary_artifact_projectile"], "spawn_echo": func(): echoes[0] += 1})
+	await get_tree().create_timer(0.4).timeout
+	check(echoes[0] == 2, "Artifact echoes do not schedule more echoes")
 	var player := FakePlayer.new()
 	add_child(player)
 	var empowered: Array[Dictionary] = []
@@ -52,5 +62,6 @@ func _ready() -> void:
 	for i in 3: hooks.emit_event(&"skill_cast", {"spawn_echo": func(): echoes[0] += 1})
 	await get_tree().create_timer(0.4).timeout
 	check(echoes[0] == before, "Teardown prevents delayed echoes")
+	prism_projectile.queue_free()
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)

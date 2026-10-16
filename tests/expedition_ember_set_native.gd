@@ -33,19 +33,74 @@ func _ready() -> void:
 	var projectile := ProjectileBase.new()
 	add_child(projectile)
 	projectile.pierce_remaining = 0
+	var trail_target := EnemyBase.new()
+	add_child(trail_target)
+	trail_target.add_to_group("enemies")
+	trail_target.global_position = Vector2(24, 0)
+	trail_target.current_hp = 1000.0
+	trail_target.max_hp = 1000.0
 	for index in 5:
 		hooks.emit_event(&"projectile_hit", {"skill": fire_skill, "target": target, "projectile": projectile,
 			"damage": 8.0, "world_position": Vector2.ZERO})
 	check(target.get_dot_stacks("burn").size() == 5, "Kindling Engine builds five independent burns")
+	projectile.artifact_origin_flags.clear()
+	var pierce_before := projectile.pierce_remaining
 	hooks.emit_event(&"projectile_hit", {"skill": fire_skill, "target": target, "projectile": projectile,
-		"damage": 8.0, "world_position": Vector2.ZERO})
+		"damage": 8.0, "world_position": Vector2.ZERO, "origin_flags": projectile.artifact_origin_flags})
+	var pierce_after_first := projectile.pierce_remaining
+	hooks.emit_event(&"projectile_hit", {"skill": fire_skill, "target": target, "projectile": projectile,
+		"damage": 8.0, "world_position": Vector2.ZERO, "origin_flags": projectile.artifact_origin_flags})
+	check(pierce_after_first == pierce_before + 1 and projectile.pierce_remaining == pierce_after_first,
+		"Ashen Needle grants pierce only once per projectile")
+	check(not trail_target.get_dot_stacks("burn").is_empty(), "Ashen Needle leaves a damaging fire trail")
+	# Re-prime after the Ashen Needle checks detonated the original target.
+	for index in 5:
+		target.apply_dot_stack("burn", 10.0, 3.0, 0.5, fire_resource, "detonate-%d" % index, 5)
+	var nearby := EnemyBase.new()
+	add_child(nearby)
+	nearby.add_to_group("enemies")
+	nearby.global_position = Vector2(40, 0)
+	nearby.current_hp = 1000.0
+	nearby.max_hp = 1000.0
+	hooks.emit_event(&"projectile_hit", {"skill": fire_skill, "target": target, "projectile": projectile,
+		"damage": 8.0, "world_position": Vector2.ZERO, "origin_flags": ["ashen_needle"]})
 	check(target.get_dot_stacks("burn").is_empty() and target.current_hp < 1000.0, "Next fire hit detonates and consumes a primed target")
+	check(nearby.current_hp < 1000.0, "Conflagration damages nearby enemies")
+	var boss := EnemyBase.new()
+	add_child(boss)
+	boss.set_meta("combat_role", "boss")
+	boss.current_hp = 1000.0
+	boss.max_hp = 1000.0
+	for index in 5:
+		boss.apply_dot_stack("burn", 1000.0, 3.0, 0.5, fire_resource, "boss-%d" % index, 5)
+	hooks.emit_event(&"projectile_hit", {"skill": fire_skill, "target": boss, "projectile": projectile,
+		"damage": 8.0, "world_position": boss.global_position, "origin_flags": ["ashen_needle"]})
+	check(boss.current_hp >= 850.0, "Conflagration respects the real boss damage cap")
+	var dead := EnemyBase.new()
+	add_child(dead)
+	dead.apply_dot_stack("burn", 7.0, 2.0, 0.5, fire_resource, "dead-burn", 5)
+	var crown_target := EnemyBase.new()
+	add_child(crown_target)
+	crown_target.current_hp = 1000.0
+	crown_target.max_hp = 1000.0
+	for node in [target, trail_target, nearby, boss]:
+		node.remove_from_group("enemies")
+		Targeting.unregister(node)
+	crown_target.add_to_group("enemies")
+	crown_target.global_position = Vector2(60, 0)
+	Targeting.update_position(crown_target)
+	check(Targeting.find_enemies_in_range(dead.global_position, 400.0, 8).has(crown_target), "Crown transfer target is discoverable")
+	GameBus.enemy_killed.emit(dead, fire_resource)
+	check(not crown_target.get_dot_stacks("burn").is_empty(), "Cinder Crown reacts to non-projectile and DoT kills")
 	runtime.teardown()
 	check(is_equal_approx(fire_skill.computed_stats.damage, 10.0), "Teardown removes Furnace penalty")
 	remove_child(projectile)
 	projectile.free()
 	remove_child(target)
 	target.free()
+	for node in [trail_target, nearby, boss, dead, crown_target]:
+		remove_child(node)
+		node.free()
 	enemy.free()
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)

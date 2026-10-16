@@ -33,9 +33,19 @@ class AshenNeedleBehavior extends ArtifactBehavior:
 		var target: Node2D = context.get("target")
 		var projectile: Node2D = context.get("projectile")
 		if target == null or projectile == null or not target.has_method("get_dot_stacks"): return
+		if projectile.artifact_origin_flags.has("ashen_needle"): return
 		if target.get_dot_stacks("burn").is_empty(): return
 		projectile.pierce_remaining += int(parameters.get("bonus_pierce", 1))
-		context["origin_flags"] = context.get("origin_flags", []) + ["ashen_needle"]
+		if not projectile.artifact_origin_flags.has("ashen_needle"):
+			projectile.artifact_origin_flags.append("ashen_needle")
+		context["origin_flags"] = projectile.artifact_origin_flags
+		var trail_damage := float(context.get("damage", 0.0)) * float(parameters.get("trail_damage_mult", 0.2))
+		for enemy: Node2D in Targeting.find_enemies_in_range(context.get("world_position", target.global_position),
+				float(parameters.get("trail_radius", 72.0)), 8):
+			if enemy != target and enemy.has_method("apply_dot_stack"):
+				enemy.apply_dot_stack("burn", trail_damage, float(parameters.get("trail_duration", 2.0)), 0.5,
+					context.get("skill").base if context.get("skill") != null else null,
+					"needle-%s" % context.get("event_id", 0), 5)
 		runtime.trigger("ashen_needle", context.get("world_position", Vector2.ZERO))
 
 class CinderCrownBehavior extends ArtifactBehavior:
@@ -73,9 +83,17 @@ class ChainConflagrationBehavior extends ArtifactBehavior:
 		var damage := 0.0
 		for burn: Dictionary in burns:
 			damage += float(burn.damage) * maxf(1.0, float(burn.remaining) / maxf(float(burn.interval), 0.01))
-		if target.get_meta("is_boss", false): damage = minf(damage, target.max_hp * 0.15)
-		target.take_damage(damage, false, skill.base, "proc")
+		_apply_explosion_damage(target, damage, skill)
+		for enemy: Node2D in Targeting.find_enemies_in_range(target.global_position,
+				float(parameters.get("explosion_radius", 180.0)), 12):
+			if enemy != target:
+				_apply_explosion_damage(enemy, damage * float(parameters.get("splash_damage_mult", 0.5)), skill)
 		runtime.trigger("chain_conflagration", context.get("world_position", Vector2.ZERO))
+	func _apply_explosion_damage(enemy: Node2D, amount: float, skill: SkillInstance) -> void:
+		if enemy == null or not enemy.has_method("take_damage"): return
+		if enemy.get_meta("combat_role", "") == "boss":
+			amount = minf(amount, float(enemy.max_hp) * 0.15)
+		enemy.take_damage(amount, false, skill.base, "proc")
 
 static func create(key: StringName) -> ArtifactBehavior:
 	match key:

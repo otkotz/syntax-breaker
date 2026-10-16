@@ -30,5 +30,8 @@ func _ready() -> void:
 	runtime.teardown()
 	hooks.emit_event(&"skill_cast", {"event_id": 2})
 	for behavior in runtime.behaviors: check(behavior.teardown_count == 1 and behavior.event_count == 1, "Teardown is final and idempotent")
+	runtime.setup(["furnace_heart", "", "", ""], [], null)
+	check(runtime.behaviors.size() == 1, "Runtime reuse discards behaviors from the previous setup")
+	runtime.teardown()
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)

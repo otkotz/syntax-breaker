@@ -30,6 +30,9 @@ func _ready() -> void:
 		"equipped_artifact_ids": ["furnace_heart", null, "furnace_heart", "missing", "ashen_needle"],
 	})
 	check(normalized.equipped_artifact_ids == ["furnace_heart", "", "", ""], "Schema two normalizes corrupt slots")
+	var future_artifact := ExpeditionProfile.from_dict({"schema_version": 2,
+		"owned_artifact_ids": ["future_artifact"], "equipped_artifact_ids": ["future_artifact", "", "", ""]})
+	check(future_artifact.owned_artifact_ids == ["future_artifact"] and future_artifact.equipped_artifact_ids[0] == "future_artifact", "Unknown artifact ids survive profile roundtrip")
 
 	var broken := FileAccess.open(ExpeditionManager.profile_path, FileAccess.WRITE)
 	broken.store_string("{broken")

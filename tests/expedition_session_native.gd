@@ -29,7 +29,11 @@ func _ready() -> void:
 	var corrupt_slots := session.to_dict()
 	corrupt_slots["artifact_loadout_ids"] = ["furnace_heart", null, "furnace_heart", "missing", "ashen_needle"]
 	var normalized := ExpeditionSession.from_dict(corrupt_slots)
-	check(normalized != null and normalized.artifact_loadout_ids == ["furnace_heart", "", "", ""], "Corrupt session slots normalize safely")
+	check(normalized != null and normalized.artifact_loadout_ids == ["furnace_heart", "", "", "missing"], "Corrupt session slots normalize while preserving unknown ids")
+	var future_slots := session.to_dict()
+	future_slots["artifact_loadout_ids"] = ["future_artifact", "", "", ""]
+	var future_session := ExpeditionSession.from_dict(future_slots)
+	check(future_session != null and future_session.artifact_loadout_ids[0] == "future_artifact", "Unknown artifact id survives session roundtrip")
 
 	var clamped := ExpeditionSession.create(7, "burning_grounds")
 	check(clamped.enter_room("room_1"), "Clamp fixture enters room")

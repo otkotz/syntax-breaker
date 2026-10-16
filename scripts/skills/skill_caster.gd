@@ -130,7 +130,8 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 							_spawn_skill(si, echo_dir.rotated(offset), echo_target)
 		)
 
-func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> void:
+func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
+		origin_flags: Array = [], generation: int = 0) -> void:
 	if si.base.scene_path.is_empty():
 		return
 	if si.get_all_tags().has("beam"):
@@ -150,7 +151,8 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D) -> voi
 	if projectile.has_method("initialize"):
 		projectile.initialize(si, direction, pool)
 		projectile.artifact_hooks = artifact_hooks
-		projectile.artifact_origin_flags = []
+		projectile.artifact_origin_flags = origin_flags.duplicate()
+		projectile.artifact_generation = generation
 		projectile.artifact_spawn_fragment = _spawn_artifact_fragment.bind(si, direction)
 		_last_cast_projectiles.append(projectile)
 
@@ -169,15 +171,15 @@ func _spawn_artifact_echo(si: SkillInstance) -> void:
 	if artifact_hooks == null or not artifact_hooks.active: return
 	var target := Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
 	var direction := Vector2.ZERO if si.base.has_tag("aoe") or si.base.has_tag("melee") else (global_position.direction_to(Targeting.combat_aim_position(target)) if target else Vector2.RIGHT)
-	_spawn_skill(si, direction, target)
+	_spawn_skill(si, direction, target, ["echoing_hourglass", "secondary_artifact_projectile"], 1)
 
 func _spawn_artifact_fragment(si: SkillInstance, base_direction: Vector2, data: Dictionary) -> void:
 	var projectile_count_before := _last_cast_projectiles.size()
-	_spawn_skill(si, base_direction.rotated(float(data.get("angle_offset", 0.0))), null)
+	_spawn_skill(si, base_direction.rotated(float(data.get("angle_offset", 0.0))), null,
+		data.get("origin_flags", []), int(data.get("generation", 0)))
 	if _last_cast_projectiles.size() <= projectile_count_before: return
 	var projectile: Node2D = _last_cast_projectiles.back()
 	projectile.damage = float(data.get("damage", projectile.damage))
-	projectile.artifact_origin_flags = data.get("origin_flags", []).duplicate()
 
 func _place_totem(si: SkillInstance) -> bool:
 	var pool: ObjectPool = _pools.get(si.base.scene_path)

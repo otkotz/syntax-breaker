@@ -17,6 +17,7 @@ func _init(custom_registry: ArtifactRegistry = null, custom_hooks: ArtifactComba
 func setup(ids: Array[String], skills: Array, arena: Node) -> void:
 	if active:
 		teardown()
+	behaviors.clear()
 	active = true
 	hooks.active = true
 	_skills = skills
@@ -37,6 +38,8 @@ func setup(ids: Array[String], skills: Array, arena: Node) -> void:
 				_add_behavior(str(set_resource.tier_behavior_keys.get(tier, "")), "%s_%d" % [set_id, tier], set_resource.behavior_parameters)
 	if not hooks.combat_event.is_connected(_on_combat_event):
 		hooks.combat_event.connect(_on_combat_event)
+	if not GameBus.enemy_killed.is_connected(_on_enemy_killed):
+		GameBus.enemy_killed.connect(_on_enemy_killed)
 	for skill in _skills:
 		for behavior in behaviors:
 			behavior.before_skill_recompute(skill)
@@ -58,6 +61,11 @@ func _on_combat_event(event_name: StringName, context: Dictionary) -> void:
 	for behavior in behaviors:
 		behavior.handle(event_name, context)
 
+func _on_enemy_killed(enemy: Node2D, killer_skill: Resource) -> void:
+	if not active: return
+	hooks.emit_event(&"enemy_killed", {"target": enemy, "skill_resource": killer_skill,
+		"world_position": enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO})
+
 func trigger(artifact_id: String, world_position: Vector2 = Vector2.ZERO) -> void:
 	if active: artifact_triggered.emit(artifact_id, world_position)
 
@@ -66,6 +74,8 @@ func teardown() -> void:
 	active = false
 	if hooks.combat_event.is_connected(_on_combat_event):
 		hooks.combat_event.disconnect(_on_combat_event)
+	if GameBus.enemy_killed.is_connected(_on_enemy_killed):
+		GameBus.enemy_killed.disconnect(_on_enemy_killed)
 	hooks.deactivate()
 	hooks.active_artifact_ids.clear()
 	for behavior in behaviors:

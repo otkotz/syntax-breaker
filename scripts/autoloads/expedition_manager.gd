@@ -30,7 +30,7 @@ func load_profile() -> bool:
 	return false
 
 func equip_artifact(artifact_id: String, slot: int) -> bool:
-	if profile == null or slot < 0 or slot >= ArtifactLoadout.SLOT_COUNT:
+	if profile == null or session != null or has_saved_session() or slot < 0 or slot >= ArtifactLoadout.SLOT_COUNT:
 		return false
 	if not profile.owned_artifact_ids.has(artifact_id) or profile.equipped_artifact_ids.has(artifact_id):
 		return false
@@ -42,7 +42,7 @@ func equip_artifact(artifact_id: String, slot: int) -> bool:
 	return false
 
 func unequip_artifact(slot: int) -> bool:
-	if profile == null or slot < 0 or slot >= ArtifactLoadout.SLOT_COUNT:
+	if profile == null or session != null or has_saved_session() or slot < 0 or slot >= ArtifactLoadout.SLOT_COUNT:
 		return false
 	var previous := profile.equipped_artifact_ids.duplicate()
 	profile.equipped_artifact_ids[slot] = ""

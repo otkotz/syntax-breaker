@@ -52,18 +52,18 @@ func open_artifacts() -> void:
 	_clear_ui()
 	artifacts_ui = ARTIFACTS_SCENE.instantiate() as ExpeditionArtifactsUI
 	_ui_layer.add_child(artifacts_ui)
-	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null)
+	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null or ExpeditionManager.has_saved_session())
 	artifacts_ui.equip_requested.connect(_on_equip_artifact)
 	artifacts_ui.unequip_requested.connect(_on_unequip_artifact)
 	artifacts_ui.back_pressed.connect(open_hub, CONNECT_ONE_SHOT)
 
 func _on_equip_artifact(artifact_id: String, slot: int) -> void:
 	if not ExpeditionManager.equip_artifact(artifact_id, slot): artifacts_ui.show_message("COULD NOT SAVE LOADOUT")
-	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null)
+	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null or ExpeditionManager.has_saved_session())
 
 func _on_unequip_artifact(slot: int) -> void:
 	if not ExpeditionManager.unequip_artifact(slot): artifacts_ui.show_message("COULD NOT SAVE LOADOUT")
-	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null)
+	artifacts_ui.setup(ExpeditionManager.profile, ExpeditionManager.session != null or ExpeditionManager.has_saved_session())
 
 func show_map() -> void:
 	_clear_ui()

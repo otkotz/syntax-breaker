@@ -3,10 +3,14 @@ extends RefCounted
 
 class FracturedPrismBehavior extends ArtifactBehavior:
 	func handle(event: StringName, context: Dictionary) -> void:
-		if event != &"projectile_hit" or "fractured_prism" in context.get("origin_flags", []):
+		var flags: Array = context.get("origin_flags", [])
+		if event != &"projectile_hit" or "fractured_prism" in flags or "secondary_artifact_projectile" in flags:
 			return
 		var spawn: Callable = context.get("spawn_fragment", Callable())
 		if not spawn.is_valid(): return
+		var projectile: Variant = context.get("projectile")
+		if projectile != null and is_instance_valid(projectile) and not projectile.artifact_origin_flags.has("fractured_prism"):
+			projectile.artifact_origin_flags.append("fractured_prism")
 		var damage := float(context.get("damage", 0.0)) * float(parameters.get("fragment_damage_mult", 0.55))
 		for index in int(parameters.get("fragment_count", 2)):
 			spawn.call({"damage": damage, "angle_offset": -0.22 if index == 0 else 0.22,
