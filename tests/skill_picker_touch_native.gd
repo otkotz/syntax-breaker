@@ -45,8 +45,19 @@ func run_checks() -> void:
 	check(choices[0] == 0, "Scrolling a card does not accidentally start a run")
 	scroller.scroll_vertical = 0
 	await get_tree().process_frame
-	# Headless DisplayServer is not a touchscreen. Finger dragging uses the
-	# platform's emulated mouse pipeline and remains a device-QA check.
+	var drag_start := card.get_global_rect().get_center()
+	touch_drag(drag_start, drag_start + Vector2(0, -500))
+	await get_tree().process_frame
+	check(scroller.scroll_vertical > 0, "Finger drag over a skill card scrolls the list")
+	check(choices[0] == 0, "Finger scrolling does not accidentally start a run")
+	scroller.scroll_vertical = 0
+	await get_tree().process_frame
+	var back_requests := [0]
+	check(picker.has_signal("back_requested"), "Starting picker exposes Android back navigation")
+	if picker.has_signal("back_requested"):
+		picker.connect("back_requested", func(): back_requests[0] += 1)
+	picker.notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	check(back_requests[0] == 1, "Android back requests a return from starter selection")
 	var point := card.global_position + Vector2(5, 5)
 	click(point)
 	await get_tree().process_frame
@@ -86,5 +97,23 @@ func click(point: Vector2) -> void:
 	down.pressed = true
 	get_tree().root.push_input(down, true)
 	var up := down.duplicate() as InputEventMouseButton
+	up.pressed = false
+	get_tree().root.push_input(up, true)
+
+func touch_drag(from: Vector2, to: Vector2) -> void:
+	var down := InputEventScreenTouch.new()
+	down.index = 3
+	down.position = from
+	down.pressed = true
+	get_tree().root.push_input(down, true)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 3
+	drag.position = to
+	drag.relative = to - from
+	drag.screen_relative = drag.relative
+	get_tree().root.push_input(drag, true)
+	var up := InputEventScreenTouch.new()
+	up.index = 3
+	up.position = to
 	up.pressed = false
 	get_tree().root.push_input(up, true)

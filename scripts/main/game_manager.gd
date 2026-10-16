@@ -112,6 +112,7 @@ func _load_region(region_id: String) -> RegionResource:
 func _show_skill_picker() -> void:
 	var picker := SKILL_PICKER_SCENE.instantiate() as SkillPicker
 	_ui_layer.add_child(picker)
+	picker.back_requested.connect(_cancel_starter_selection, CONNECT_ONE_SHOT)
 	picker.telemetry_decision = RunTelemetry.open_decision("starter", picker.offered_skills)
 	picker.contract_changed.connect(func():
 		RunTelemetry.choose(picker.telemetry_decision, {"id": "contract_changed", "contract": picker.selected_contract})
@@ -129,6 +130,18 @@ func _show_skill_picker() -> void:
 		picker.queue_free()
 		_enter_first_stage()
 	)
+
+func _cancel_starter_selection() -> void:
+	if _state != State.MENU or not _skill_instances.is_empty():
+		return
+	_decision_queue.clear()
+	RunTelemetry.finish("abandoned", [])
+	RunManager.clear_saved_run()
+	_clear_ui()
+	_stage_tree = null
+	_current_stage_data = null
+	state_changed.emit(_state)
+	return_to_menu_requested.emit()
 
 func _enter_first_stage() -> void:
 	var stage := _stage_tree.visit(0)

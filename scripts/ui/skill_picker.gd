@@ -3,19 +3,45 @@ extends Control
 
 signal skill_chosen(skill: SkillResource, tier: String)
 signal contract_changed
+signal back_requested
 
 var _skill_grid: GridContainer
+var _scroller: ScrollContainer
 var offered_skills: Array[Dictionary] = []
 var selected_contract: String = "standard"
 var _contract_description: Label
 var _chosen: bool = false
 var telemetry_decision: int = 0
+var _scroll_touch_index := -1
+var _scroll_touch_dragged := false
 
 const CATEGORY_TAGS := ["melee", "projectile", "aoe"]
 
 func _ready() -> void:
 	_build_ui()
 	_populate()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		get_viewport().set_input_as_handled()
+		back_requested.emit()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed and _scroller and _scroller.get_global_rect().has_point(touch.position):
+			_scroll_touch_index = touch.index
+			_scroll_touch_dragged = false
+		elif not touch.pressed and touch.index == _scroll_touch_index:
+			_scroll_touch_index = -1
+			_reset_touch_drag.call_deferred()
+	elif event is InputEventScreenDrag and event.index == _scroll_touch_index and _scroller:
+		_scroll_touch_dragged = true
+		_scroller.scroll_vertical -= roundi(event.relative.y)
+		get_viewport().set_input_as_handled()
+
+func _reset_touch_drag() -> void:
+	_scroll_touch_dragged = false
 
 func _build_ui() -> void:
 	var bg := ColorRect.new()
@@ -32,10 +58,10 @@ func _build_ui() -> void:
 	_build_header(root)
 	_build_contract_selector(root)
 
-	var scroller := ScrollContainer.new()
-	scroller.size_flags_vertical = SIZE_EXPAND_FILL
-	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(scroller)
+	_scroller = ScrollContainer.new()
+	_scroller.size_flags_vertical = SIZE_EXPAND_FILL
+	_scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(_scroller)
 
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -43,7 +69,7 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_bottom", 20)
-	scroller.add_child(margin)
+	_scroller.add_child(margin)
 
 	_skill_grid = GridContainer.new()
 	_skill_grid.columns = 1
@@ -235,7 +261,7 @@ func _add_skill_card(skill: SkillResource, tier: String) -> void:
 	card.add_child(hit_area)
 
 func _choose_skill(skill: SkillResource, tier: String) -> void:
-	if _chosen or not StarterContracts.rejection_reason(selected_contract, skill).is_empty():
+	if _chosen or _scroll_touch_dragged or not StarterContracts.rejection_reason(selected_contract, skill).is_empty():
 		return
 	_chosen = true
 	skill_chosen.emit(skill, tier)

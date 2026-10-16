@@ -58,6 +58,21 @@ func run_checks() -> void:
 	MetaProgression.save_path = "res://.godot/node_routes_meta_test.json"
 	MetaProgression.cosmetic_points = 0
 	MetaProgression.purchased_cosmetics = []
+	var starter_game := GameManager.new()
+	starter_game.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(starter_game)
+	var returned_to_menu := [0]
+	starter_game.return_to_menu_requested.connect(func(): returned_to_menu[0] += 1)
+	starter_game.start_run("burning_grounds")
+	var starter_picker := find_ui(starter_game, preload("res://scripts/ui/skill_picker.gd")) as SkillPicker
+	check(starter_picker != null, "Starting a run opens the starter picker")
+	if starter_picker:
+		starter_picker.notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	await get_tree().process_frame
+	check(returned_to_menu[0] == 1 and starter_game._state == GameManager.State.MENU,
+		"Android back from starter selection cancels the unstarted run and returns to menu")
+	starter_game.queue_free()
+	await get_tree().process_frame
 	var upgrade_pool: Array[Dictionary] = [{"type": "support", "id": "upgrade"}]
 	var direction_pool: Array[Dictionary] = [{"type": "skill", "id": "direction"}]
 	var safe_pool: Array[Dictionary] = [{"type": "passive", "id": "safe"}]
