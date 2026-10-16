@@ -1,6 +1,39 @@
 class_name RewardRoller
 extends RefCounted
 
+const RESOURCE_DIRS: Array[String] = [
+	"res://resources/skills/",
+	"res://resources/supports/",
+	"res://resources/passives/",
+]
+
+static var _resource_cache: Dictionary = {}
+static var _prewarm_queue: Array[Dictionary] = []
+static var _prewarm_started := false
+
+static func begin_prewarm() -> void:
+	if _prewarm_started:
+		return
+	_prewarm_started = true
+	for dir_path: String in RESOURCE_DIRS:
+		_resource_cache[dir_path] = []
+		for file_name: String in ResourceListing.get_resource_files(dir_path):
+			_prewarm_queue.append({"dir": dir_path, "path": dir_path + file_name})
+
+static func prewarm_step(max_resources: int = 1) -> void:
+	if not _prewarm_started:
+		begin_prewarm()
+	var loaded := 0
+	while loaded < maxi(1, max_resources) and not _prewarm_queue.is_empty():
+		var entry: Dictionary = _prewarm_queue.pop_front()
+		var resource := load(str(entry.path))
+		if resource and not (_resource_cache[str(entry.dir)] as Array).has(resource):
+			(_resource_cache[str(entry.dir)] as Array).append(resource)
+		loaded += 1
+
+static func is_prewarm_complete() -> bool:
+	return _prewarm_started and _prewarm_queue.is_empty()
+
 static func roll(skill_instances: Array[SkillInstance], high_quality: bool) -> Array[Dictionary]:
 	var skills: Array[Dictionary] = []
 	var supports: Array[Dictionary] = []
@@ -141,9 +174,15 @@ static func get_region_affinity(offer: Dictionary, region: RegionResource) -> in
 	return 0
 
 static func _load_resources(dir_path: String) -> Array:
+	if is_prewarm_complete() and _resource_cache.has(dir_path):
+		return (_resource_cache[dir_path] as Array).duplicate()
 	var resources: Array = []
 	for file_name in ResourceListing.get_resource_files(dir_path):
 		var res := load(dir_path + file_name)
 		if res:
 			resources.append(res)
+	# A reward requested before incremental prewarming finishes still becomes
+	# the authoritative strong-reference cache, so later stages stay warm.
+	if _prewarm_started:
+		_resource_cache[dir_path] = resources.duplicate()
 	return resources

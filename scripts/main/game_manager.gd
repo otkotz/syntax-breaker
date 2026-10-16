@@ -40,6 +40,10 @@ func _ready() -> void:
 	_decision_queue.decision_ready.connect(_on_decision_ready)
 	GameBus.player_died.connect(_on_player_died)
 
+func _process(_delta: float) -> void:
+	if not RewardRoller.is_prewarm_complete():
+		RewardRoller.prewarm_step(1)
+
 func _on_decision_ready(request: Dictionary) -> void:
 	match request.kind:
 		&"terminal":
@@ -78,6 +82,7 @@ func _clear_ui() -> void:
 		child.queue_free()
 
 func start_run(region_id: String = "") -> void:
+	RewardRoller.begin_prewarm()
 	_decision_queue.clear()
 	if RunTelemetry.active:
 		RunTelemetry.finish("abandoned", _serialize_skills())
@@ -356,7 +361,12 @@ func _show_reward_picker(is_treasure: bool, from_queue: bool = false) -> void:
 	_reward_generation += 1
 	var reward_generation := _reward_generation
 	_ui_layer.add_child(picker)
+	var reward_build_started := Time.get_ticks_usec()
 	picker.setup(stage_type, _skill_instances)
+	RunTelemetry.record("reward_ui_ready", {
+		"build_ms": (Time.get_ticks_usec() - reward_build_started) / 1000.0,
+		"catalog_prewarmed": RewardRoller.is_prewarm_complete(),
+	})
 	# Separate lambdas capture scalar locals by value; use shared state so the
 	# exit handler sees the selection and cannot advance the route a second time.
 	var chose := [false]

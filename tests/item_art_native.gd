@@ -34,6 +34,20 @@ func run_checks() -> void:
 	MetaProgression.save_path = "res://.godot/art_test_meta.json"
 	RunTelemetry.enabled = false
 	RunManager.start_run()
+	RewardRoller.begin_prewarm()
+	var prewarm_steps := 0
+	while not RewardRoller.is_prewarm_complete() and prewarm_steps < 200:
+		RewardRoller.prewarm_step(1)
+		prewarm_steps += 1
+	check(RewardRoller.is_prewarm_complete() and prewarm_steps > 80,
+		"Reward catalog prewarms incrementally instead of loading the full catalog at stage end")
+	RunManager.skill_slots_unlocked = 0
+	MetaProgression.unlocked_items = {"skills": [], "supports": [], "passives": ["ward_capacity"]}
+	var warm_reward_started := Time.get_ticks_usec()
+	var warm_reward_probe: Array[Dictionary] = RewardRoller.roll([], false)
+	var warm_reward_ms := (Time.get_ticks_usec() - warm_reward_started) / 1000.0
+	check(warm_reward_probe.size() == 3 and warm_reward_ms < 100.0,
+		"Prewarmed reward roll avoids a blocking catalog reload")
 	for evolution: Dictionary in EvolutionData.BY_SKILL.values():
 		var offer := {"type": "evolution", "evolution_id": evolution.id, "offered_tier": 3}
 		check(OptionArtData.resolve(offer) != null, "Evolution has selectable artwork: " + evolution.id)
