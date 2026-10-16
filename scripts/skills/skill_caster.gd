@@ -215,6 +215,9 @@ func _place_totem(si: SkillInstance) -> bool:
 	return true
 
 func _place_mine(si: SkillInstance) -> bool:
+	var pool: ObjectPool = _pools.get(si.base.scene_path)
+	if not pool:
+		return false
 	_clean_mines()
 	while _active_mines.size() >= MAX_MINES:
 		_active_mines[0].queue_free()
@@ -222,7 +225,7 @@ func _place_mine(si: SkillInstance) -> bool:
 
 	var mine := SkillMine.new()
 	var placement := global_position + Vector2(randf_range(-30, 30), randf_range(-30, 30))
-	mine.setup(si, placement)
+	mine.setup(si, pool, placement, get_parent() as Node2D)
 	_get_placement_parent().add_child(mine)
 	mine.global_position = placement
 	mine.tree_exiting.connect(func(): _active_mines.erase(mine))

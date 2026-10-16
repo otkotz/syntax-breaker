@@ -2,18 +2,18 @@ class_name SkillMine
 extends Area2D
 
 var skill_instance: SkillInstance
+var pool_ref: ObjectPool
+var owner_node: Node2D
 var _lifetime: float = 15.0
 var _timer: float = 0.0
 var _detonated := false
-var _damage: float = 10.0
-var _radius: float = 80.0
 var _color: Color = Color(0.8, 0.2, 0.2)
 
-func setup(si: SkillInstance, pos: Vector2) -> void:
+func setup(si: SkillInstance, pool: ObjectPool, pos: Vector2, cast_owner: Node2D = null) -> void:
 	skill_instance = si
+	pool_ref = pool
+	owner_node = cast_owner
 	global_position = pos
-	_damage = si.computed_stats.get("damage", 10.0) * 1.5
-	_radius = si.computed_stats.get("range", 100.0) * si.computed_stats.get("area_mult", 1.0) * 0.5
 	_color = TagColors.get_color(si.get_all_tags())
 
 	collision_layer = 4
@@ -36,42 +36,48 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if not body.is_in_group("enemies"):
 		return
-	_detonate()
+	_detonate(body)
 
-func _detonate() -> void:
+func _detonate(target: Node2D = null) -> void:
 	_detonated = true
-	if skill_instance and skill_instance.get_all_tags().has("beam"):
-		_fire_laser_payload()
+	if not skill_instance or not pool_ref:
 		queue_free()
 		return
-	var enemies := Targeting.find_enemies_in_range(global_position, _radius, 20)
-	for enemy: Node2D in enemies:
-		if enemy.has_method("take_damage"):
-			var was_alive: bool = not enemy.has_method("is_alive") or enemy.is_alive()
-			var roll := CombatUtils.roll_damage(_damage, skill_instance) if skill_instance else {"damage": _damage, "is_crit": false}
-			enemy.take_damage(roll["damage"], roll["is_crit"], skill_instance.base if skill_instance else null)
-			if skill_instance:
-				skill_instance.notify_hit(enemy, self)
-				if was_alive and enemy.has_method("is_alive") and not enemy.is_alive():
-					skill_instance.notify_kill(enemy, self)
-	if skill_instance:
-		CombatLog.interaction("Mine", "", "detonated %.1f in radius %.0f, hit %d" % [_damage, _radius, enemies.size()])
-	queue_free()
-
-func _fire_laser_payload() -> void:
-	var target := Targeting.find_nearest_enemy(global_position, skill_instance.computed_stats.get("range", 400.0))
-	if not target:
-		return
-	var direction := global_position.direction_to(Targeting.combat_aim_position(target))
+	if not is_instance_valid(target):
+		target = Targeting.find_nearest_enemy(global_position, skill_instance.computed_stats.get("range", 400.0))
+	var direction := Vector2.RIGHT
+	if is_instance_valid(target):
+		direction = global_position.direction_to(Targeting.combat_aim_position(target))
 	var count: int = skill_instance.computed_stats.get("projectile_count", 1)
 	if count <= 1:
-		SkillLaser.fire(self, skill_instance, direction)
+		_spawn_one(direction)
 	else:
 		var spread := deg_to_rad(15.0) * (count - 1)
 		for i in count:
 			var offset := -spread / 2.0 + spread / (count - 1) * i
-			SkillLaser.fire(self, skill_instance, direction.rotated(offset))
-	CombatLog.skill_cast(skill_instance.base.name + " (Mine Laser)", count)
+			_spawn_one(direction.rotated(offset))
+	CombatLog.skill_cast(skill_instance.base.name + " (Mine Detonation)", count)
+	queue_free()
+
+func _spawn_one(direction: Vector2) -> void:
+	if skill_instance.get_all_tags().has("beam"):
+		SkillLaser.fire(self, skill_instance, direction)
+		return
+	if skill_instance.base.has_tag("projectile") and ProjectileBase.active_count >= QualitySettings.projectile_cap:
+		return
+	var payload := pool_ref.get_instance()
+	if not payload:
+		return
+	payload.global_position = global_position
+	var context := skill_instance.create_attack_context()
+	if payload is Rollback:
+		payload.initialize(skill_instance, direction, pool_ref, context)
+		payload.set_owner_node(owner_node)
+	elif payload is ProjectileBase or payload is AoeSkillBase:
+		payload.initialize(skill_instance, direction, pool_ref, context)
+	elif payload.has_method("initialize"):
+		payload.initialize(skill_instance, direction, pool_ref)
+	skill_instance.notify_spawn(payload)
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, 10.0, _color * Color(1, 1, 1, 0.6))

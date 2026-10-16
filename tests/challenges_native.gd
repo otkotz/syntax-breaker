@@ -62,6 +62,32 @@ func run_checks() -> void:
 	caster.set_skills([mine_skill])
 	check(caster._place_mine(mine_skill), "Real mine placement succeeds")
 	check(RunManager.run_stats.mine_casts == 1 and RunManager.run_stats.non_mine_casts == 0, "Real placement updates mine cast evidence")
+	var mine_target := Node2D.new()
+	mine_target.add_to_group("enemies")
+	mine_target.global_position = Vector2.RIGHT * 40.0
+	add_child(mine_target)
+	var fire_pool: ObjectPool = caster._pools.get(fire.scene_path)
+	var placed_fire_mine: SkillMine = caster._active_mines.back()
+	placed_fire_mine._on_body_entered(mine_target)
+	check(fire_pool.active_count() == 1 and fire_pool.get_active()[0] is ProjectileBase,
+		"Mine detonates through the linked projectile skill payload")
+	for skill_resource: SkillResource in [cold, physical]:
+		var supported_skill := SkillInstance.new(skill_resource)
+		supported_skill.link_support(load("res://resources/supports/mine.tres"))
+		var supported_caster := SkillCaster.new()
+		add_child(supported_caster)
+		supported_caster.set_physics_process(false)
+		supported_caster.set_skills([supported_skill])
+		check(supported_caster._place_mine(supported_skill), "%s mine placement succeeds" % skill_resource.name)
+		var supported_pool: ObjectPool = supported_caster._pools.get(skill_resource.scene_path)
+		var placed_mine: SkillMine = supported_caster._active_mines.back()
+		placed_mine._on_body_entered(mine_target)
+		var expected_payload := supported_pool.get_active()[0] if supported_pool.active_count() > 0 else null
+		check((skill_resource.id == "frost_nova" and expected_payload is AoeSkillBase)
+			or (skill_resource.id == "blade_spin" and expected_payload is Rollback),
+			"Mine detonates through the linked %s payload" % skill_resource.name)
+		supported_caster.queue_free()
+	mine_target.queue_free()
 	caster._spawn_skill(mine_skill, Vector2.RIGHT, null)
 	check(RunManager.run_stats.non_mine_casts == 1, "Direct/triggered spawn records non-mine cast even for a mine-linked skill")
 	for mine: SkillMine in caster._active_mines.duplicate():
