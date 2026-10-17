@@ -9,7 +9,7 @@ var profile: ExpeditionProfile = ExpeditionProfile.new()
 var session: ExpeditionSession = null
 
 func start_new_profile() -> void:
-	profile = ExpeditionProfile.new()
+	profile = ExpeditionProfile.fresh()
 
 func save_profile() -> bool:
 	if profile == null:
@@ -21,7 +21,7 @@ func load_profile() -> bool:
 	for candidate: String in [profile_path, profile_path + ".bak", profile_path + ".tmp"]:
 		var data := _read_json_dictionary(candidate)
 		if data.is_empty() or typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
-			or int(data.get("schema_version")) not in [1, ExpeditionProfile.SCHEMA_VERSION]:
+			or int(data.get("schema_version")) not in [1, 2, ExpeditionProfile.SCHEMA_VERSION]:
 			continue
 		profile = ExpeditionProfile.from_dict(data)
 		if candidate != profile_path:

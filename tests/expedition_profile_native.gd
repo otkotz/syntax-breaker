@@ -12,7 +12,9 @@ func _ready() -> void:
 	_cleanup_files()
 
 	ExpeditionManager.start_new_profile()
-	check(ExpeditionManager.profile.owned_artifact_ids == ArtifactCatalog.all_ids(), "New profile owns prototype artifacts")
+	check(ExpeditionManager.profile.owned_artifact_ids.is_empty(), "Fresh profile starts without artifacts")
+	check(ExpeditionManager.profile.discovered_artifact_ids.is_empty(), "Fresh profile starts without discoveries")
+	check(ExpeditionManager.profile.ember_shards == 0, "Fresh profile starts without Ember Shards")
 	check(ExpeditionManager.profile.equipped_artifact_ids == ["", "", "", ""], "New profile has four empty slots")
 	ExpeditionManager.profile.level = 7
 	check(ExpeditionManager.save_profile(), "Profile saves")
@@ -26,13 +28,34 @@ func _ready() -> void:
 	check(migrated.owned_artifact_ids == ArtifactCatalog.all_ids(), "Schema one unlocks prototype artifacts")
 	var normalized := ExpeditionProfile.from_dict({
 		"schema_version": 2,
-		"owned_artifact_ids": ["furnace_heart", "ashen_needle"],
+		"owned_artifact_ids": ["furnace_heart", "ashen_needle", "future_artifact"],
 		"equipped_artifact_ids": ["furnace_heart", null, "furnace_heart", "missing", "ashen_needle"],
 	})
 	check(normalized.equipped_artifact_ids == ["furnace_heart", "", "", ""], "Schema two normalizes corrupt slots")
+	check(normalized.owned_artifact_ids.has("future_artifact"), "Schema two preserves unknown ownership")
+	check(normalized.discovered_artifact_ids == ["furnace_heart", "ashen_needle"], "Schema two discovers owned known artifacts once")
 	var future_artifact := ExpeditionProfile.from_dict({"schema_version": 2,
 		"owned_artifact_ids": ["future_artifact"], "equipped_artifact_ids": ["future_artifact", "", "", ""]})
 	check(future_artifact.owned_artifact_ids == ["future_artifact"] and future_artifact.equipped_artifact_ids[0] == "future_artifact", "Unknown artifact ids survive profile roundtrip")
+
+	var history: Array[Dictionary] = []
+	for index: int in range(105):
+		history.append({"reward_id": "reward_%d" % index, "source_tag": "elite", "artifact_ids": ["future_artifact"]})
+	var schema_three := ExpeditionProfile.from_dict({
+		"schema_version": 3,
+		"owned_artifact_ids": ["future_artifact", "future_artifact"],
+		"discovered_artifact_ids": ["future_artifact", "future_artifact"],
+		"ember_shards": -12,
+		"pity_counters": {"burning_boss_sigil": -4, "valid": 2, "bad": "no"},
+		"settled_reward_ids": ["reward_1", "reward_1", "reward_2", ""],
+		"reward_history": history,
+	})
+	check(schema_three.owned_artifact_ids == ["future_artifact"], "Schema three deduplicates unknown ownership without deleting it")
+	check(schema_three.discovered_artifact_ids == ["future_artifact"], "Schema three preserves and deduplicates unknown discoveries")
+	check(schema_three.ember_shards == 0, "Ember Shards cannot become negative")
+	check(schema_three.pity_counters == {"burning_boss_sigil": 0, "valid": 2}, "Pity counters are nonnegative and malformed values are skipped")
+	check(schema_three.settled_reward_ids == ["reward_1", "reward_2"], "Settled reward IDs are nonempty and deduplicated")
+	check(schema_three.reward_history.size() == 100 and schema_three.reward_history[0].get("reward_id") == "reward_5" and schema_three.reward_history[99].get("reward_id") == "reward_104", "Reward history retains the newest 100 entries")
 
 	var broken := FileAccess.open(ExpeditionManager.profile_path, FileAccess.WRITE)
 	broken.store_string("{broken")

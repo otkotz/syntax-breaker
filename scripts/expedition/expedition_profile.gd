@@ -1,7 +1,8 @@
 class_name ExpeditionProfile
 extends RefCounted
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
+const REWARD_HISTORY_LIMIT := 100
 
 var character_id: String = "breaker"
 var level: int = 1
@@ -9,6 +10,16 @@ var experience: int = 0
 var unlocked_regions: Array[String] = ["burning_grounds"]
 var owned_artifact_ids: Array[String] = ArtifactCatalog.all_ids()
 var equipped_artifact_ids: Array[String] = ["", "", "", ""]
+var ember_shards: int = 0
+var discovered_artifact_ids: Array[String] = []
+var pity_counters: Dictionary = {}
+var settled_reward_ids: Array[String] = []
+var reward_history: Array[Dictionary] = []
+
+static func fresh() -> ExpeditionProfile:
+	var profile := ExpeditionProfile.new()
+	profile.owned_artifact_ids.clear()
+	return profile
 
 func to_dict() -> Dictionary:
 	return {
@@ -19,6 +30,11 @@ func to_dict() -> Dictionary:
 		"unlocked_regions": unlocked_regions,
 		"owned_artifact_ids": owned_artifact_ids,
 		"equipped_artifact_ids": equipped_artifact_ids,
+		"ember_shards": ember_shards,
+		"discovered_artifact_ids": discovered_artifact_ids,
+		"pity_counters": pity_counters,
+		"settled_reward_ids": settled_reward_ids,
+		"reward_history": reward_history,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionProfile:
@@ -26,7 +42,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return profile
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, SCHEMA_VERSION]:
 		return profile
 	if data.get("character_id") is String and not str(data.get("character_id")).is_empty():
 		profile.character_id = data.get("character_id")
@@ -43,7 +59,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 			profile.unlocked_regions.append(region_id)
 	if not profile.unlocked_regions.has("burning_grounds"):
 		profile.unlocked_regions.append("burning_grounds")
-	if schema_version == SCHEMA_VERSION:
+	if schema_version >= 2:
 		profile.owned_artifact_ids.clear()
 		var raw_owned: Variant = data.get("owned_artifact_ids", [])
 		if raw_owned is Array:
@@ -52,6 +68,37 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 					profile.owned_artifact_ids.append(value)
 	profile.equipped_artifact_ids = ArtifactLoadout.normalize(
 		profile.owned_artifact_ids,
-		data.get("equipped_artifact_ids", []) if schema_version == SCHEMA_VERSION else []
+		data.get("equipped_artifact_ids", []) if schema_version >= 2 else []
 	)
+	if schema_version == 2:
+		for artifact_id: String in profile.owned_artifact_ids:
+			if ArtifactCatalog.get_artifact(artifact_id) != null:
+				profile.discovered_artifact_ids.append(artifact_id)
+	elif schema_version == SCHEMA_VERSION:
+		profile.discovered_artifact_ids = _unique_strings(data.get("discovered_artifact_ids", []))
+		if typeof(data.get("ember_shards")) in [TYPE_INT, TYPE_FLOAT]:
+			profile.ember_shards = maxi(0, int(data.get("ember_shards")))
+		var raw_pity: Variant = data.get("pity_counters", {})
+		if raw_pity is Dictionary:
+			for key: Variant in raw_pity:
+				var pity_key := str(key)
+				var value: Variant = raw_pity[key]
+				if not pity_key.is_empty() and typeof(value) in [TYPE_INT, TYPE_FLOAT]:
+					profile.pity_counters[pity_key] = maxi(0, int(value))
+		profile.settled_reward_ids = _unique_strings(data.get("settled_reward_ids", []))
+		var raw_history: Variant = data.get("reward_history", [])
+		if raw_history is Array:
+			var start := maxi(0, raw_history.size() - REWARD_HISTORY_LIMIT)
+			for index: int in range(start, raw_history.size()):
+				if raw_history[index] is Dictionary:
+					profile.reward_history.append((raw_history[index] as Dictionary).duplicate(true))
 	return profile
+
+static func _unique_strings(raw_values: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if not raw_values is Array:
+		return result
+	for value: Variant in raw_values:
+		if value is String and not value.is_empty() and not result.has(value):
+			result.append(value)
+	return result

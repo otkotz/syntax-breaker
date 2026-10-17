@@ -16,6 +16,7 @@ func _ready() -> void:
 	ExpeditionManager.profile_path = "res://.godot/artifact_loadout_profile.json"
 	_cleanup()
 	ExpeditionManager.start_new_profile()
+	ExpeditionManager.profile.owned_artifact_ids = ["fractured_prism", "bloodwritten_sigil"]
 	check(ExpeditionManager.equip_artifact("fractured_prism", 0), "Owned artifact equips")
 	check(ExpeditionManager.profile.equipped_artifact_ids[0] == "fractured_prism", "Equip updates profile")
 	check(not ExpeditionManager.equip_artifact("fractured_prism", 1), "Duplicate artifact is rejected")
