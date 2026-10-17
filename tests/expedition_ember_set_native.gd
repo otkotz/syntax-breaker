@@ -111,7 +111,24 @@ func _ready() -> void:
 		ProjectileBase.resolve_skill_hit(fire_skill, pair_target, pair_projectile, 10.0)
 	check(pair_target.get_dot_stacks("burn").size() == 3,
 		"Kindling Engine stacks normal fire burns for any two-piece combination")
+	var aoe_target := EnemyBase.new()
+	add_child(aoe_target)
+	aoe_target.current_hp = 1000.0
+	aoe_target.max_hp = 1000.0
+	var fire_aoe := AoeSkillBase.new()
+	add_child(fire_aoe)
+	fire_aoe.skill_instance = fire_skill
+	fire_aoe.damage = 10.0
+	fire_aoe.artifact_hooks = pair_hooks
+	for index in 3:
+		fire_aoe._damage_enemy(aoe_target)
+	check(aoe_target.get_dot_stacks("burn").size() == 3,
+		"Kindling Engine stacks burns from fire area skills")
 	pair_runtime.teardown()
+	remove_child(fire_aoe)
+	fire_aoe.free()
+	remove_child(aoe_target)
+	aoe_target.free()
 	remove_child(pair_projectile)
 	pair_projectile.free()
 	remove_child(pair_target)

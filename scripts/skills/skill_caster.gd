@@ -153,10 +153,14 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 
 	if projectile.has_method("initialize"):
 		projectile.initialize(si, direction, pool)
-		projectile.artifact_hooks = artifact_hooks
-		projectile.artifact_origin_flags = origin_flags.duplicate()
-		projectile.artifact_generation = generation
-		projectile.artifact_spawn_fragment = _spawn_artifact_fragment.bind(si, direction)
+		if projectile is ProjectileBase:
+			projectile.artifact_hooks = artifact_hooks
+			projectile.artifact_origin_flags = origin_flags.duplicate()
+			projectile.artifact_generation = generation
+			projectile.artifact_spawn_fragment = _spawn_artifact_fragment.bind(si, direction)
+		elif projectile is AoeSkillBase:
+			projectile.artifact_hooks = artifact_hooks
+			projectile.artifact_generation = generation
 		_last_cast_projectiles.append(projectile)
 		if origin_flags.is_empty():
 			_last_cast_snapshot.append({"kind": "skill", "direction": direction,
