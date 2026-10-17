@@ -19,6 +19,7 @@ var run_stats: Dictionary = {}
 var shop_bonuses: Dictionary = {}
 var reroll_cost: int = 2
 var reroll_count: int = 0
+var compiler_heat: int = 0
 var current_stage_data: StageData
 var current_region: String = ""
 var ascension_level: int = 0
@@ -42,6 +43,7 @@ func start_run(region: String = "", protocol: int = -1) -> void:
 	shop_bonuses = {}
 	reroll_cost = 2
 	reroll_count = 0
+	compiler_heat = 0
 	current_stage_data = null
 	stage_tree = null
 	current_region = region
@@ -156,6 +158,10 @@ func advance_reroll_cost() -> int:
 	reroll_cost = 2 + reroll_count * (reroll_count + 1) / 2
 	return reroll_cost
 
+func add_compiler_heat(amount: int) -> int:
+	compiler_heat = clampi(compiler_heat + maxi(0, amount), 0, 12)
+	return compiler_heat
+
 func advance_stage() -> void:
 	current_stage += 1
 	run_stats["stages_reached"] = current_stage
@@ -224,6 +230,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"shop_bonuses": shop_bonuses,
 		"reroll_cost": reroll_cost,
 		"reroll_count": reroll_count,
+		"compiler_heat": compiler_heat,
 		"run_stats": run_stats,
 		"telemetry": RunTelemetry.snapshot(),
 		"current_region": current_region,
@@ -265,6 +272,7 @@ func restore_from_save(data: Dictionary) -> void:
 	shop_bonuses = data.get("shop_bonuses", {})
 	reroll_cost = int(data.get("reroll_cost", 2))
 	reroll_count = int(data.get("reroll_count", 0))
+	compiler_heat = clampi(int(data.get("compiler_heat", 0)), 0, 12)
 	run_stats = data.get("run_stats", {})
 	RunTelemetry.restore(data.get("telemetry", {}))
 	current_region = data.get("current_region", "")

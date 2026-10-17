@@ -65,7 +65,7 @@ func setup(player: Node2D, spawner: Spawner, skills: Array[SkillInstance] = []) 
 	rng.randomize()
 	difficulty = roll_difficulty(rng)
 	if encounter_override.is_empty():
-		encounter_override = scaled_encounter(difficulty, maxi(1, RunManager.current_stage), RunPowerData.score(skills), 0)
+		encounter_override = scaled_encounter(difficulty, maxi(1, RunManager.current_stage), RunPowerData.score(skills), RunManager.compiler_heat)
 	var definition := get_encounter_definition()
 	wave_size = definition.enemy_count
 	outside_grace = definition.outside_grace
@@ -120,7 +120,8 @@ func register_wave_kill() -> void:
 	status_changed.emit("COMPILING — %d HOSTILES" % kills_remaining)
 	if kills_remaining == 0:
 		state = State.COMPLETED
-		status_changed.emit("COMPILATION COMPLETE")
+		RunManager.add_compiler_heat(int(difficulty) + 1)
+		status_changed.emit("COMPILATION COMPLETE — HEAT %d" % RunManager.compiler_heat)
 		wave_completed.emit()
 
 func _on_enemy_killed(enemy: Node2D, _skill: Resource) -> void:

@@ -21,6 +21,16 @@ func _ready() -> void:
 	call_deferred("run_checks")
 
 func run_checks() -> void:
+	RunManager.save_path = "res://.godot/compiler_heat_run_test.json"
+	RunManager.start_run()
+	check(RunManager.compiler_heat == 0, "New run starts with a cold compiler")
+	RunManager.add_compiler_heat(1)
+	RunManager.add_compiler_heat(3)
+	check(RunManager.compiler_heat == 4, "Completed contracts accumulate compiler heat")
+	RunManager.save_run([])
+	RunManager.compiler_heat = 0
+	RunManager.restore_from_save(RunManager.load_run())
+	check(RunManager.compiler_heat == 4, "Compiler heat survives save and resume")
 	var queue := DecisionQueueScript.new()
 	add_child(queue)
 	var order: Array[StringName] = []
@@ -55,10 +65,13 @@ func run_checks() -> void:
 	check(float(early_contract.hp_mult) <= 0.9 and not early_contract.miniboss,
 		"Early terminal does not create a hidden stat wall or miniboss")
 	var late_contract := CompilationTerminalScript.scaled_encounter(CompilationTerminalScript.Difficulty.KERNEL_BREACH, 9, 18.0, 4)
+	var cold_late_contract := CompilationTerminalScript.scaled_encounter(CompilationTerminalScript.Difficulty.KERNEL_BREACH, 9, 18.0, 0)
 	check(late_contract.enemy_count >= 36 and late_contract.elite_count >= 4 and late_contract.miniboss,
 		"Late high-power Kernel contract adds composition pressure")
 	check(float(late_contract.hp_mult) < 1.75 and float(late_contract.damage_mult) < 1.6,
 		"Adaptive terminal scaling remains bucketed instead of matching player power one-to-one")
+	check(late_contract.enemy_count > cold_late_contract.enemy_count and late_contract.elite_count > cold_late_contract.elite_count,
+		"Compiler heat adds visible composition pressure to future contracts")
 	var maxed_skills: Array[SkillInstance] = []
 	for skill_id: String in EvolutionData.BY_SKILL:
 		var maxed := SkillInstance.new(load("res://resources/skills/%s.tres" % skill_id))
