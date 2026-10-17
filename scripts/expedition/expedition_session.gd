@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 4
+const SCHEMA_VERSION := 5
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -16,6 +16,7 @@ var max_hp: float = 100.0
 var status: String = "active"
 var artifact_loadout_ids: Array[String] = ["", "", "", ""]
 var echo_artifact_ids: Array[String] = ["", "", "", ""]
+var unresolved_reward_id: String = ""
 var difficulty: int = 1
 var pending_rewards: Array[Dictionary] = []
 var rolled_reward_ids: Array[String] = []
@@ -79,6 +80,8 @@ func record_reward(reward: Dictionary) -> bool:
 		return false
 	pending_rewards.append(reward.duplicate(true))
 	rolled_reward_ids.append(reward_id)
+	if unresolved_reward_id.is_empty() and not reward.get("artifact_ids", []).is_empty():
+		unresolved_reward_id = reward_id
 	return true
 
 func get_reward(reward_id: String) -> Dictionary:
@@ -116,6 +119,18 @@ func apply_echo(artifact_id: String, slot: int) -> bool:
 	echo_artifact_ids[slot] = artifact_id
 	return true
 
+func resolve_reward(reward_id: String, action: String, slot: int = -1) -> bool:
+	if reward_id.is_empty() or reward_id != unresolved_reward_id:
+		return false
+	var artifact_ids: Array = get_reward(reward_id).get("artifact_ids", [])
+	if artifact_ids.is_empty(): return false
+	if action == "echo":
+		if not apply_echo(str(artifact_ids[0]), slot): return false
+	elif action != "keep_loadout":
+		return false
+	unresolved_reward_id = ""
+	return true
+
 func to_dict() -> Dictionary:
 	return {
 		"schema_version": SCHEMA_VERSION,
@@ -131,6 +146,7 @@ func to_dict() -> Dictionary:
 		"status": status,
 		"artifact_loadout_ids": artifact_loadout_ids,
 		"echo_artifact_ids": echo_artifact_ids,
+		"unresolved_reward_id": unresolved_reward_id,
 		"difficulty": difficulty,
 		"pending_rewards": pending_rewards,
 		"rolled_reward_ids": rolled_reward_ids,
@@ -140,7 +156,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, 3, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, 4, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -189,6 +205,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 			for reward: Variant in raw_rewards:
 				if reward is Dictionary:
 					result.record_reward(reward)
+	result.unresolved_reward_id = str(data.get("unresolved_reward_id", "")) if schema_version >= 5 else ""
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):

@@ -25,10 +25,35 @@ func _ready() -> void:
 	check(game.checkpoint_room_rewards(room("elite", DungeonRoomData.Type.ELITE)), "Elite reward checkpoints")
 	var elite_reward := ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("elite"))
 	check(not elite_reward.is_empty() and elite_reward.get("source_tag") == "elite", "Elite stores its source reward")
+	var decision_reward := elite_reward
+	if decision_reward.get("artifact_ids", []).is_empty():
+		decision_reward = {"reward_id": "fixture:elite", "source_tag": "elite", "artifact_ids": ["fractured_prism"], "shard_amount": 0, "pity_key": "", "chase_awarded": false}
+		ExpeditionManager.session.record_reward(decision_reward)
+		ExpeditionManager.save_session()
+	check(ExpeditionManager.session.unresolved_reward_id == decision_reward.get("reward_id"), "Artifact reward locks navigation")
+	var unresolved_id := ExpeditionManager.session.unresolved_reward_id
+	ExpeditionManager.session = null
+	check(ExpeditionManager.load_session() and ExpeditionManager.session.unresolved_reward_id == unresolved_id, "Resume restores the same unresolved reward decision")
+	game.show_map()
+	check(game.map_ui == null and game.reward_overlay != null, "Locked navigation restores the reward decision instead of the map")
+	game.reward_overlay.keep_button.pressed.emit()
+	check(ExpeditionManager.session.unresolved_reward_id.is_empty() and game.map_ui != null, "Successful choice checkpoint unlocks navigation")
 	var count_after_elite := ExpeditionManager.session.pending_rewards.size()
-	check(game.checkpoint_room_rewards(room("elite", DungeonRoomData.Type.ELITE)) and ExpeditionManager.session.pending_rewards.size() == count_after_elite and ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("elite")) == elite_reward, "Resume reuses stored elite outcome")
+	var stored_elite_id := str(elite_reward.get("reward_id"))
+	check(game.checkpoint_room_rewards(room("elite", DungeonRoomData.Type.ELITE)) and ExpeditionManager.session.pending_rewards.size() == count_after_elite and str(ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("elite")).get("reward_id")) == stored_elite_id, "Resume reuses stored elite outcome")
 	check(game.checkpoint_room_rewards(room("treasure", DungeonRoomData.Type.TREASURE)), "Treasure reward checkpoints")
 	check(ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("treasure")).get("source_tag") == "treasure", "Treasure stores its source reward")
+	if ExpeditionManager.session.unresolved_reward_id.is_empty():
+		ExpeditionManager.session.record_reward({"reward_id": "fixture:treasure", "source_tag": "treasure", "artifact_ids": ["echoing_hourglass"], "shard_amount": 0, "pity_key": "", "chase_awarded": false})
+		ExpeditionManager.save_session()
+	var decision_snapshot := ExpeditionManager.session.to_dict().duplicate(true)
+	var decision_valid_path := ExpeditionManager.session_path
+	ExpeditionManager.session_path = "res://missing_directory/decision.json"
+	game.show_map()
+	game.reward_overlay.slot_buttons[0].pressed.emit()
+	check(ExpeditionManager.session.to_dict() == decision_snapshot and game.reward_overlay != null, "Failed decision save rolls back session and keeps the choice visible")
+	ExpeditionManager.session_path = decision_valid_path
+	game.reward_overlay.keep_button.pressed.emit()
 	check(game.checkpoint_room_rewards(room("boss", DungeonRoomData.Type.BOSS)), "Boss rewards checkpoint together")
 	check(not ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_set")).is_empty() and not ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_chase")).is_empty(), "Boss stores distinct set and chase rewards")
 

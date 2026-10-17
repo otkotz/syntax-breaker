@@ -22,6 +22,12 @@ func _ready() -> void:
 	check(session.apply_echo("", 1), "Clearing Echo restores the frozen slot")
 	check(session.effective_artifact_ids() == session.artifact_loadout_ids, "Cleared Echo restores frozen loadout")
 	check(session.apply_echo("future_artifact", 3), "Echo preserves forward-compatible artifact ids")
+	var decision_reward := {"reward_id": "decision:1", "source_tag": "elite", "artifact_ids": ["ashen_needle"], "shard_amount": 0, "pity_key": "", "chase_awarded": false}
+	check(session.record_reward(decision_reward), "Artifact reward is recorded for a decision")
+	check(session.unresolved_reward_id == "decision:1", "First artifact reward locks progression until resolved")
+	check(not session.resolve_reward("wrong", "keep_loadout"), "Only the unresolved reward can be resolved")
+	check(session.resolve_reward("decision:1", "echo", 1), "Echo decision resolves into the selected slot")
+	check(session.unresolved_reward_id.is_empty() and session.effective_artifact_ids()[1] == "ashen_needle", "Resolved Echo clears the lock and updates effective loadout")
 	check(session.get_available_room_ids().size() == 2, "Start exposes two routes")
 	check(not session.enter_room("missing"), "Unknown room cannot be entered")
 	check(not session.enter_room("room_4"), "Locked boss cannot be entered")
@@ -34,12 +40,13 @@ func _ready() -> void:
 	check(not session.enter_room("room_1"), "Completed room cannot be entered again")
 	var restored := ExpeditionSession.from_dict(session.to_dict())
 	check(restored != null and restored.to_dict() == session.to_dict(), "Session survives roundtrip")
-	check(restored != null and restored.echo_artifact_ids == ["", "", "", "future_artifact"], "Echo survives save and resume")
+	check(restored != null and restored.echo_artifact_ids == ["", "ashen_needle", "", "future_artifact"], "Echo survives save and resume")
 	var schema_three := session.to_dict()
 	schema_three["schema_version"] = 3
 	schema_three.erase("echo_artifact_ids")
 	var migrated_three := ExpeditionSession.from_dict(schema_three)
 	check(migrated_three != null and migrated_three.echo_artifact_ids == ["", "", "", ""], "Schema three migrates to empty Echo slots")
+	check(migrated_three != null and migrated_three.unresolved_reward_id.is_empty(), "Schema three migrates without an unresolved choice")
 	var schema_one := session.to_dict()
 	schema_one["schema_version"] = 1
 	schema_one.erase("artifact_loadout_ids")

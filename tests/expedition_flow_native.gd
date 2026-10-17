@@ -69,6 +69,8 @@ func run_checks() -> void:
 	check(resume_game.enter_room("room_4"), "Completed route unlocks boss")
 	check(resume_game.state == ExpeditionGameManager.State.COMBAT, "Boss uses arena combat")
 	resume_game.arena._on_all_waves_cleared()
+	if resume_game.reward_overlay != null and resume_game.reward_overlay.keep_button != null:
+		resume_game.reward_overlay.keep_button.pressed.emit()
 	check(resume_game.last_result == "victory" and resume_game.state == ExpeditionGameManager.State.HUB, "Boss victory returns to hub")
 	check(ExpeditionManager.session == null and not ExpeditionManager.has_saved_session(), "Victory clears active checkpoint")
 	resume_game.queue_free()

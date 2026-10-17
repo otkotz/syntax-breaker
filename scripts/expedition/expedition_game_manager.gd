@@ -80,6 +80,9 @@ func _on_unequip_artifact(slot: int) -> void:
 func show_map() -> void:
 	_clear_ui()
 	state = State.MAP
+	if ExpeditionManager.session != null and not ExpeditionManager.session.unresolved_reward_id.is_empty():
+		_show_unresolved_reward()
+		return
 	map_ui = MAP_SCENE.instantiate() as ExpeditionMapUI
 	_ui_layer.add_child(map_ui)
 	map_ui.setup(ExpeditionManager.session)
@@ -194,7 +197,9 @@ func _on_stage_completed() -> void:
 	var rewards := _rewards_since(reward_start)
 	_clear_arena()
 	if won:
-		if ExpeditionManager.settle_victory():
+		if not ExpeditionManager.session.unresolved_reward_id.is_empty():
+			_show_reward_overlay(rewards)
+		elif ExpeditionManager.settle_victory():
 			last_result = "victory"
 			open_hub()
 			_show_reward_overlay(rewards)
@@ -259,12 +264,43 @@ func _rewards_since(start: int) -> Array[Dictionary]:
 	return result
 
 func _show_reward_overlay(rewards: Array[Dictionary]) -> void:
-	if rewards.is_empty() or _ui_layer == null:
+	if _ui_layer == null:
 		return
+	if ExpeditionManager.session != null and not ExpeditionManager.session.unresolved_reward_id.is_empty():
+		_show_unresolved_reward()
+		return
+	if rewards.is_empty(): return
 	reward_overlay = REWARD_OVERLAY_SCENE.instantiate() as ExpeditionRewardOverlay
 	_ui_layer.add_child(reward_overlay)
 	reward_overlay.setup(rewards)
 	reward_overlay.confirmed.connect(func() -> void: reward_overlay = null, CONNECT_ONE_SHOT)
+
+func _show_unresolved_reward() -> void:
+	if reward_overlay != null and is_instance_valid(reward_overlay) and not reward_overlay.is_queued_for_deletion(): return
+	var session := ExpeditionManager.session
+	if session == null or session.unresolved_reward_id.is_empty() or _ui_layer == null: return
+	var reward := session.get_reward(session.unresolved_reward_id)
+	if reward.is_empty(): return
+	reward_overlay = REWARD_OVERLAY_SCENE.instantiate() as ExpeditionRewardOverlay
+	_ui_layer.add_child(reward_overlay)
+	reward_overlay.setup_decision(reward, session)
+	reward_overlay.decision_requested.connect(_on_reward_decision, CONNECT_ONE_SHOT)
+
+func _on_reward_decision(reward_id: String, action: String, slot: int) -> void:
+	var session := ExpeditionManager.session
+	if session == null: return
+	var snapshot := session.to_dict().duplicate(true)
+	if not session.resolve_reward(reward_id, action, slot) or not ExpeditionManager.save_session():
+		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
+		_clear_ui()
+		_show_unresolved_reward()
+		return
+	if session.status == "victory":
+		if ExpeditionManager.settle_victory():
+			last_result = "victory"
+			open_hub()
+		return
+	show_map()
 
 func _on_player_died() -> void:
 	if state != State.COMBAT or ExpeditionManager.session == null:
