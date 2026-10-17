@@ -16,6 +16,9 @@ func _ready() -> void:
 	var stacks: Array = enemy.get_dot_stacks("burn")
 	check(stacks.size() == 5, "Kindling caps burn at five stacks")
 	check(stacks[0].stack_id == "stack-1" and stacks[4].stack_id == "stack-5", "Sixth burn replaces oldest stack")
+	enemy.apply_dot_stack("burn", 99.0, 4.0, 0.5, null, "stack-5", 5)
+	stacks = enemy.get_dot_stacks("burn")
+	check(stacks.size() == 5 and stacks[4].damage == 99.0, "Refreshing a stack id does not duplicate it")
 	var consumed: Array = enemy.consume_dot_stacks("burn", 5)
 	check(consumed.size() == 5 and enemy.get_dot_stacks("burn").is_empty(), "Conflagration consumes five stacks")
 	var fire_resource := SkillResource.new()
@@ -94,6 +97,25 @@ func _ready() -> void:
 	check(not crown_target.get_dot_stacks("burn").is_empty(), "Cinder Crown reacts to non-projectile and DoT kills")
 	runtime.teardown()
 	check(is_equal_approx(fire_skill.computed_stats.damage, 10.0), "Teardown removes Furnace penalty")
+	var pair_hooks := ArtifactCombatHooks.new()
+	var pair_runtime := ArtifactRuntime.new(ArtifactRegistry.with_defaults(), pair_hooks)
+	pair_runtime.setup(["ashen_needle", "cinder_crown", "", ""], [fire_skill], self)
+	var pair_target := EnemyBase.new()
+	add_child(pair_target)
+	pair_target.current_hp = 1000.0
+	pair_target.max_hp = 1000.0
+	var pair_projectile := ProjectileBase.new()
+	add_child(pair_projectile)
+	pair_projectile.artifact_hooks = pair_hooks
+	for index in 3:
+		ProjectileBase.resolve_skill_hit(fire_skill, pair_target, pair_projectile, 10.0)
+	check(pair_target.get_dot_stacks("burn").size() == 3,
+		"Kindling Engine stacks normal fire burns for any two-piece combination")
+	pair_runtime.teardown()
+	remove_child(pair_projectile)
+	pair_projectile.free()
+	remove_child(pair_target)
+	pair_target.free()
 	remove_child(projectile)
 	projectile.free()
 	remove_child(target)

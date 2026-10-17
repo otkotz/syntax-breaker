@@ -261,7 +261,14 @@ static func _apply_resolved_elemental_effects(body: Node2D, si: SkillInstance, r
 	var furnace_active: bool = hit_source is ProjectileBase and hit_source.artifact_hooks != null \
 		and hit_source.artifact_hooks.active_artifact_ids.has("furnace_heart")
 	if tags.has("fire") and not furnace_active:
-		body.apply_dot("burn", raw_damage * 0.3, 3.0, 0.5, si.base)
+		var stack_limit: int = hit_source.artifact_hooks.burn_stack_limit if hit_source is ProjectileBase \
+			and hit_source.artifact_hooks != null and hit_source.artifact_hooks.active else 1
+		if stack_limit > 1 and body.has_method("apply_dot_stack"):
+			body.apply_dot_stack("burn", raw_damage * 0.3, 3.0, 0.5, si.base,
+				"hit-%d" % Time.get_ticks_usec(), stack_limit,
+				hit_source.artifact_generation if hit_source is ProjectileBase else 0)
+		else:
+			body.apply_dot("burn", raw_damage * 0.3, 3.0, 0.5, si.base)
 		CombatLog.dot_applied("burn", body.name, raw_damage * 0.3, 3.0)
 		si.notify_status_apply(body, "burn")
 	if tags.has("poison") and randf() <= 0.8:

@@ -10,9 +10,7 @@ var _active_totems: Array[SkillTotem] = []
 var _active_mines: Array[SkillMine] = []
 var artifact_hooks: ArtifactCombatHooks
 var _last_cast_projectiles: Array[Node2D] = []
-var _last_cast_direction := Vector2.ZERO
-var _last_cast_target: Node2D
-var _last_cast_origin := Vector2.ZERO
+var _last_cast_snapshot: Array[Dictionary] = []
 
 const MAX_TOTEMS := 2
 const MAX_MINES := 5
@@ -44,15 +42,12 @@ func _physics_process(delta: float) -> void:
 		_cooldown_timers[i] -= delta
 		if _cooldown_timers[i] <= 0.0:
 			_last_cast_projectiles.clear()
-			_last_cast_direction = Vector2.ZERO
-			_last_cast_target = null
-			_last_cast_origin = global_position
+			_last_cast_snapshot.clear()
 			if _try_cast(skill_instances[i]):
 				if artifact_hooks != null and artifact_hooks.active:
 					artifact_hooks.emit_event(&"skill_cast", {"skill": skill_instances[i], "player": get_parent(),
 						"projectiles": _last_cast_projectiles.duplicate(), "world_position": global_position,
-						"spawn_echo": _spawn_artifact_echo.bind(skill_instances[i], _last_cast_direction,
-							_last_cast_target, _last_cast_origin)})
+						"spawn_echo": _spawn_artifact_echo.bind(skill_instances[i], _last_cast_snapshot.duplicate(true))})
 				var tempo_mult := EngineTracker.get_tempo_cooldown_mult()
 				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult * tempo_mult
 				EngineTracker.on_cast(skill_instances[i].base.id)
@@ -143,6 +138,7 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 		return
 	if si.get_all_tags().has("beam"):
 		RunManager.record_challenge_cast(false)
+		_last_cast_snapshot.append({"kind": "beam", "direction": direction, "origin": global_position})
 		SkillLaser.fire(self, si, direction)
 		return
 	if si.base.has_tag("projectile") and ProjectileBase.active_count >= QualitySettings.projectile_cap:
@@ -162,9 +158,9 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 		projectile.artifact_generation = generation
 		projectile.artifact_spawn_fragment = _spawn_artifact_fragment.bind(si, direction)
 		_last_cast_projectiles.append(projectile)
-		_last_cast_direction = direction
-		_last_cast_target = _target
-		_last_cast_origin = projectile.global_position
+		if origin_flags.is_empty():
+			_last_cast_snapshot.append({"kind": "skill", "direction": direction,
+				"target": _target, "origin": projectile.global_position})
 
 	if projectile.has_method("set_orbit_parent"):
 		projectile.set_orbit_parent(get_parent())
@@ -177,10 +173,25 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 func set_artifact_hooks(value: ArtifactCombatHooks) -> void:
 	artifact_hooks = value
 
-func _spawn_artifact_echo(si: SkillInstance, direction: Vector2, target: Node2D, origin: Vector2) -> void:
+func _spawn_artifact_echo(si: SkillInstance, snapshot: Array[Dictionary]) -> void:
 	if artifact_hooks == null or not artifact_hooks.active: return
-	_spawn_skill(si, direction, target if is_instance_valid(target) else null,
-		["echoing_hourglass", "secondary_artifact_projectile"], 1, origin)
+	for cast: Dictionary in snapshot:
+		var direction: Vector2 = cast.get("direction", Vector2.ZERO)
+		var origin: Vector2 = cast.get("origin", global_position)
+		if cast.get("kind", "skill") == "beam":
+			_fire_echo_beam(si, direction, origin)
+		else:
+			var target: Variant = cast.get("target")
+			_spawn_skill(si, direction, target if is_instance_valid(target) else null,
+				["echoing_hourglass", "secondary_artifact_projectile"], 1, origin)
+
+func _fire_echo_beam(si: SkillInstance, direction: Vector2, origin: Vector2) -> void:
+	var emitter := Node2D.new()
+	var parent := get_tree().current_scene if get_tree().current_scene != null else get_parent()
+	parent.add_child(emitter)
+	emitter.global_position = origin
+	SkillLaser.fire(emitter, si, direction)
+	emitter.queue_free()
 
 func _spawn_artifact_fragment(si: SkillInstance, base_direction: Vector2, data: Dictionary) -> void:
 	var projectile_count_before := _last_cast_projectiles.size()

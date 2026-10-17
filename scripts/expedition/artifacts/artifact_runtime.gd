@@ -36,6 +36,7 @@ func setup(ids: Array[String], skills: Array, arena: Node) -> void:
 		for tier in [2, 3]:
 			if int(tiers[set_id]) >= tier:
 				_add_behavior(str(set_resource.tier_behavior_keys.get(tier, "")), "%s_%d" % [set_id, tier], set_resource.behavior_parameters)
+	hooks.burn_stack_limit = burn_stack_limit()
 	if not hooks.combat_event.is_connected(_on_combat_event):
 		hooks.combat_event.connect(_on_combat_event)
 	if not GameBus.enemy_killed.is_connected(_on_enemy_killed):

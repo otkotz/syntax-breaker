@@ -79,6 +79,10 @@ func _ready() -> void:
 		ProjectSettings.globalize_path(ExpeditionManager.session_path + ".bak"))
 	check(ExpeditionManager.has_saved_session(), "Recoverable backup keeps session and loadout locked")
 	check(ExpeditionManager.load_session(), "Session loads from recoverable backup")
+	_cleanup_files()
+	ExpeditionManager.session_path = "res://missing_directory/session.json"
+	check(not ExpeditionManager.start_expedition(99, "burning_grounds"), "Failed initial checkpoint reports failure")
+	check(ExpeditionManager.session == null, "Failed initial checkpoint rolls in-memory session back")
 
 	_cleanup_files()
 	print(JSON.stringify({"failures": failures, "available": session.get_available_room_ids()}))

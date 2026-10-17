@@ -59,7 +59,10 @@ func start_expedition(seed_value: int, region_id: String) -> bool:
 	if profile == null or not profile.unlocked_regions.has(region_id):
 		return false
 	session = ExpeditionSession.create(seed_value, region_id, profile.equipped_artifact_ids.duplicate())
-	return save_session()
+	if save_session():
+		return true
+	session = null
+	return false
 
 func save_session() -> bool:
 	if session == null:
