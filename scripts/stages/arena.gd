@@ -3,7 +3,7 @@ extends Node2D
 
 @onready var player: Player = $Player
 @onready var spawner: Spawner = $Spawner
-@onready var joystick: VirtualJoystick = $CanvasLayer/VirtualJoystick
+@onready var joystick: GameVirtualJoystick = $CanvasLayer/VirtualJoystick
 @onready var hud: Control = $CanvasLayer/HUD
 @onready var camera: CameraShake = $Player/Camera2D
 @onready var minimap: Minimap = $CanvasLayer/Minimap

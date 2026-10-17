@@ -10,6 +10,7 @@ const FIREBALL := preload("res://resources/skills/fireball.tres")
 const HUB_SCENE := preload("res://scenes/ui/expedition_hub.tscn")
 const MAP_SCENE := preload("res://scenes/ui/expedition_map.tscn")
 const ARTIFACTS_SCENE := preload("res://scenes/ui/expedition_artifacts.tscn")
+const CODEX_SCENE := preload("res://scenes/ui/expedition_codex.tscn")
 const REWARD_OVERLAY_SCENE := preload("res://scenes/ui/expedition_reward_overlay.tscn")
 
 var state: State = State.HUB
@@ -19,6 +20,7 @@ var last_result: String = ""
 var hub: ExpeditionHub
 var map_ui: ExpeditionMapUI
 var artifacts_ui: ExpeditionArtifactsUI
+var codex_ui: ExpeditionCodexUI
 var reward_overlay: ExpeditionRewardOverlay
 var artifact_runtime: ArtifactRuntime
 var _active_room_id: String = ""
@@ -49,6 +51,14 @@ func open_hub() -> void:
 	hub.resume_pressed.connect(resume_expedition, CONNECT_ONE_SHOT)
 	hub.back_pressed.connect(func() -> void: return_to_main_menu.emit(), CONNECT_ONE_SHOT)
 	hub.artifacts_pressed.connect(open_artifacts, CONNECT_ONE_SHOT)
+	hub.codex_pressed.connect(open_codex, CONNECT_ONE_SHOT)
+
+func open_codex() -> void:
+	_clear_ui()
+	codex_ui = CODEX_SCENE.instantiate() as ExpeditionCodexUI
+	_ui_layer.add_child(codex_ui)
+	codex_ui.setup(ExpeditionManager.profile)
+	codex_ui.back_pressed.connect(open_hub, CONNECT_ONE_SHOT)
 
 func open_artifacts() -> void:
 	_clear_ui()

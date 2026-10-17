@@ -158,6 +158,17 @@ func run_checks() -> void:
 			var hub: Node = ui_game.get("hub")
 			check(hub != null, "Expedition manager shows hub")
 			if hub != null:
+				var codex_button := _find_named(hub, "CodexButton") as Button
+				check(codex_button != null and codex_button.custom_minimum_size.y >= 88.0,
+					"Hub exposes a touch-sized Codex route")
+				if codex_button != null:
+					codex_button.pressed.emit()
+					var codex: Node = ui_game.get("codex_ui")
+					check(codex is ExpeditionCodexUI, "Codex route opens the dedicated read-only screen")
+					if codex is ExpeditionCodexUI:
+						(codex as ExpeditionCodexUI).back_button.pressed.emit()
+						hub = ui_game.get("hub")
+						check(hub != null, "Codex Back returns to Expedition hub")
 				var new_button := hub.get("new_button") as Button
 				check(new_button != null, "Hub exposes new expedition action")
 				if new_button != null:

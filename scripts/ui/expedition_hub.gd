@@ -5,6 +5,7 @@ signal new_expedition_pressed
 signal resume_pressed
 signal back_pressed
 signal artifacts_pressed
+signal codex_pressed
 
 var new_button: Button
 var resume_button: Button
@@ -80,6 +81,10 @@ func _build_ui() -> void:
 	artifacts_button.name = "ArtifactsButton"
 	artifacts_button.pressed.connect(func() -> void: artifacts_pressed.emit())
 	content.add_child(artifacts_button)
+	var codex_button := _make_button("CODEX")
+	codex_button.name = "CodexButton"
+	codex_button.pressed.connect(func() -> void: codex_pressed.emit())
+	content.add_child(codex_button)
 
 	back_button = _make_button("BACK")
 	back_button.name = "BackButton"

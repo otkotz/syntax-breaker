@@ -1,4 +1,4 @@
-class_name VirtualJoystick
+class_name GameVirtualJoystick
 extends Control
 
 @export var dead_zone: float = 0.1
