@@ -40,7 +40,6 @@ func _ready() -> void:
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
-	RunManager.reroll_cost = 2
 	_generate_offerings()
 	_decision_id = RunTelemetry.open_decision("shop", RunTelemetry.describe_offers(_offerings))
 	if not is_node_ready():
@@ -91,9 +90,10 @@ func _generate_offerings() -> void:
 
 	var upgrades_copy := STAT_UPGRADES.duplicate()
 	upgrades_copy.shuffle()
-	_offerings.append(_make_stat_upgrade(upgrades_copy[0]))
+	var stat_anchor := _make_stat_upgrade(upgrades_copy[0])
 
 	build_pool.shuffle()
+	var build_anchor: Dictionary = {}
 	if not build_pool.is_empty():
 		var region := RewardRoller._load_current_region()
 		var regional: Array[Dictionary] = []
@@ -104,12 +104,13 @@ func _generate_offerings() -> void:
 		if not regional.is_empty():
 			regional.shuffle()
 			picked = regional[0]
-		build_pool.erase(picked)
-		_offerings.append(picked)
+		build_anchor = picked
 
-	skill_pool.shuffle()
-	if not skill_pool.is_empty() and _skill_instances.size() < RunManager.skill_slots_unlocked:
-		_offerings.append(skill_pool.pop_back())
+	if build_anchor.is_empty() or randf() < 0.5:
+		_offerings.append(stat_anchor)
+	else:
+		build_pool.erase(build_anchor)
+		_offerings.append(build_anchor)
 
 	pool.append_array(build_pool)
 	pool.append_array(skill_pool)
@@ -448,7 +449,7 @@ func _on_reroll() -> void:
 	var paid := RunManager.reroll_cost
 	if not RunManager.spend_gold(RunManager.reroll_cost):
 		return
-	RunManager.reroll_cost += 1
+	RunManager.advance_reroll_cost()
 	RunManager.record_stat("rerolls", 1)
 	_generate_offerings()
 	RunTelemetry.choose(_decision_id, {"id": "reroll", "cost": paid})

@@ -18,6 +18,7 @@ var owned_consumables: Array[Dictionary] = []
 var run_stats: Dictionary = {}
 var shop_bonuses: Dictionary = {}
 var reroll_cost: int = 2
+var reroll_count: int = 0
 var current_stage_data: StageData
 var current_region: String = ""
 var ascension_level: int = 0
@@ -40,6 +41,7 @@ func start_run(region: String = "", protocol: int = -1) -> void:
 	owned_consumables = []
 	shop_bonuses = {}
 	reroll_cost = 2
+	reroll_count = 0
 	current_stage_data = null
 	stage_tree = null
 	current_region = region
@@ -149,6 +151,11 @@ func refund_gold(amount: int) -> bool:
 	GameBus.gold_changed.emit(gold)
 	return true
 
+func advance_reroll_cost() -> int:
+	reroll_count += 1
+	reroll_cost = 2 + reroll_count * (reroll_count + 1) / 2
+	return reroll_cost
+
 func advance_stage() -> void:
 	current_stage += 1
 	run_stats["stages_reached"] = current_stage
@@ -216,6 +223,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"skill_slots_unlocked": skill_slots_unlocked,
 		"shop_bonuses": shop_bonuses,
 		"reroll_cost": reroll_cost,
+		"reroll_count": reroll_count,
 		"run_stats": run_stats,
 		"telemetry": RunTelemetry.snapshot(),
 		"current_region": current_region,
@@ -256,6 +264,7 @@ func restore_from_save(data: Dictionary) -> void:
 	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
 	shop_bonuses = data.get("shop_bonuses", {})
 	reroll_cost = int(data.get("reroll_cost", 2))
+	reroll_count = int(data.get("reroll_count", 0))
 	run_stats = data.get("run_stats", {})
 	RunTelemetry.restore(data.get("telemetry", {}))
 	current_region = data.get("current_region", "")
