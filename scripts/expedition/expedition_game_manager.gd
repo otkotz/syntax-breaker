@@ -148,7 +148,7 @@ func _start_combat(room: DungeonRoomData) -> void:
 	arena = ARENA_SCENE.instantiate() as Arena
 	add_child(arena)
 	artifact_runtime = ArtifactRuntime.new()
-	artifact_runtime.setup(session.artifact_loadout_ids, skill_instances, arena)
+	artifact_runtime.setup(session.effective_artifact_ids(), skill_instances, arena)
 	artifact_runtime.artifact_triggered.connect(_on_artifact_triggered)
 	(arena.player.get_node("SkillCaster") as SkillCaster).set_artifact_hooks(artifact_runtime.hooks)
 	arena.stage_completed.connect(_on_stage_completed, CONNECT_ONE_SHOT)

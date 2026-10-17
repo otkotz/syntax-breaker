@@ -7,6 +7,7 @@ var behaviors: Array[ArtifactBehavior] = []
 var hooks: ArtifactCombatHooks
 var registry: ArtifactRegistry
 var active := false
+var active_loadout_ids: Array[String] = []
 var _skills: Array = []
 var _arena: Node
 
@@ -15,6 +16,9 @@ func _init(custom_registry: ArtifactRegistry = null, custom_hooks: ArtifactComba
 	hooks = custom_hooks if custom_hooks != null else ArtifactCombatHooks.new()
 
 func setup(ids: Array[String], skills: Array, arena: Node) -> void:
+	var normalized := ArtifactLoadout.normalize(ArtifactCatalog.all_ids(), ids)
+	if active and normalized == active_loadout_ids:
+		return
 	if active:
 		teardown()
 	behaviors.clear()
@@ -22,7 +26,7 @@ func setup(ids: Array[String], skills: Array, arena: Node) -> void:
 	hooks.active = true
 	_skills = skills
 	_arena = arena
-	var normalized := ArtifactLoadout.normalize(ArtifactCatalog.all_ids(), ids)
+	active_loadout_ids = normalized.duplicate()
 	hooks.active_artifact_ids = normalized.duplicate()
 	for artifact_id in normalized:
 		if artifact_id.is_empty(): continue
@@ -92,6 +96,7 @@ func teardown() -> void:
 		GameBus.enemy_killed.disconnect(_on_enemy_killed)
 	hooks.deactivate()
 	hooks.active_artifact_ids.clear()
+	active_loadout_ids.clear()
 	for behavior in behaviors:
 		behavior.teardown()
 		behavior.runtime = null

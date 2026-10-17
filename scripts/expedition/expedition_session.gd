@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 3
+const SCHEMA_VERSION := 4
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -15,6 +15,7 @@ var current_hp: float = 100.0
 var max_hp: float = 100.0
 var status: String = "active"
 var artifact_loadout_ids: Array[String] = ["", "", "", ""]
+var echo_artifact_ids: Array[String] = ["", "", "", ""]
 var difficulty: int = 1
 var pending_rewards: Array[Dictionary] = []
 var rolled_reward_ids: Array[String] = []
@@ -86,6 +87,35 @@ func get_reward(reward_id: String) -> Dictionary:
 			return reward.duplicate(true)
 	return {}
 
+func effective_artifact_ids() -> Array[String]:
+	return ArtifactLoadout.apply_slot_overrides(artifact_loadout_ids, echo_artifact_ids)
+
+func preview_echo(artifact_id: String, slot: int) -> Dictionary:
+	var before_ids := effective_artifact_ids()
+	var valid := slot >= 0 and slot < ArtifactLoadout.SLOT_COUNT
+	var after_ids := before_ids.duplicate()
+	if valid:
+		var next_echo := echo_artifact_ids.duplicate()
+		next_echo[slot] = artifact_id
+		after_ids = ArtifactLoadout.apply_slot_overrides(artifact_loadout_ids, next_echo)
+		valid = artifact_id.is_empty() or after_ids[slot] == artifact_id
+	return {
+		"valid": valid,
+		"slot": slot,
+		"artifact_id": artifact_id,
+		"before_ids": before_ids,
+		"after_ids": after_ids,
+		"before_set_tiers": ArtifactLoadout.active_set_tiers(before_ids),
+		"after_set_tiers": ArtifactLoadout.active_set_tiers(after_ids),
+	}
+
+func apply_echo(artifact_id: String, slot: int) -> bool:
+	var preview := preview_echo(artifact_id, slot)
+	if not preview.get("valid", false):
+		return false
+	echo_artifact_ids[slot] = artifact_id
+	return true
+
 func to_dict() -> Dictionary:
 	return {
 		"schema_version": SCHEMA_VERSION,
@@ -100,6 +130,7 @@ func to_dict() -> Dictionary:
 		"max_hp": max_hp,
 		"status": status,
 		"artifact_loadout_ids": artifact_loadout_ids,
+		"echo_artifact_ids": echo_artifact_ids,
 		"difficulty": difficulty,
 		"pending_rewards": pending_rewards,
 		"rolled_reward_ids": rolled_reward_ids,
@@ -109,7 +140,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -148,7 +179,9 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	result.status = restored_status
 	result.artifact_loadout_ids = ArtifactLoadout.normalize_snapshot(
 		data.get("artifact_loadout_ids", []) if schema_version >= 2 else [])
-	if schema_version == SCHEMA_VERSION:
+	result.echo_artifact_ids = ArtifactLoadout.normalize_snapshot(
+		data.get("echo_artifact_ids", []) if schema_version >= 4 else [])
+	if schema_version >= 3:
 		if typeof(data.get("difficulty")) in [TYPE_INT, TYPE_FLOAT]:
 			result.difficulty = maxi(1, int(data.get("difficulty")))
 		var raw_rewards: Variant = data.get("pending_rewards", [])

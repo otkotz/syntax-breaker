@@ -10,6 +10,18 @@ func _ready() -> void:
 	var session := ExpeditionSession.create(20261014, "burning_grounds", ["fractured_prism", "", "furnace_heart", ""])
 	check(session.difficulty == 1, "New sessions use difficulty one")
 	check(session.artifact_loadout_ids == ["fractured_prism", "", "furnace_heart", ""], "Session captures four artifact slots")
+	check(session.echo_artifact_ids == ["", "", "", ""], "New session starts without Echo overrides")
+	check(session.effective_artifact_ids() == session.artifact_loadout_ids, "Empty Echo keeps frozen loadout effective")
+	var echo_preview: Dictionary = session.preview_echo("ashen_needle", 1)
+	check(echo_preview.get("valid", false), "Echo preview accepts a free replacement")
+	check(echo_preview.get("after_ids", []) == ["fractured_prism", "ashen_needle", "furnace_heart", ""], "Echo preview exposes effective replacement")
+	check(session.apply_echo("ashen_needle", 1), "Echo replaces one frozen slot")
+	check(session.effective_artifact_ids() == ["fractured_prism", "ashen_needle", "furnace_heart", ""], "Echo becomes effective for the session")
+	check(not session.apply_echo("fractured_prism", 2), "Echo rejects duplicate effective artifacts")
+	check(not session.apply_echo("future_artifact", 4), "Echo rejects out-of-range slots")
+	check(session.apply_echo("", 1), "Clearing Echo restores the frozen slot")
+	check(session.effective_artifact_ids() == session.artifact_loadout_ids, "Cleared Echo restores frozen loadout")
+	check(session.apply_echo("future_artifact", 3), "Echo preserves forward-compatible artifact ids")
 	check(session.get_available_room_ids().size() == 2, "Start exposes two routes")
 	check(not session.enter_room("missing"), "Unknown room cannot be entered")
 	check(not session.enter_room("room_4"), "Locked boss cannot be entered")
@@ -22,6 +34,12 @@ func _ready() -> void:
 	check(not session.enter_room("room_1"), "Completed room cannot be entered again")
 	var restored := ExpeditionSession.from_dict(session.to_dict())
 	check(restored != null and restored.to_dict() == session.to_dict(), "Session survives roundtrip")
+	check(restored != null and restored.echo_artifact_ids == ["", "", "", "future_artifact"], "Echo survives save and resume")
+	var schema_three := session.to_dict()
+	schema_three["schema_version"] = 3
+	schema_three.erase("echo_artifact_ids")
+	var migrated_three := ExpeditionSession.from_dict(schema_three)
+	check(migrated_three != null and migrated_three.echo_artifact_ids == ["", "", "", ""], "Schema three migrates to empty Echo slots")
 	var schema_one := session.to_dict()
 	schema_one["schema_version"] = 1
 	schema_one.erase("artifact_loadout_ids")
@@ -68,6 +86,8 @@ func _ready() -> void:
 	check(ExpeditionManager.start_expedition(20261014, "burning_grounds"), "Unlocked expedition starts and saves")
 	ExpeditionManager.profile.equipped_artifact_ids[0] = "bloodwritten_sigil"
 	check(ExpeditionManager.session.artifact_loadout_ids[0] == "fractured_prism", "Active session ignores later profile changes")
+	check(ExpeditionManager.session.apply_echo("ashen_needle", 0), "Manager session accepts an Echo override")
+	check(ExpeditionManager.profile.equipped_artifact_ids[0] == "bloodwritten_sigil", "Echo never mutates the permanent profile")
 	ExpeditionManager.session.enter_room("room_1")
 	ExpeditionManager.session.complete_current_room("manager-clear", 61.0, 100.0)
 	check(ExpeditionManager.save_session(), "Session checkpoint saves")
@@ -75,6 +95,7 @@ func _ready() -> void:
 	check(ExpeditionManager.load_session(), "Session checkpoint loads")
 	check(ExpeditionManager.session.current_hp == 61.0, "Manager roundtrip preserves health")
 	check(ExpeditionManager.session.artifact_loadout_ids == ["fractured_prism", "furnace_heart", "", ""], "Manager roundtrip preserves frozen artifacts")
+	check(ExpeditionManager.session.echo_artifact_ids == ["ashen_needle", "", "", ""], "Manager roundtrip preserves Echo overrides")
 	ExpeditionManager.session = null
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(ExpeditionManager.session_path),
 		ProjectSettings.globalize_path(ExpeditionManager.session_path + ".bak"))

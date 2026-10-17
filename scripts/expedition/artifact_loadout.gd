@@ -34,3 +34,16 @@ static func normalize_snapshot(raw: Variant) -> Array[String]:
 		var artifact_id := value as String if value is String else ""
 		if not artifact_id.is_empty() and not result.has(artifact_id): result[index] = artifact_id
 	return result
+
+static func apply_slot_overrides(base_ids: Variant, override_ids: Variant) -> Array[String]:
+	var base := normalize_snapshot(base_ids)
+	var overrides := normalize_snapshot(override_ids)
+	var result := base.duplicate()
+	for index in SLOT_COUNT:
+		if overrides[index].is_empty():
+			continue
+		var duplicate_index := result.find(overrides[index])
+		if duplicate_index >= 0 and duplicate_index != index:
+			continue
+		result[index] = overrides[index]
+	return result
