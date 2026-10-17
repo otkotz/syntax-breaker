@@ -9,3 +9,6 @@ display_name = "Fractured Prism"
 description = "The first projectile hit splits into two fragments at 55% damage."
 behavior_key = "fractured_prism"
 behavior_parameters = {"fragment_count": 2, "fragment_damage_mult": 0.55}
+source_tags = ["elite", "treasure"]
+minimum_difficulty = 1
+duplicate_shard_value = 5

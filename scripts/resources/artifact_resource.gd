@@ -10,3 +10,7 @@ extends Resource
 @export var behavior_parameters: Dictionary = {}
 @export var set_id: String = ""
 @export var set_piece_name: String = ""
+@export var source_tags: Array[String] = []
+@export var minimum_difficulty: int = 1
+@export var is_chase: bool = false
+@export var duplicate_shard_value: int = 5

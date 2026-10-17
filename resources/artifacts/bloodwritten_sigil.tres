@@ -9,3 +9,7 @@ display_name = "Bloodwritten Sigil"
 description = "At high health, casts spend 8% maximum health for greater damage and area."
 behavior_key = "bloodwritten_sigil"
 behavior_parameters = {"hp_threshold": 0.9, "hp_cost": 0.08, "damage_mult": 1.35, "area_mult": 1.3}
+source_tags = ["boss_chase"]
+minimum_difficulty = 1
+is_chase = true
+duplicate_shard_value = 15

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="LootTableResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/loot_table_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "burning_boss_set"
+source_tag = "boss_set"
+drop_chance = 1.0
+entries = [{"artifact_id": "furnace_heart", "weight": 1.0}, {"artifact_id": "ashen_needle", "weight": 1.0}, {"artifact_id": "cinder_crown", "weight": 1.0}]

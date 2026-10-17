@@ -9,3 +9,6 @@ display_name = "Echoing Hourglass"
 description = "Every third cast echoes after 0.35 seconds, but cooldowns are 20% longer."
 behavior_key = "echoing_hourglass"
 behavior_parameters = {"cast_interval": 3, "delay": 0.35, "cooldown_mult": 1.2}
+source_tags = ["elite", "treasure"]
+minimum_difficulty = 1
+duplicate_shard_value = 5

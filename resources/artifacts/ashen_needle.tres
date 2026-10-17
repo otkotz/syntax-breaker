@@ -11,3 +11,6 @@ behavior_key = "ashen_needle"
 behavior_parameters = {"bonus_pierce": 1, "trail_damage_mult": 0.2, "trail_radius": 72.0, "trail_duration": 2.0}
 set_id = "covenant_of_embers"
 set_piece_name = "Needle"
+source_tags = ["boss_set"]
+minimum_difficulty = 1
+duplicate_shard_value = 5

@@ -11,3 +11,6 @@ behavior_key = "furnace_heart"
 behavior_parameters = {"direct_hit_mult": 0.8}
 set_id = "covenant_of_embers"
 set_piece_name = "Heart"
+source_tags = ["boss_set"]
+minimum_difficulty = 1
+duplicate_shard_value = 5

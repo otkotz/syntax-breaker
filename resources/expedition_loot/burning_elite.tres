@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="LootTableResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/loot_table_resource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "burning_elite"
+source_tag = "elite"
+drop_chance = 0.35
+entries = [{"artifact_id": "fractured_prism", "weight": 1.0}, {"artifact_id": "echoing_hourglass", "weight": 1.0}]

@@ -11,3 +11,6 @@ behavior_key = "cinder_crown"
 behavior_parameters = {"transfer_count": 1}
 set_id = "covenant_of_embers"
 set_piece_name = "Crown"
+source_tags = ["boss_set"]
+minimum_difficulty = 1
+duplicate_shard_value = 5
