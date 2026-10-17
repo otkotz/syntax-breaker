@@ -52,7 +52,8 @@ func unequip_artifact(slot: int) -> bool:
 	return false
 
 func has_saved_session() -> bool:
-	return FileAccess.file_exists(session_path)
+	return FileAccess.file_exists(session_path) or FileAccess.file_exists(session_path + ".bak") \
+		or FileAccess.file_exists(session_path + ".tmp")
 
 func start_expedition(seed_value: int, region_id: String) -> bool:
 	if profile == null or not profile.unlocked_regions.has(region_id):

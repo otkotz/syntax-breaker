@@ -337,10 +337,10 @@ func apply_dot(dot_type: String, damage_per_tick: float, duration: float, tick_i
 		queue_redraw()
 
 func apply_dot_stack(dot_type: String, damage_per_tick: float, duration: float, tick_interval: float,
-		source: SkillResource = null, stack_id: String = "", limit: int = 1) -> void:
+		source: SkillResource = null, stack_id: String = "", limit: int = 1, artifact_generation: int = 0) -> void:
 	var stacks: Array = _dots.get(dot_type, [])
 	stacks.append({"damage": damage_per_tick, "remaining": duration, "interval": tick_interval,
-		"timer": 0.0, "source": source, "stack_id": stack_id})
+		"timer": 0.0, "source": source, "stack_id": stack_id, "artifact_generation": artifact_generation})
 	while stacks.size() > maxi(1, limit): stacks.pop_front()
 	_dots[dot_type] = stacks
 	queue_redraw()

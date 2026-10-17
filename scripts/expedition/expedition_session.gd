@@ -24,7 +24,7 @@ static func create(seed_value: int, region_id: String, artifact_ids: Array[Strin
 	result.layout = DungeonGenerator.generate(seed_value, region_id)
 	result.current_room_id = result.layout.start_room_id
 	result.completed_room_ids = [result.layout.start_room_id]
-	result.artifact_loadout_ids = ArtifactLoadout.normalize(ArtifactCatalog.all_ids(), artifact_ids)
+	result.artifact_loadout_ids = ArtifactLoadout.normalize_snapshot(artifact_ids)
 	result._sync_layout()
 	return result
 

@@ -34,6 +34,8 @@ func _ready() -> void:
 	future_slots["artifact_loadout_ids"] = ["future_artifact", "", "", ""]
 	var future_session := ExpeditionSession.from_dict(future_slots)
 	check(future_session != null and future_session.artifact_loadout_ids[0] == "future_artifact", "Unknown artifact id survives session roundtrip")
+	var future_created := ExpeditionSession.create(8, "burning_grounds", ["future_artifact", "", "", ""])
+	check(future_created.artifact_loadout_ids[0] == "future_artifact", "Unknown artifact id survives new-session snapshot")
 
 	var clamped := ExpeditionSession.create(7, "burning_grounds")
 	check(clamped.enter_room("room_1"), "Clamp fixture enters room")
@@ -72,6 +74,11 @@ func _ready() -> void:
 	check(ExpeditionManager.load_session(), "Session checkpoint loads")
 	check(ExpeditionManager.session.current_hp == 61.0, "Manager roundtrip preserves health")
 	check(ExpeditionManager.session.artifact_loadout_ids == ["fractured_prism", "furnace_heart", "", ""], "Manager roundtrip preserves frozen artifacts")
+	ExpeditionManager.session = null
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(ExpeditionManager.session_path),
+		ProjectSettings.globalize_path(ExpeditionManager.session_path + ".bak"))
+	check(ExpeditionManager.has_saved_session(), "Recoverable backup keeps session and loadout locked")
+	check(ExpeditionManager.load_session(), "Session loads from recoverable backup")
 
 	_cleanup_files()
 	print(JSON.stringify({"failures": failures, "available": session.get_available_room_ids()}))
@@ -83,6 +90,7 @@ func _cleanup_files() -> void:
 		ExpeditionManager.profile_path + ".tmp",
 		ExpeditionManager.session_path,
 		ExpeditionManager.session_path + ".tmp",
+		ExpeditionManager.session_path + ".bak",
 	]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

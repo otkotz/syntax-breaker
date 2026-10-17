@@ -186,11 +186,13 @@ func _on_body_entered(body: Node2D) -> void:
 	if _hit_targets.has(body):
 		return
 	_hit_targets.append(body)
+	var pre_hit_burn_count: int = body.get_dot_stacks("burn").size() if body.has_method("get_dot_stacks") else 0
 	resolve_skill_hit(skill_instance, body, self, damage)
 	if artifact_hooks != null and artifact_hooks.active:
 		artifact_hooks.emit_event(&"projectile_hit", {"projectile": self, "skill": skill_instance, "target": body,
 			"damage": damage, "world_position": body.global_position, "origin_flags": artifact_origin_flags,
-			"generation": artifact_generation, "spawn_fragment": artifact_spawn_fragment})
+			"generation": artifact_generation, "pre_hit_burn_count": pre_hit_burn_count,
+			"spawn_fragment": artifact_spawn_fragment})
 	if get_meta("chain_redirected", false):
 		remove_meta("chain_redirected")
 	elif pierce_remaining <= 0:

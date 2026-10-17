@@ -14,7 +14,9 @@ class FracturedPrismBehavior extends ArtifactBehavior:
 		var damage := float(context.get("damage", 0.0)) * float(parameters.get("fragment_damage_mult", 0.55))
 		for index in int(parameters.get("fragment_count", 2)):
 			spawn.call({"damage": damage, "angle_offset": -0.22 if index == 0 else 0.22,
-				"origin_flags": ["fractured_prism"], "generation": int(context.get("generation", 0)) + 1})
+				"origin_flags": ["fractured_prism", "secondary_artifact_projectile"],
+				"generation": int(context.get("generation", 0)) + 1,
+				"world_position": context.get("world_position", Vector2.ZERO)})
 		runtime.trigger("fractured_prism", context.get("world_position", Vector2.ZERO))
 
 class EchoingHourglassBehavior extends ArtifactBehavior:

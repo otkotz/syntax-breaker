@@ -10,6 +10,9 @@ var _active_totems: Array[SkillTotem] = []
 var _active_mines: Array[SkillMine] = []
 var artifact_hooks: ArtifactCombatHooks
 var _last_cast_projectiles: Array[Node2D] = []
+var _last_cast_direction := Vector2.ZERO
+var _last_cast_target: Node2D
+var _last_cast_origin := Vector2.ZERO
 
 const MAX_TOTEMS := 2
 const MAX_MINES := 5
@@ -41,11 +44,15 @@ func _physics_process(delta: float) -> void:
 		_cooldown_timers[i] -= delta
 		if _cooldown_timers[i] <= 0.0:
 			_last_cast_projectiles.clear()
+			_last_cast_direction = Vector2.ZERO
+			_last_cast_target = null
+			_last_cast_origin = global_position
 			if _try_cast(skill_instances[i]):
 				if artifact_hooks != null and artifact_hooks.active:
 					artifact_hooks.emit_event(&"skill_cast", {"skill": skill_instances[i], "player": get_parent(),
 						"projectiles": _last_cast_projectiles.duplicate(), "world_position": global_position,
-						"spawn_echo": _spawn_artifact_echo.bind(skill_instances[i])})
+						"spawn_echo": _spawn_artifact_echo.bind(skill_instances[i], _last_cast_direction,
+							_last_cast_target, _last_cast_origin)})
 				var tempo_mult := EngineTracker.get_tempo_cooldown_mult()
 				_cooldown_timers[i] = skill_instances[i].computed_stats.get("cooldown", 1.0) * cd_mult * tempo_mult
 				EngineTracker.on_cast(skill_instances[i].base.id)
@@ -131,7 +138,7 @@ func _schedule_echoes(si: SkillInstance, direction: Vector2, target: Node2D) -> 
 		)
 
 func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
-		origin_flags: Array = [], generation: int = 0) -> void:
+		origin_flags: Array = [], generation: int = 0, spawn_position: Variant = null) -> void:
 	if si.base.scene_path.is_empty():
 		return
 	if si.get_all_tags().has("beam"):
@@ -146,7 +153,7 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 
 	var projectile := pool.get_instance()
 	RunManager.record_challenge_cast(false)
-	projectile.global_position = global_position
+	projectile.global_position = spawn_position if spawn_position is Vector2 else global_position
 
 	if projectile.has_method("initialize"):
 		projectile.initialize(si, direction, pool)
@@ -155,6 +162,9 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 		projectile.artifact_generation = generation
 		projectile.artifact_spawn_fragment = _spawn_artifact_fragment.bind(si, direction)
 		_last_cast_projectiles.append(projectile)
+		_last_cast_direction = direction
+		_last_cast_target = _target
+		_last_cast_origin = projectile.global_position
 
 	if projectile.has_method("set_orbit_parent"):
 		projectile.set_orbit_parent(get_parent())
@@ -167,16 +177,15 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 func set_artifact_hooks(value: ArtifactCombatHooks) -> void:
 	artifact_hooks = value
 
-func _spawn_artifact_echo(si: SkillInstance) -> void:
+func _spawn_artifact_echo(si: SkillInstance, direction: Vector2, target: Node2D, origin: Vector2) -> void:
 	if artifact_hooks == null or not artifact_hooks.active: return
-	var target := Targeting.find_nearest_enemy(global_position, si.computed_stats.get("range", 400.0))
-	var direction := Vector2.ZERO if si.base.has_tag("aoe") or si.base.has_tag("melee") else (global_position.direction_to(Targeting.combat_aim_position(target)) if target else Vector2.RIGHT)
-	_spawn_skill(si, direction, target, ["echoing_hourglass", "secondary_artifact_projectile"], 1)
+	_spawn_skill(si, direction, target if is_instance_valid(target) else null,
+		["echoing_hourglass", "secondary_artifact_projectile"], 1, origin)
 
 func _spawn_artifact_fragment(si: SkillInstance, base_direction: Vector2, data: Dictionary) -> void:
 	var projectile_count_before := _last_cast_projectiles.size()
 	_spawn_skill(si, base_direction.rotated(float(data.get("angle_offset", 0.0))), null,
-		data.get("origin_flags", []), int(data.get("generation", 0)))
+		data.get("origin_flags", []), int(data.get("generation", 0)), data.get("world_position"))
 	if _last_cast_projectiles.size() <= projectile_count_before: return
 	var projectile: Node2D = _last_cast_projectiles.back()
 	projectile.damage = float(data.get("damage", projectile.damage))

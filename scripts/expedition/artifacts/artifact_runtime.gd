@@ -63,8 +63,21 @@ func _on_combat_event(event_name: StringName, context: Dictionary) -> void:
 
 func _on_enemy_killed(enemy: Node2D, killer_skill: Resource) -> void:
 	if not active: return
+	var generation := int(enemy.get_meta("artifact_kill_generation", 0)) if is_instance_valid(enemy) else 0
+	var inherited_burns: Array = enemy.get_meta("artifact_kill_burns", []) if is_instance_valid(enemy) else []
+	if inherited_burns.is_empty() and is_instance_valid(enemy) and enemy.has_method("get_dot_stacks"):
+		inherited_burns = enemy.get_dot_stacks("burn")
+		for burn: Dictionary in inherited_burns:
+			generation = maxi(generation, int(burn.get("artifact_generation", 0)))
 	hooks.emit_event(&"enemy_killed", {"target": enemy, "skill_resource": killer_skill,
-		"world_position": enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO})
+		"world_position": enemy.global_position if is_instance_valid(enemy) else Vector2.ZERO,
+		"generation": generation, "burns": inherited_burns})
+
+func burn_stack_limit() -> int:
+	for behavior: ArtifactBehavior in behaviors:
+		if behavior.artifact_id == "covenant_of_embers_2":
+			return int(behavior.parameters.get("stack_limit", 5))
+	return 1
 
 func trigger(artifact_id: String, world_position: Vector2 = Vector2.ZERO) -> void:
 	if active: artifact_triggered.emit(artifact_id, world_position)

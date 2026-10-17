@@ -15,9 +15,7 @@ class FurnaceHeartBehavior extends ArtifactBehavior:
 		if skill == null or target == null or not skill.get_all_tags().has("fire") or not target.has_method("apply_dot_stack"): return
 		var current: Array = target.get_dot_stacks("burn")
 		context["pre_burn_count"] = current.size()
-		var limit := 1
-		for behavior: ArtifactBehavior in runtime.behaviors:
-			if behavior.artifact_id == "covenant_of_embers_2": limit = int(behavior.parameters.get("stack_limit", 5))
+		var limit := runtime.burn_stack_limit()
 		target.apply_dot_stack("burn", float(context.get("damage", 0.0)) * 0.3, 3.0, 0.5,
 			skill.base, "furnace-%s" % context.get("event_id", 0), limit)
 		runtime.trigger("furnace_heart", context.get("world_position", Vector2.ZERO))
@@ -34,7 +32,7 @@ class AshenNeedleBehavior extends ArtifactBehavior:
 		var projectile: Node2D = context.get("projectile")
 		if target == null or projectile == null or not target.has_method("get_dot_stacks"): return
 		if projectile.artifact_origin_flags.has("ashen_needle"): return
-		if target.get_dot_stacks("burn").is_empty(): return
+		if int(context.get("pre_hit_burn_count", target.get_dot_stacks("burn").size())) <= 0: return
 		projectile.pierce_remaining += int(parameters.get("bonus_pierce", 1))
 		if not projectile.artifact_origin_flags.has("ashen_needle"):
 			projectile.artifact_origin_flags.append("ashen_needle")
@@ -45,7 +43,8 @@ class AshenNeedleBehavior extends ArtifactBehavior:
 			if enemy != target and enemy.has_method("apply_dot_stack"):
 				enemy.apply_dot_stack("burn", trail_damage, float(parameters.get("trail_duration", 2.0)), 0.5,
 					context.get("skill").base if context.get("skill") != null else null,
-					"needle-%s" % context.get("event_id", 0), 5)
+					"needle-%s" % context.get("event_id", 0), runtime.burn_stack_limit(),
+					int(context.get("generation", 0)) + 1)
 		runtime.trigger("ashen_needle", context.get("world_position", Vector2.ZERO))
 
 class CinderCrownBehavior extends ArtifactBehavior:
@@ -53,14 +52,15 @@ class CinderCrownBehavior extends ArtifactBehavior:
 		if event != &"enemy_killed" or int(context.get("generation", 0)) >= 2: return
 		var dead: Node2D = context.get("target")
 		if dead == null or not dead.has_method("get_dot_stacks"): return
-		var burns: Array = dead.get_dot_stacks("burn")
+		var burns: Array = context.get("burns", dead.get_dot_stacks("burn"))
 		if burns.is_empty(): return
 		burns.sort_custom(func(a: Dictionary, b: Dictionary): return float(a.damage) > float(b.damage))
 		for enemy: Node2D in Targeting.find_enemies_in_range(dead.global_position, 400.0, 8):
 			if enemy != dead and enemy.has_method("apply_dot_stack"):
 				var burn: Dictionary = burns[0]
 				enemy.apply_dot_stack("burn", burn.damage, burn.remaining, burn.interval, burn.source,
-					"cinder-%s" % context.get("event_id", 0), 5)
+					"cinder-%s" % context.get("event_id", 0), runtime.burn_stack_limit(),
+					int(context.get("generation", 0)) + 1)
 				runtime.trigger("cinder_crown", enemy.global_position)
 				break
 
@@ -70,7 +70,7 @@ class KindlingEngineBehavior extends ArtifactBehavior:
 class ChainConflagrationBehavior extends ArtifactBehavior:
 	var processed: Dictionary = {}
 	func handle(event: StringName, context: Dictionary) -> void:
-		if event != &"projectile_hit" or int(context.get("pre_burn_count", 0)) < int(parameters.get("stack_limit", 5)): return
+		if event != &"projectile_hit" or int(context.get("pre_hit_burn_count", context.get("pre_burn_count", 0))) < int(parameters.get("stack_limit", 5)): return
 		if int(context.get("generation", 0)) > int(parameters.get("max_generations", 2)): return
 		var event_id: Variant = context.get("event_id")
 		if processed.has(event_id): return
@@ -83,7 +83,11 @@ class ChainConflagrationBehavior extends ArtifactBehavior:
 		var damage := 0.0
 		for burn: Dictionary in burns:
 			damage += float(burn.damage) * maxf(1.0, float(burn.remaining) / maxf(float(burn.interval), 0.01))
+		target.set_meta("artifact_kill_burns", burns)
+		target.set_meta("artifact_kill_generation", int(context.get("generation", 0)) + 1)
 		_apply_explosion_damage(target, damage, skill)
+		target.remove_meta("artifact_kill_burns")
+		target.remove_meta("artifact_kill_generation")
 		for enemy: Node2D in Targeting.find_enemies_in_range(target.global_position,
 				float(parameters.get("explosion_radius", 180.0)), 12):
 			if enemy != target:
