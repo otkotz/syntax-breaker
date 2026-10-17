@@ -65,8 +65,20 @@ func run_checks() -> void:
 		maxed.set_evolution(EvolutionData.get_for_skill(skill_id).id, 3)
 		maxed_skills.append(maxed)
 	var fallback := EvolutionData.roll_offers(maxed_skills, 2, rng)
-	check(fallback.size() == 3 and fallback.all(func(offer): return offer.type in ["support", "support_slot"]),
-		"Exhausted evolution catalog returns legal fallback offers")
+	check(fallback.size() == 3 and fallback.all(func(offer): return offer.type == "kernel_fork"),
+		"Max-tier skills receive rule-changing Kernel Fork offers")
+	check(fallback.all(func(offer): return MutationData.is_terminal(offer.mutation)),
+		"Every Kernel Fork comes from the capped terminal mutation pool")
+	var fork_picker := CompilationPicker.new()
+	add_child(fork_picker)
+	fork_picker.setup(maxed_skills, CompilationTerminalScript.Difficulty.KERNEL_BREACH, rng)
+	var fork_buttons := find_buttons(fork_picker)
+	var fork_skill_index := int(fallback[0].get("skill_index", 0))
+	var fork_count_before := maxed_skills[fork_skill_index].mutations.size()
+	fork_buttons[0].pressed.emit()
+	check(maxed_skills.any(func(skill: SkillInstance): return skill.mutations.size() > fork_count_before),
+		"Choosing a Kernel Fork permanently mutates one max-tier skill")
+	await get_tree().process_frame
 
 	var terminal := CompilationTerminalScript.new()
 	add_child(terminal)
@@ -147,9 +159,13 @@ func run_checks() -> void:
 	check(offers.size() == 3, "Terminal offers three compatible mutations")
 	for mutation: Dictionary in offers:
 		check(MutationData.can_apply(mutation, fireball), "Every terminal mutation fits an owned skill")
-		for key: String in ["damage_mult", "area_mult", "range_mult", "speed_mult"]:
-			check(not mutation.get("stats", {}).has(key) or float(mutation.stats[key]) >= 1.0,
-				"Terminal mutations contain no harmful stat tradeoffs")
+		var stats: Dictionary = mutation.get("stats", {})
+		var has_tradeoff := float(stats.get("damage_mult", 1.0)) < 1.0 \
+			or float(stats.get("area_mult", 1.0)) < 1.0 \
+			or float(stats.get("range_mult", 1.0)) < 1.0 \
+			or float(stats.get("speed_mult", 1.0)) < 1.0 \
+			or float(stats.get("cooldown_mult", 1.0)) > 1.0
+		check(has_tradeoff, "Every Kernel Fork carries a visible mechanical tradeoff")
 
 	var picker := CompilationPicker.new()
 	add_child(picker)

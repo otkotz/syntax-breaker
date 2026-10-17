@@ -113,6 +113,24 @@ static func roll_offers(skills: Array[SkillInstance], difficulty: int, rng: Rand
 			"offered_tier": offered_tier, "name": data.name,
 			"icon_path": data.icon_path,
 			"description": "Upgrade %s to tier %d" % [skill.base.name, offered_tier]})
+	var used_forks: Array[String] = []
+	for skill_index in skills.size():
+		if offers.size() >= 3:
+			break
+		var skill: SkillInstance = skills[skill_index]
+		if skill.evolution_tier < 3 or skill.mutations.any(func(mutation: Dictionary): return MutationData.is_terminal(mutation)):
+			continue
+		var excluded: Array = used_forks.duplicate()
+		for mutation: Dictionary in skill.mutations:
+			excluded.append(str(mutation.get("id", "")))
+		var forks := MutationData.roll_terminal_mutations(1, excluded, [skill])
+		if forks.is_empty():
+			continue
+		var fork: Dictionary = forks[0]
+		used_forks.append(str(fork.id))
+		offers.append({"type": "kernel_fork", "skill_index": skill_index,
+			"mutation": fork, "name": fork.name, "icon_path": fork.icon_path,
+			"description": "%s — permanent power with a tradeoff" % fork.desc})
 	while offers.size() < 3:
 		var fallback_index := offers.size() % maxi(1, skills.size())
 		offers.append({"type": "support_slot", "skill_index": fallback_index,

@@ -63,7 +63,12 @@ func _build_offer_card(offer: Dictionary, skills: Array[SkillInstance]) -> Butto
 	heading.mouse_filter = MOUSE_FILTER_IGNORE
 	copy.add_child(heading)
 	var tier := Label.new()
-	tier.text = format_tier_transition(int(offer.get("current_tier", 0)), int(offer.get("offered_tier", 0))) if offer.get("type") == "evolution" else "EXTRA SUPPORT SLOT"
+	if offer.get("type") == "evolution":
+		tier.text = format_tier_transition(int(offer.get("current_tier", 0)), int(offer.get("offered_tier", 0)))
+	elif offer.get("type") == "kernel_fork":
+		tier.text = "KERNEL FORK — POWER + TRADEOFF"
+	else:
+		tier.text = "EXTRA SUPPORT SLOT"
 	tier.add_theme_font_size_override("font_size", 18)
 	tier.add_theme_color_override("font_color", UITheme.C_RARITY_LEGENDARY)
 	tier.mouse_filter = MOUSE_FILTER_IGNORE
@@ -89,6 +94,11 @@ func _select_offer(offer: Dictionary, skills: Array[SkillInstance]) -> void:
 			return
 	elif offer.type == "support_slot":
 		skill.grant_support_slot()
+	elif offer.type == "kernel_fork":
+		if skill.mutations.any(func(mutation: Dictionary): return MutationData.is_terminal(mutation)):
+			return
+		skill.mutations.append((offer.mutation as Dictionary).duplicate(true))
+		skill.recompute(RunManager.owned_passives)
 	else:
 		return
 	_finish(offer)

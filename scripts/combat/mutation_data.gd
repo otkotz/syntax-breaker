@@ -89,23 +89,26 @@ const POOL := [
 ]
 
 const TERMINAL_POOL := [
-	{"id": "fork_bomb", "name": "Fork Bomb", "desc": "+4 projectiles. Every cast floods the arena.",
-		"stats": {"projectile_count": 4}, "terminal": true},
-	{"id": "zero_latency", "name": "Zero Latency", "desc": "Cooldowns are cut by 55%.",
-		"stats": {"cooldown_mult": 0.45}, "terminal": true},
-	{"id": "stack_overflow", "name": "Stack Overflow", "desc": "+150% damage and +80% area.",
-		"stats": {"damage_mult": 2.5, "area_mult": 1.8}, "terminal": true},
-	{"id": "packet_storm", "name": "Packet Storm", "desc": "+6 pierce and +40% projectile speed.",
-		"stats": {"pierce": 6, "speed_mult": 1.4}, "terminal": true},
-	{"id": "memory_leak", "name": "Memory Leak", "desc": "Kills erupt for full damage across a huge area.",
-		"stats": {}, "special": "terminal_explosive", "terminal": true},
-	{"id": "recursive_call", "name": "Recursive Call", "desc": "Kills recursively strike up to three nearby enemies.",
-		"stats": {}, "special": "terminal_recursive", "terminal": true},
-	{"id": "multithreading", "name": "Multithreading", "desc": "+2 projectiles and 30% faster casting.",
-		"stats": {"projectile_count": 2, "cooldown_mult": 0.7}, "terminal": true},
+	{"id": "fork_bomb", "name": "Fork Bomb", "desc": "+4 projectiles, but each deals 30% less damage.",
+		"stats": {"projectile_count": 4, "damage_mult": 0.7}, "terminal": true},
+	{"id": "zero_latency", "name": "Zero Latency", "desc": "Cooldowns are cut by 55%, but damage falls by 35%.",
+		"stats": {"cooldown_mult": 0.45, "damage_mult": 0.65}, "terminal": true},
+	{"id": "stack_overflow", "name": "Stack Overflow", "desc": "+120% damage and +60% area, but 45% slower casting.",
+		"stats": {"damage_mult": 2.2, "area_mult": 1.6, "cooldown_mult": 1.45}, "terminal": true},
+	{"id": "packet_storm", "name": "Packet Storm", "desc": "+6 pierce and +40% speed, but 20% less damage.",
+		"stats": {"pierce": 6, "speed_mult": 1.4, "damage_mult": 0.8}, "terminal": true},
+	{"id": "memory_leak", "name": "Memory Leak", "desc": "Kills erupt across a huge area, but casting is 25% slower.",
+		"stats": {"cooldown_mult": 1.25}, "special": "terminal_explosive", "terminal": true},
+	{"id": "recursive_call", "name": "Recursive Call", "desc": "Kills recursively strike three enemies, but direct damage falls by 20%.",
+		"stats": {"damage_mult": 0.8}, "special": "terminal_recursive", "terminal": true},
+	{"id": "multithreading", "name": "Multithreading", "desc": "+2 projectiles and 30% faster casting, but 28% less damage.",
+		"stats": {"projectile_count": 2, "cooldown_mult": 0.7, "damage_mult": 0.72}, "terminal": true},
 	{"id": "kernel_panic", "name": "Kernel Panic", "desc": "+100% critical chance and +100% critical damage.",
-		"stats": {"crit_chance_add": 1.0, "crit_mult": 1.0}, "terminal": true},
+		"stats": {"crit_chance_add": 1.0, "crit_mult": 1.0, "cooldown_mult": 1.35}, "terminal": true},
 ]
+
+static func is_terminal(mutation: Dictionary) -> bool:
+	return bool(mutation.get("terminal", false))
 
 static func can_apply(mutation: Dictionary, target: Variant) -> bool:
 	var skill: SkillResource = target.base if target is SkillInstance else target as SkillResource
