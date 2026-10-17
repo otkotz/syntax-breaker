@@ -49,6 +49,16 @@ func run_checks() -> void:
 	check(definitions[0].enemy_count == 24 and definitions[0].outside_grace == 3.0, "Compile contract")
 	check(definitions[1].enemy_count == 32 and definitions[1].outside_grace == 2.0, "Overclock contract")
 	check(definitions[2].enemy_count == 40 and definitions[2].outside_grace == 1.0, "Kernel contract")
+	var early_contract := CompilationTerminalScript.scaled_encounter(CompilationTerminalScript.Difficulty.COMPILE, 1, 1.0, 0)
+	check(early_contract.enemy_count <= 14 and early_contract.outside_grace >= 4.0,
+		"Early Compile contract is survivable for a starter build")
+	check(float(early_contract.hp_mult) <= 0.9 and not early_contract.miniboss,
+		"Early terminal does not create a hidden stat wall or miniboss")
+	var late_contract := CompilationTerminalScript.scaled_encounter(CompilationTerminalScript.Difficulty.KERNEL_BREACH, 9, 18.0, 4)
+	check(late_contract.enemy_count >= 36 and late_contract.elite_count >= 4 and late_contract.miniboss,
+		"Late high-power Kernel contract adds composition pressure")
+	check(float(late_contract.hp_mult) < 1.75 and float(late_contract.damage_mult) < 1.6,
+		"Adaptive terminal scaling remains bucketed instead of matching player power one-to-one")
 	var maxed_skills: Array[SkillInstance] = []
 	for skill_id: String in EvolutionData.BY_SKILL:
 		var maxed := SkillInstance.new(load("res://resources/skills/%s.tres" % skill_id))
@@ -119,6 +129,14 @@ func run_checks() -> void:
 	check(spawned == 12 and marked.size() == 12, "Terminal wave spawns and marks every requested enemy")
 	check(spawner._enemies_alive == 12 and spawner._spawned_count == 0,
 		"Terminal enemies block encounter completion without consuming its normal budget")
+	var scaled_spawned := spawner.spawn_compilation_wave(Vector2(100, 100), {
+		"enemy_count": 1, "elite_count": 0, "miniboss": false,
+		"hp_mult": 0.5, "damage_mult": 0.5})
+	var scaled_enemy: EnemyBase = spawner.get_children().filter(
+		func(node: Node): return node is EnemyBase and node.global_position.distance_to(Vector2(310, 100)) < 5.0
+	).front() if scaled_spawned == 1 else null
+	check(scaled_enemy != null and scaled_enemy.max_hp <= 3.1 and scaled_enemy.contact_damage <= 1.6,
+		"Terminal-only scaling changes its enemies without changing the normal stage curve")
 	spawner.clear_transients()
 	spawner.queue_free()
 	target.queue_free()

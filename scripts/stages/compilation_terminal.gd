@@ -1,6 +1,8 @@
 class_name CompilationTerminal
 extends Node2D
 
+const RunPowerData = preload("res://scripts/combat/run_power.gd")
+
 enum State { READY, ACTIVE, COMPLETED, FAILED }
 enum Difficulty { COMPILE, OVERCLOCK, KERNEL_BREACH }
 
@@ -33,6 +35,21 @@ var difficulty: Difficulty = Difficulty.COMPILE
 var zone_radius := ZONE_RADIUS
 var encounter_override: Dictionary = {}
 
+static func scaled_encounter(selected_difficulty: Difficulty, depth: int, power: float, heat: int = 0) -> Dictionary:
+	var definition: Dictionary = ENCOUNTERS[clampi(int(selected_difficulty), 0, ENCOUNTERS.size() - 1)].duplicate(true)
+	var power_band := clampi(floori(maxf(0.0, power) / 4.0), 0, 5)
+	var depth_band := clampi((maxi(1, depth) - 1) / 2, 0, 4)
+	var heat_band := clampi(heat / 2, 0, 3)
+	var base_counts := [10, 14, 18]
+	definition.enemy_count = base_counts[int(selected_difficulty)] + depth_band * 3 + power_band * 2 + heat_band * 2
+	definition.elite_count = int(selected_difficulty) + int(depth >= 5) + int(power_band >= 3) + heat_band
+	definition.miniboss = selected_difficulty == Difficulty.KERNEL_BREACH and depth >= 5
+	definition.zone_radius = [300.0, 260.0, 220.0][int(selected_difficulty)] - power_band * 6.0 - heat_band * 4.0
+	definition.outside_grace = maxf(1.5, [5.0, 4.0, 3.0][int(selected_difficulty)] - depth_band * 0.25)
+	definition.hp_mult = minf(1.7, 0.78 + depth_band * 0.10 + power_band * 0.08 + heat_band * 0.06)
+	definition.damage_mult = minf(1.55, 0.72 + depth_band * 0.08 + power_band * 0.06 + heat_band * 0.05)
+	return definition
+
 static func roll_difficulty(rng: RandomNumberGenerator) -> Difficulty:
 	return rng.randi_range(0, Difficulty.size() - 1)
 
@@ -41,12 +58,14 @@ func get_encounter_definition() -> Dictionary:
 		return encounter_override.duplicate(true)
 	return ENCOUNTERS[difficulty].duplicate(true)
 
-func setup(player: Node2D, spawner: Spawner) -> void:
+func setup(player: Node2D, spawner: Spawner, skills: Array[SkillInstance] = []) -> void:
 	_player = player
 	_spawner = spawner
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	difficulty = roll_difficulty(rng)
+	if encounter_override.is_empty():
+		encounter_override = scaled_encounter(difficulty, maxi(1, RunManager.current_stage), RunPowerData.score(skills), 0)
 	var definition := get_encounter_definition()
 	wave_size = definition.enemy_count
 	outside_grace = definition.outside_grace

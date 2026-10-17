@@ -127,7 +127,7 @@ func _setup_compilation_terminal() -> void:
 	add_child(_compilation_terminal)
 	_compilation_terminal.wave_completed.connect(_open_compilation, CONNECT_ONE_SHOT)
 	_compilation_terminal.status_changed.connect(_show_terminal_status)
-	_compilation_terminal.setup(player, spawner)
+	_compilation_terminal.setup(player, spawner, (player.get_node("SkillCaster") as SkillCaster).skill_instances)
 	_terminal_status = Label.new()
 	_terminal_status.position = Vector2(180, 458)
 	_terminal_status.size = Vector2(720, 72)

@@ -317,7 +317,9 @@ func _get_scene_for_role(role: String) -> PackedScene:
 			return split_fragment_scene
 	return melee_scene
 
-func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = true, cleansing: bool = false) -> EnemyBase:
+func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = true,
+		cleansing: bool = false, encounter_hp_mult: float = 1.0,
+		encounter_damage_mult: float = 1.0) -> EnemyBase:
 	if ROLE_LIMITS.has(role) and get_active_role_count(role) >= int(ROLE_LIMITS[role]):
 		if role == "split_fragment":
 			return
@@ -349,9 +351,9 @@ func _spawn_enemy_at(pos: Vector2, role: String, counts_toward_budget: bool = tr
 
 	var rs: Dictionary = ROLE_SCALING.get(role, ROLE_SCALING["trash"])
 	enemy.apply_scaling(
-		_hp_mult * rs["hp"],
+		_hp_mult * rs["hp"] * encounter_hp_mult,
 		_speed_mult * rs["speed"],
-		_damage_mult * rs["damage"],
+		_damage_mult * rs["damage"] * encounter_damage_mult,
 		_gold_mult * rs["gold"]
 	)
 
@@ -370,21 +372,24 @@ func spawn_compilation_wave(origin: Vector2, encounter: Variant) -> int:
 	var spawned := 0
 	var roles: Array[String] = ["trash", "medium", "ranged", "charger", "tank"]
 	var special_count := int(definition.get("elite_count", 0)) + (1 if definition.get("miniboss", false) else 0)
+	var encounter_hp_mult := float(definition.get("hp_mult", 1.0))
+	var encounter_damage_mult := float(definition.get("damage_mult", 1.0))
 	for i in maxi(0, count - special_count):
 		var angle := TAU * float(i) / float(count)
 		var ring := 210.0 + float((i % 3) * 55)
-		var enemy := _spawn_enemy_at(origin + Vector2.from_angle(angle) * ring, roles[i % roles.size()], false)
+		var enemy := _spawn_enemy_at(origin + Vector2.from_angle(angle) * ring,
+			roles[i % roles.size()], false, false, encounter_hp_mult, encounter_damage_mult)
 		if enemy:
 			enemy.set_meta("compilation_wave", true)
 			spawned += 1
 	for i in int(definition.get("elite_count", 0)):
-		var elite := _spawn_elite()
+		var elite := _spawn_elite(encounter_hp_mult, encounter_damage_mult)
 		if elite:
 			elite.set_meta("compilation_wave", true)
 			spawned += 1
 	if definition.get("miniboss", false):
 		var before := _enemies_alive
-		_spawn_mini_boss()
+		_spawn_mini_boss(encounter_hp_mult, encounter_damage_mult)
 		if _enemies_alive > before:
 			var bosses := get_children().filter(func(node: Node): return node.get_meta("combat_role", "") == "mini_boss")
 			if not bosses.is_empty():
@@ -429,7 +434,7 @@ func _materialize_split_fragments(origin: Vector2, count: int, generation: int, 
 		var offset := Vector2(-24 if i == 0 else 24, 0)
 		_spawn_enemy_at(origin + offset, "split_fragment", false, cleansing)
 
-func _spawn_elite() -> EnemyBase:
+func _spawn_elite(encounter_hp_mult: float = 1.0, encounter_damage_mult: float = 1.0) -> EnemyBase:
 	if not mini_boss_scene:
 		return null
 	var pos := SpawnFormation.random_edge_position(_arena_rect, _player.global_position)
@@ -440,9 +445,9 @@ func _spawn_elite() -> EnemyBase:
 	enemy.initialize(_player)
 	var rs: Dictionary = ROLE_SCALING["elite"]
 	enemy.apply_scaling(
-		_hp_mult * rs["hp"],
+		_hp_mult * rs["hp"] * encounter_hp_mult,
 		_speed_mult * rs["speed"],
-		_damage_mult * rs["damage"],
+		_damage_mult * rs["damage"] * encounter_damage_mult,
 		_gold_mult * rs["gold"]
 	)
 	var affix := enemy.get_node_or_null("EliteAffix")
@@ -456,7 +461,7 @@ func _spawn_elite() -> EnemyBase:
 	RunTelemetry.enemy_spawned("elite")
 	return enemy
 
-func _spawn_mini_boss() -> void:
+func _spawn_mini_boss(encounter_hp_mult: float = 1.0, encounter_damage_mult: float = 1.0) -> void:
 	if not mini_boss_scene:
 		return
 	var boss := mini_boss_scene.instantiate() as EnemyBase
@@ -466,7 +471,8 @@ func _spawn_mini_boss() -> void:
 	boss.global_position = SpawnFormation.random_edge_position(_arena_rect, _player.global_position)
 	boss._arena_rect = _arena_rect
 	boss.initialize(_player)
-	boss.apply_scaling(_hp_mult * 1.5, _speed_mult, _damage_mult * 1.2, _gold_mult * 2.0)
+	boss.apply_scaling(_hp_mult * 1.5 * encounter_hp_mult, _speed_mult,
+		_damage_mult * 1.2 * encounter_damage_mult, _gold_mult * 2.0)
 	_enemies_alive += 1
 	RunTelemetry.enemy_spawned("mini_boss")
 
