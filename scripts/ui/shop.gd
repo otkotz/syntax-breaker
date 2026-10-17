@@ -148,12 +148,30 @@ func _make_stat_upgrade(upgrade_def: Dictionary) -> Dictionary:
 func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
 
+static func reroll_heat_label(rerolls: int) -> String:
+	if rerolls >= 5:
+		return "CRITICAL"
+	if rerolls >= 3:
+		return "HOT"
+	if rerolls >= 1:
+		return "WARM"
+	return "COLD"
+
+static func reroll_heat_color(rerolls: int) -> Color:
+	if rerolls >= 5:
+		return Color(1.0, 0.22, 0.14)
+	if rerolls >= 3:
+		return Color(1.0, 0.62, 0.12)
+	return Color(0.2, 0.85, 1.0)
+
 func _refresh_ui() -> void:
 	_offer_generation += 1
 	gold_label.text = "Gold: %d" % RunManager.gold
 	gold_label.add_theme_color_override("font_color", UITheme.C_SILVER)
-	reroll_button.text = "Reroll (%dg)" % RunManager.reroll_cost
+	reroll_button.text = "Reroll (%dg)  •  HEAT: %s" % [RunManager.reroll_cost, reroll_heat_label(RunManager.reroll_count)]
 	UITheme.style_button(reroll_button, 28)
+	reroll_button.add_theme_color_override("font_color", reroll_heat_color(RunManager.reroll_count))
+	reroll_button.tooltip_text = "Rerolls get more expensive for the rest of this run."
 	UITheme.style_button(manage_button, 28)
 	UITheme.style_button(continue_button, 28)
 

@@ -22,6 +22,8 @@ func run_checks() -> void:
 		reroll_curve.append(RunManager.reroll_cost)
 		RunManager.advance_reroll_cost()
 	check(reroll_curve == [2, 3, 5, 8, 12, 17], "Reroll heat follows the run-wide triangular cost curve")
+	check(Shop.reroll_heat_label(0) == "COLD" and Shop.reroll_heat_label(5) == "CRITICAL",
+		"Shop names reroll escalation as visible heat")
 	var saved_reroll_count: int = RunManager.reroll_count
 	RunManager.save_run([])
 	RunManager.reroll_count = 0

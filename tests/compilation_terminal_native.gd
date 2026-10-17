@@ -65,6 +65,12 @@ func run_checks() -> void:
 		"Early Compile contract is survivable for a starter build")
 	check(float(early_contract.hp_mult) <= 0.9 and not early_contract.miniboss,
 		"Early terminal does not create a hidden stat wall or miniboss")
+	check(CompilationTerminalScript.pressure_color(0.15, 0.0).b > CompilationTerminalScript.pressure_color(0.15, 0.0).r,
+		"Early compilation pressure reads cyan")
+	check(CompilationTerminalScript.pressure_color(0.7, 0.0).r > CompilationTerminalScript.pressure_color(0.7, 0.0).b,
+		"Late compilation pressure reads amber")
+	check(CompilationTerminalScript.pressure_color(0.2, 0.8).r > 0.8,
+		"Signal loss overrides progress with a red danger state")
 	var late_contract := CompilationTerminalScript.scaled_encounter(CompilationTerminalScript.Difficulty.KERNEL_BREACH, 9, 18.0, 4)
 	var cold_late_contract := CompilationTerminalScript.scaled_encounter(CompilationTerminalScript.Difficulty.KERNEL_BREACH, 9, 18.0, 0)
 	check(late_contract.enemy_count >= 36 and late_contract.elite_count >= 4 and late_contract.miniboss,

@@ -67,6 +67,13 @@ static func build_contract_options(depth: int, power: float, heat: int) -> Array
 		options.append(option)
 	return options
 
+static func pressure_color(progress: float, signal_loss: float) -> Color:
+	if signal_loss >= 0.5:
+		return Color(1.0, 0.18, 0.12)
+	if progress >= 0.6:
+		return Color(1.0, 0.62, 0.12)
+	return Color(0.18, 0.86, 1.0)
+
 func get_encounter_definition() -> Dictionary:
 	if not encounter_override.is_empty():
 		return encounter_override.duplicate(true)
@@ -105,7 +112,7 @@ func activate() -> bool:
 			_fail()
 			return false
 	activated.emit(kills_remaining)
-	status_changed.emit("COMPILATION LOCKED — %d HOSTILES" % kills_remaining)
+	status_changed.emit("COMPILATION LOCKED — %d HOSTILES — HEAT %d" % [kills_remaining, RunManager.compiler_heat])
 	return true
 
 func request_contract() -> void:
@@ -146,7 +153,7 @@ func register_wave_kill() -> void:
 	if state != State.ACTIVE:
 		return
 	kills_remaining = maxi(0, kills_remaining - 1)
-	status_changed.emit("COMPILING — %d HOSTILES" % kills_remaining)
+	status_changed.emit("COMPILING — %d HOSTILES — HEAT %d" % [kills_remaining, RunManager.compiler_heat])
 	if kills_remaining == 0:
 		state = State.COMPLETED
 		RunManager.add_compiler_heat(int(difficulty) + 1)
@@ -167,8 +174,18 @@ func _fail() -> void:
 
 func _draw() -> void:
 	if state == State.ACTIVE:
-		draw_circle(Vector2.ZERO, zone_radius, Color(0.2, 0.75, 1.0, 0.055))
-		draw_arc(Vector2.ZERO, zone_radius, 0.0, TAU, 96, Color(0.25, 0.85, 1.0, 0.75), 4.0)
+		var progress := 1.0 - float(kills_remaining) / maxf(1.0, float(wave_size))
+		var signal_loss := outside_time / maxf(0.01, outside_grace)
+		var ring_color := pressure_color(progress, signal_loss)
+		draw_circle(Vector2.ZERO, zone_radius, Color(ring_color, 0.055))
+		var segment_gap := 0.045
+		for segment in 12:
+			var start := TAU * float(segment) / 12.0 + segment_gap
+			var finish := TAU * float(segment + 1) / 12.0 - segment_gap
+			var completed := float(segment + 1) / 12.0 <= progress
+			draw_arc(Vector2.ZERO, zone_radius, start, finish, 8, ring_color if completed else Color(ring_color, 0.28), 5.0)
+		if signal_loss > 0.0:
+			draw_arc(Vector2.ZERO, zone_radius - 9.0, -PI * 0.5, -PI * 0.5 + TAU * minf(1.0, signal_loss), 64, Color(1.0, 0.12, 0.08, 0.95), 7.0)
 	var glow := 0.72 + sin(_pulse * 4.0) * 0.18 if state == State.READY else 0.45
 	var color := Color(0.2, 0.85, 1.0, glow)
 	if state == State.ACTIVE:
