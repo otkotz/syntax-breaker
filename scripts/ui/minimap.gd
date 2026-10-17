@@ -4,6 +4,7 @@ extends Control
 const MAP_SIZE := 240.0
 const PLAYER_COLOR := Color(0.27, 0.53, 1.0)
 const ENEMY_COLOR := Color(1.0, 0.27, 0.27)
+const STRAGGLER_COLOR := Color(1.0, 0.75, 0.12)
 const BOSS_COLOR := Color(0.8, 0.13, 0.13)
 const BG_COLOR := Color(0.03, 0.02, 0.06, 0.7)
 const BORDER_COLOR := Color(0.231, 0.106, 0.439, 0.8)
@@ -39,8 +40,10 @@ func _draw() -> void:
 			continue
 		var pos := _world_to_minimap(enemy.global_position)
 		var is_boss := enemy is MiniBoss
-		var dot_size := 5.0 if is_boss else 3.0
-		draw_rect(Rect2(pos - Vector2(dot_size / 2, dot_size / 2), Vector2(dot_size, dot_size)), BOSS_COLOR if is_boss else ENEMY_COLOR)
+		var is_straggler: bool = enemy.get_meta("straggler", false)
+		var dot_size := 7.0 if is_straggler else (5.0 if is_boss else 3.0)
+		var color := STRAGGLER_COLOR if is_straggler else (BOSS_COLOR if is_boss else ENEMY_COLOR)
+		draw_rect(Rect2(pos - Vector2(dot_size / 2, dot_size / 2), Vector2(dot_size, dot_size)), color)
 
 func _world_to_minimap(world_pos: Vector2) -> Vector2:
 	var ratio := (world_pos - _arena_rect.position) / _arena_rect.size

@@ -188,6 +188,16 @@ func run_checks() -> void:
 	check(spawner.get_active_role_count("charger") == 1, "Death releases active role count")
 	spawner._spawn_enemy_at(Vector2.ZERO, "charger")
 	check(spawner.get_active_role_count("charger") == 2 and pooled.current_hp > 0, "Pooled charger re-enters with reset health/count")
+	var straggler_enemy := spawner._spawn_enemy_at(Vector2(400, 400), "trash", false)
+	var cleanup_speed := straggler_enemy.move_speed
+	spawner._stage_timer = 0.0
+	spawner._enemies_alive = 1
+	spawner._activate_cleanup_pressure()
+	check(straggler_enemy.get_meta("straggler", false), "Last enemy enters cleanup pressure after stage timer")
+	check(straggler_enemy.move_speed > cleanup_speed, "Cleanup pressure pulls the last enemy toward the player faster")
+	check(not straggler_enemy._is_proximity_guard_blocking(), "Cleanup straggler cannot remain protected by a support aura")
+	straggler_enemy.reset()
+	check(not straggler_enemy.has_meta("straggler"), "Pooled enemy clears cleanup pressure state")
 	spawner._spawn_elite()
 	var elite: EnemyBase
 	for child: Node in spawner.get_children():

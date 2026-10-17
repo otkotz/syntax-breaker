@@ -29,6 +29,8 @@ var _facing_right: bool = true
 var _kill_source: SkillResource
 var _contact_cooldown_remaining := 0.0
 var life_generation := 0
+var _straggler_time := 0.0
+var _straggler_damage_mult := 1.0
 
 static var _gremlin_variants: Array = []
 
@@ -186,6 +188,8 @@ func _has_support_guard() -> bool:
 	return false
 
 func _is_proximity_guard_blocking() -> bool:
+	if get_meta("straggler", false):
+		return false
 	if not is_inside_tree():
 		return false
 	var has_guard := false
@@ -331,6 +335,11 @@ func _pick_wander_dir() -> void:
 	_wander_timer = randf_range(1.5, 3.0)
 
 func _process(delta: float) -> void:
+	if get_meta("straggler", false):
+		_straggler_time += delta
+		if _straggler_time >= 3.0 and _straggler_damage_mult < 2.0:
+			_straggler_damage_mult = 2.0
+			queue_redraw()
 	_contact_cooldown_remaining = maxf(0.0, _contact_cooldown_remaining - delta)
 	_hijacked_remaining = maxf(0.0, _hijacked_remaining - delta)
 	if _debugged_remaining > 0.0:
@@ -366,7 +375,7 @@ func take_damage(amount: float, crit: bool = false, source: SkillResource = null
 	if _is_proximity_guard_blocking():
 		_flash_guard_block()
 		return
-	amount *= _debugged_multiplier
+	amount *= _debugged_multiplier * _straggler_damage_mult
 	amount *= EngineTracker.get_deep_freeze_mult(self)
 	var effective := minf(current_hp, amount)
 	RunManager.record_combat_damage(source, effective, amount >= current_hp, category)
@@ -496,12 +505,25 @@ func reset() -> void:
 	_debugged_remaining = 0.0
 	_debugged_multiplier = 1.0
 	_debugged_source = null
+	_straggler_time = 0.0
+	_straggler_damage_mult = 1.0
+	if has_meta("straggler"):
+		remove_meta("straggler")
 	_facing_right = true
 	show()
 	set_process(true)
 	set_physics_process(true)
 	if _sprite:
 		_sprite.flip_h = false
+
+func mark_as_straggler() -> void:
+	if get_meta("straggler", false) or not is_alive():
+		return
+	set_meta("straggler", true)
+	_straggler_time = 0.0
+	_straggler_damage_mult = 1.0
+	move_speed *= 1.75
+	queue_redraw()
 
 static var _cached_consumable_slow: float = 1.0
 static var _consumable_slow_frame: int = -1

@@ -205,9 +205,18 @@ func _process(delta: float) -> void:
 	if can_spawn and _pulse_cooldown <= 0.0 and _enemies_alive <= _spawn_threshold:
 		_spawn_pulse()
 		_pulse_cooldown = MIN_PULSE_COOLDOWN
+	elif not can_spawn and not _is_boss_stage and _enemies_alive <= 3:
+		_activate_cleanup_pressure()
 
 	if not can_spawn and _enemies_alive <= 0 and _pending_split_fragments == 0:
 		_complete_stage()
+
+func _activate_cleanup_pressure() -> void:
+	if _stage_timer > 0.0 or _is_boss_stage:
+		return
+	for child: Node in get_children():
+		if child is EnemyBase and child.visible and child.is_alive():
+			(child as EnemyBase).mark_as_straggler()
 
 func _spawn_pulse() -> void:
 	_pulse_count += 1
