@@ -82,6 +82,16 @@ func load_session() -> bool:
 			return true
 	return false
 
+func settle_victory() -> bool:
+	if profile == null or session == null or session.status != "victory":
+		return false
+	var candidate := ExpeditionRewardSettlement.apply(profile, session.pending_rewards)
+	if not _write_json_atomic(profile_path, candidate.to_dict()):
+		return false
+	profile = candidate
+	clear_active_session()
+	return true
+
 func clear_active_session() -> void:
 	session = null
 	_remove_file(session_path)
