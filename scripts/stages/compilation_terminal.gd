@@ -16,6 +16,7 @@ signal activated(wave_size: int)
 signal wave_completed
 signal terminal_failed
 signal status_changed(text: String)
+signal contract_requested(options: Array[Dictionary])
 
 const ACTIVATION_RADIUS := 72.0
 const ZONE_RADIUS := 260.0
@@ -34,6 +35,8 @@ var _pulse := 0.0
 var difficulty: Difficulty = Difficulty.COMPILE
 var zone_radius := ZONE_RADIUS
 var encounter_override: Dictionary = {}
+var contract_options: Array[Dictionary] = []
+var _contract_request_sent := false
 
 static func scaled_encounter(selected_difficulty: Difficulty, depth: int, power: float, heat: int = 0) -> Dictionary:
 	var definition: Dictionary = ENCOUNTERS[clampi(int(selected_difficulty), 0, ENCOUNTERS.size() - 1)].duplicate(true)
@@ -53,6 +56,17 @@ static func scaled_encounter(selected_difficulty: Difficulty, depth: int, power:
 static func roll_difficulty(rng: RandomNumberGenerator) -> Difficulty:
 	return rng.randi_range(0, Difficulty.size() - 1)
 
+static func build_contract_options(depth: int, power: float, heat: int) -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	var reward_labels := ["FOCUSED", "ENHANCED", "MAXIMUM"]
+	for selected in Difficulty.size():
+		var option := scaled_encounter(selected as Difficulty, depth, power, heat)
+		option["difficulty"] = selected
+		option["heat_gain"] = selected + 1
+		option["reward_label"] = reward_labels[selected]
+		options.append(option)
+	return options
+
 func get_encounter_definition() -> Dictionary:
 	if not encounter_override.is_empty():
 		return encounter_override.duplicate(true)
@@ -61,24 +75,19 @@ func get_encounter_definition() -> Dictionary:
 func setup(player: Node2D, spawner: Spawner, skills: Array[SkillInstance] = []) -> void:
 	_player = player
 	_spawner = spawner
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	difficulty = roll_difficulty(rng)
 	if encounter_override.is_empty():
-		encounter_override = scaled_encounter(difficulty, maxi(1, RunManager.current_stage), RunPowerData.score(skills), RunManager.compiler_heat)
-	var definition := get_encounter_definition()
-	wave_size = definition.enemy_count
-	outside_grace = definition.outside_grace
-	zone_radius = definition.zone_radius
+		contract_options = build_contract_options(maxi(1, RunManager.current_stage), RunPowerData.score(skills), RunManager.compiler_heat)
+	else:
+		_apply_definition(encounter_override)
 	GameBus.enemy_killed.connect(_on_enemy_killed)
-	status_changed.emit("%s — APPROACH TO COMPILE" % definition.name)
+	status_changed.emit("TERMINAL READY — APPROACH TO CHOOSE CONTRACT")
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	_pulse += delta
 	if state == State.READY and is_instance_valid(_player):
 		if global_position.distance_to(_player.global_position) <= ACTIVATION_RADIUS:
-			activate()
+			request_contract()
 	elif state == State.ACTIVE and is_instance_valid(_player):
 		set_player_inside(global_position.distance_to(_player.global_position) <= zone_radius)
 		advance_wave(delta)
@@ -98,6 +107,26 @@ func activate() -> bool:
 	activated.emit(kills_remaining)
 	status_changed.emit("COMPILATION LOCKED — %d HOSTILES" % kills_remaining)
 	return true
+
+func request_contract() -> void:
+	if state != State.READY or _contract_request_sent:
+		return
+	_contract_request_sent = true
+	contract_requested.emit(contract_options.duplicate(true))
+
+func select_contract(selected_difficulty: int) -> bool:
+	if state != State.READY or selected_difficulty < 0 or selected_difficulty >= Difficulty.size():
+		return false
+	difficulty = selected_difficulty as Difficulty
+	if not contract_options.is_empty():
+		encounter_override = contract_options[selected_difficulty].duplicate(true)
+	_apply_definition(get_encounter_definition())
+	return activate()
+
+func _apply_definition(definition: Dictionary) -> void:
+	wave_size = int(definition.get("enemy_count", DEFAULT_WAVE_SIZE))
+	outside_grace = float(definition.get("outside_grace", DEFAULT_OUTSIDE_GRACE))
+	zone_radius = float(definition.get("zone_radius", ZONE_RADIUS))
 
 func set_player_inside(value: bool) -> void:
 	_player_inside = value

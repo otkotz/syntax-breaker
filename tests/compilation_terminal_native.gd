@@ -1,6 +1,7 @@
 extends Node2D
 
 const CompilationTerminalScript = preload("res://scripts/stages/compilation_terminal.gd")
+const TerminalContractPickerScript = preload("res://scripts/ui/terminal_contract_picker.gd")
 const DecisionQueueScript = preload("res://scripts/main/decision_queue.gd")
 
 var failures: Array[String] = []
@@ -72,6 +73,31 @@ func run_checks() -> void:
 		"Adaptive terminal scaling remains bucketed instead of matching player power one-to-one")
 	check(late_contract.enemy_count > cold_late_contract.enemy_count and late_contract.elite_count > cold_late_contract.elite_count,
 		"Compiler heat adds visible composition pressure to future contracts")
+	var contract_options := CompilationTerminalScript.build_contract_options(5, 10.0, 4)
+	check(contract_options.size() == 3, "Approaching a terminal exposes all three contracts")
+	check(contract_options[0].heat_gain == 1 and contract_options[2].heat_gain == 3,
+		"Contract cards disclose their different Heat stakes")
+	var contract_picker := TerminalContractPickerScript.new()
+	add_child(contract_picker)
+	contract_picker.setup(contract_options)
+	check(find_buttons(contract_picker).size() == 3, "Contract picker has exactly three touch targets")
+	contract_picker.queue_free()
+	await get_tree().process_frame
+	var choice_terminal := CompilationTerminalScript.new()
+	add_child(choice_terminal)
+	choice_terminal.contract_options = contract_options
+	var contract_requests := [0]
+	choice_terminal.contract_requested.connect(func(_options: Array[Dictionary]): contract_requests[0] += 1)
+	choice_terminal.request_contract()
+	choice_terminal.request_contract()
+	check(contract_requests[0] == 1, "Standing near a terminal opens the contract choice only once")
+	check(choice_terminal.select_contract(CompilationTerminalScript.Difficulty.OVERCLOCK),
+		"Choosing a contract starts its encounter")
+	check(choice_terminal.difficulty == CompilationTerminalScript.Difficulty.OVERCLOCK
+		and choice_terminal.wave_size == contract_options[1].enemy_count,
+		"Selected contract controls the actual wave")
+	choice_terminal.queue_free()
+	await get_tree().process_frame
 	var maxed_skills: Array[SkillInstance] = []
 	for skill_id: String in EvolutionData.BY_SKILL:
 		var maxed := SkillInstance.new(load("res://resources/skills/%s.tres" % skill_id))

@@ -127,6 +127,7 @@ func _setup_compilation_terminal() -> void:
 	add_child(_compilation_terminal)
 	_compilation_terminal.wave_completed.connect(_open_compilation, CONNECT_ONE_SHOT)
 	_compilation_terminal.status_changed.connect(_show_terminal_status)
+	_compilation_terminal.contract_requested.connect(_open_terminal_contracts)
 	_compilation_terminal.setup(player, spawner, (player.get_node("SkillCaster") as SkillCaster).skill_instances)
 	_terminal_status = Label.new()
 	_terminal_status.position = Vector2(180, 458)
@@ -136,7 +137,22 @@ func _setup_compilation_terminal() -> void:
 	_terminal_status.add_theme_font_size_override("font_size", 26)
 	_terminal_status.add_theme_color_override("font_color", UITheme.C_V_BRIGHT)
 	$CanvasLayer.add_child(_terminal_status)
-	_show_terminal_status("%s — APPROACH THE TERMINAL" % _compilation_terminal.get_encounter_definition().name)
+	_show_terminal_status("TERMINAL READY — APPROACH TO CHOOSE CONTRACT")
+
+func _open_terminal_contracts(options: Array[Dictionary]) -> void:
+	if _compilation_open:
+		return
+	_compilation_open = true
+	Engine.time_scale = 0.08
+	var picker := TerminalContractPicker.new()
+	$CanvasLayer.add_child(picker)
+	picker.setup(options)
+	picker.chosen.connect(_select_terminal_contract, CONNECT_ONE_SHOT)
+
+func _select_terminal_contract(selected_difficulty: int) -> void:
+	_restore_combat_time()
+	if not _compilation_terminal.select_contract(selected_difficulty):
+		_show_terminal_status("CONTRACT REJECTED")
 
 func _show_terminal_status(message: String) -> void:
 	if _terminal_status:
