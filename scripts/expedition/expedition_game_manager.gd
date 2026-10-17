@@ -10,6 +10,7 @@ const FIREBALL := preload("res://resources/skills/fireball.tres")
 const HUB_SCENE := preload("res://scenes/ui/expedition_hub.tscn")
 const MAP_SCENE := preload("res://scenes/ui/expedition_map.tscn")
 const ARTIFACTS_SCENE := preload("res://scenes/ui/expedition_artifacts.tscn")
+const REWARD_OVERLAY_SCENE := preload("res://scenes/ui/expedition_reward_overlay.tscn")
 
 var state: State = State.HUB
 var arena: Arena
@@ -18,6 +19,7 @@ var last_result: String = ""
 var hub: ExpeditionHub
 var map_ui: ExpeditionMapUI
 var artifacts_ui: ExpeditionArtifactsUI
+var reward_overlay: ExpeditionRewardOverlay
 var artifact_runtime: ArtifactRuntime
 var _active_room_id: String = ""
 var _ui_layer: CanvasLayer
@@ -171,28 +173,88 @@ func _on_stage_completed() -> void:
 	if not ExpeditionManager.session.complete_current_room(completion_id, hp, hp_max):
 		return
 	var won := ExpeditionManager.session.status == "victory"
-	if not won and not ExpeditionManager.save_session():
+	var room := ExpeditionManager.session.layout.rooms.get(_active_room_id) as DungeonRoomData
+	var reward_start := ExpeditionManager.session.pending_rewards.size()
+	if not checkpoint_room_rewards(room):
 		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 		var retry_room := ExpeditionManager.session.layout.rooms.get(_active_room_id) as DungeonRoomData
 		_clear_arena()
 		_start_combat(retry_room)
 		return
+	var rewards := _rewards_since(reward_start)
 	_clear_arena()
 	if won:
-		_finish_expedition("victory")
+		if ExpeditionManager.settle_victory():
+			last_result = "victory"
+			open_hub()
+			_show_reward_overlay(rewards)
 	else:
 		show_map()
+		_show_reward_overlay(rewards)
 
 func _complete_non_combat_room() -> void:
 	var session := ExpeditionManager.session
 	var snapshot := session.to_dict().duplicate(true)
 	var completion_id := "%s:%s" % [session.session_id, _active_room_id]
+	var room := session.layout.rooms.get(_active_room_id) as DungeonRoomData
+	var reward_start := session.pending_rewards.size()
 	if session.complete_current_room(completion_id, session.current_hp, session.max_hp) \
-		and not ExpeditionManager.save_session():
+		and not checkpoint_room_rewards(room):
 		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 		show_map()
 		return
 	show_map()
+	_show_reward_overlay(_rewards_since(reward_start))
+
+func checkpoint_room_rewards(room: DungeonRoomData) -> bool:
+	var session := ExpeditionManager.session
+	if session == null or room == null:
+		return false
+	var snapshot := session.to_dict().duplicate(true)
+	var rewards := _roll_rewards_for(room)
+	for reward: Dictionary in rewards:
+		if not session.rolled_reward_ids.has(str(reward.get("reward_id", ""))):
+			session.record_reward(reward)
+	if ExpeditionManager.save_session():
+		return true
+	ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
+	return false
+
+func _roll_rewards_for(room: DungeonRoomData) -> Array[Dictionary]:
+	var session := ExpeditionManager.session
+	var rewards: Array[Dictionary] = []
+	if room.type == DungeonRoomData.Type.ELITE:
+		var id := session.reward_id_for(room.id)
+		if not session.rolled_reward_ids.has(id):
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_elite"), session.seed_value, id, "elite", session.difficulty, ExpeditionManager.profile.pity_counters))
+	elif room.type == DungeonRoomData.Type.TREASURE:
+		var id := session.reward_id_for(room.id)
+		if not session.rolled_reward_ids.has(id):
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_treasure"), session.seed_value, id, "treasure", session.difficulty, ExpeditionManager.profile.pity_counters))
+	elif room.type == DungeonRoomData.Type.BOSS:
+		var set_id := session.reward_id_for(room.id, "boss_set")
+		var chase_id := session.reward_id_for(room.id, "boss_chase")
+		if not session.rolled_reward_ids.has(set_id):
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), session.seed_value, set_id, "boss_set", session.difficulty, ExpeditionManager.profile.pity_counters))
+		if not session.rolled_reward_ids.has(chase_id):
+			rewards.append(ExpeditionLootRoller.roll_chase(session.seed_value, chase_id, session.difficulty, ExpeditionManager.profile.pity_counters))
+	return rewards
+
+func _rewards_since(start: int) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if ExpeditionManager.session == null:
+		return result
+	for index: int in range(start, ExpeditionManager.session.pending_rewards.size()):
+		result.append(ExpeditionManager.session.pending_rewards[index])
+	return result
+
+func _show_reward_overlay(rewards: Array[Dictionary]) -> void:
+	if rewards.is_empty() or _ui_layer == null:
+		return
+	reward_overlay = REWARD_OVERLAY_SCENE.instantiate() as ExpeditionRewardOverlay
+	_ui_layer.add_child(reward_overlay)
+	reward_overlay.setup(rewards)
+	reward_overlay.confirmed.connect(func() -> void: reward_overlay = null, CONNECT_ONE_SHOT)
 
 func _on_player_died() -> void:
 	if state != State.COMBAT or ExpeditionManager.session == null:
@@ -220,6 +282,7 @@ func _clear_ui() -> void:
 	hub = null
 	map_ui = null
 	artifacts_ui = null
+	reward_overlay = null
 	if _ui_layer == null:
 		return
 	for child: Node in _ui_layer.get_children():
