@@ -114,15 +114,24 @@ func run_checks() -> void:
 		"Max-tier skills receive rule-changing Kernel Fork offers")
 	check(fallback.all(func(offer): return MutationData.is_terminal(offer.mutation)),
 		"Every Kernel Fork comes from the capped terminal mutation pool")
-	var fork_picker := CompilationPicker.new()
-	add_child(fork_picker)
-	fork_picker.setup(maxed_skills, CompilationTerminalScript.Difficulty.KERNEL_BREACH, rng)
-	var fork_buttons := find_buttons(fork_picker)
+	for skill: SkillInstance in maxed_skills:
+		var compatible_forks := MutationData.roll_terminal_mutations(1, [], [skill])
+		if not compatible_forks.is_empty():
+			skill.mutations.append(compatible_forks[0])
+	var corrupted := EvolutionData.roll_offers(maxed_skills, 2, rng)
+	check(corrupted.size() == 3 and corrupted.all(func(offer): return offer.type == "corrupted_support"),
+		"Post-Fork terminal rewards become powerful Corrupted Supports instead of empty sockets")
+	check(corrupted.all(func(offer): return MutationData.is_corrupted(offer.mutation)),
+		"Corrupted Support offers remain distinct from Kernel Forks")
+	var corrupted_picker := CompilationPicker.new()
+	add_child(corrupted_picker)
+	corrupted_picker.setup(maxed_skills, CompilationTerminalScript.Difficulty.KERNEL_BREACH, rng)
+	var fork_buttons := find_buttons(corrupted_picker)
 	var fork_skill_index := int(fallback[0].get("skill_index", 0))
 	var fork_count_before := maxed_skills[fork_skill_index].mutations.size()
 	fork_buttons[0].pressed.emit()
 	check(maxed_skills.any(func(skill: SkillInstance): return skill.mutations.size() > fork_count_before),
-		"Choosing a Kernel Fork permanently mutates one max-tier skill")
+		"Choosing a Corrupted Support permanently mutates one post-Fork skill")
 	await get_tree().process_frame
 
 	var terminal := CompilationTerminalScript.new()

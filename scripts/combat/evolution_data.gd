@@ -131,6 +131,23 @@ static func roll_offers(skills: Array[SkillInstance], difficulty: int, rng: Rand
 		offers.append({"type": "kernel_fork", "skill_index": skill_index,
 			"mutation": fork, "name": fork.name, "icon_path": fork.icon_path,
 			"description": "%s — permanent power with a tradeoff" % fork.desc})
+	var used_corrupted: Array[String] = []
+	for skill_index in skills.size():
+		if offers.size() >= 3:
+			break
+		var skill: SkillInstance = skills[skill_index]
+		if skill.evolution_tier < 3 or not skill.mutations.any(func(mutation: Dictionary): return MutationData.is_terminal(mutation)):
+			continue
+		if skill.mutations.any(func(mutation: Dictionary): return MutationData.is_corrupted(mutation)):
+			continue
+		var corrupted := MutationData.roll_corrupted_supports(1, used_corrupted, [skill])
+		if corrupted.is_empty():
+			continue
+		var support: Dictionary = corrupted[0]
+		used_corrupted.append(str(support.id))
+		offers.append({"type": "corrupted_support", "skill_index": skill_index,
+			"mutation": support, "name": support.name, "icon_path": support.icon_path,
+			"description": "%s — unstable permanent support" % support.desc})
 	while offers.size() < 3:
 		var fallback_index := offers.size() % maxi(1, skills.size())
 		offers.append({"type": "support_slot", "skill_index": fallback_index,

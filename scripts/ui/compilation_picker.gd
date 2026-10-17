@@ -67,6 +67,8 @@ func _build_offer_card(offer: Dictionary, skills: Array[SkillInstance]) -> Butto
 		tier.text = format_tier_transition(int(offer.get("current_tier", 0)), int(offer.get("offered_tier", 0)))
 	elif offer.get("type") == "kernel_fork":
 		tier.text = "KERNEL FORK — POWER + TRADEOFF"
+	elif offer.get("type") == "corrupted_support":
+		tier.text = "CORRUPTED SUPPORT — POWER + INSTABILITY"
 	else:
 		tier.text = "EXTRA SUPPORT SLOT"
 	tier.add_theme_font_size_override("font_size", 18)
@@ -96,6 +98,11 @@ func _select_offer(offer: Dictionary, skills: Array[SkillInstance]) -> void:
 		skill.grant_support_slot()
 	elif offer.type == "kernel_fork":
 		if skill.mutations.any(func(mutation: Dictionary): return MutationData.is_terminal(mutation)):
+			return
+		skill.mutations.append((offer.mutation as Dictionary).duplicate(true))
+		skill.recompute(RunManager.owned_passives)
+	elif offer.type == "corrupted_support":
+		if skill.mutations.any(func(mutation: Dictionary): return MutationData.is_corrupted(mutation)):
 			return
 		skill.mutations.append((offer.mutation as Dictionary).duplicate(true))
 		skill.recompute(RunManager.owned_passives)

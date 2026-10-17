@@ -107,15 +107,27 @@ const TERMINAL_POOL := [
 		"stats": {"crit_chance_add": 1.0, "crit_mult": 1.0, "cooldown_mult": 1.35}, "terminal": true},
 ]
 
+const CORRUPTED_SUPPORT_POOL := [
+	{"id": "corrupt_double_buffer", "name": "Double Buffer", "desc": "+2 projectiles and +25% area, but 20% less damage.", "stats": {"projectile_count": 2, "area_mult": 1.25, "damage_mult": 0.8}, "corrupted_support": true},
+	{"id": "corrupt_redline", "name": "Redline Driver", "desc": "35% faster casting, but 25% less area.", "stats": {"cooldown_mult": 0.65, "area_mult": 0.75}, "corrupted_support": true},
+	{"id": "corrupt_glass", "name": "Glass Compiler", "desc": "+75% damage, but 30% slower casting.", "stats": {"damage_mult": 1.75, "cooldown_mult": 1.3}, "corrupted_support": true},
+	{"id": "corrupt_longshot", "name": "Dead Packet", "desc": "+80% range and +25% damage, but 35% less speed.", "stats": {"range_mult": 1.8, "damage_mult": 1.25, "speed_mult": 0.65}, "corrupted_support": true},
+	{"id": "corrupt_wildcard", "name": "Wildcard Socket", "desc": "+45% area and +15% crit chance, but 15% less damage.", "stats": {"area_mult": 1.45, "crit_chance_add": 0.15, "damage_mult": 0.85}, "corrupted_support": true},
+	{"id": "corrupt_needle", "name": "Needle Thread", "desc": "+4 pierce and +35% damage, but 30% less area.", "stats": {"pierce": 4, "damage_mult": 1.35, "area_mult": 0.7}, "corrupted_support": true},
+]
+
 static func is_terminal(mutation: Dictionary) -> bool:
 	return bool(mutation.get("terminal", false))
+
+static func is_corrupted(mutation: Dictionary) -> bool:
+	return bool(mutation.get("corrupted_support", false))
 
 static func can_apply(mutation: Dictionary, target: Variant) -> bool:
 	var skill: SkillResource = target.base if target is SkillInstance else target as SkillResource
 	if skill == null:
 		return false
 	match mutation.get("id", ""):
-		"piercing", "scatter", "fork_bomb", "packet_storm", "multithreading":
+		"piercing", "scatter", "fork_bomb", "packet_storm", "multithreading", "corrupt_double_buffer", "corrupt_needle":
 			# Mines explode as an area and neither pierce nor create projectiles.
 			var tags: Array[String] = target.get_all_tags() if target is SkillInstance else skill.tags
 			return skill.has_tag("projectile") and not (
@@ -150,6 +162,17 @@ static func roll_mutations(count: int, exclude_ids: Array = [], skills: Array[Sk
 static func roll_terminal_mutations(count: int, exclude_ids: Array = [], skills: Array[SkillInstance] = []) -> Array[Dictionary]:
 	var available: Array[Dictionary] = []
 	for mutation: Dictionary in TERMINAL_POOL:
+		if mutation.id in exclude_ids:
+			continue
+		if not skills.is_empty() and not skills.any(func(skill: SkillInstance): return can_apply(mutation, skill)):
+			continue
+		available.append(with_icon(mutation))
+	available.shuffle()
+	return available.slice(0, mini(count, available.size()))
+
+static func roll_corrupted_supports(count: int, exclude_ids: Array = [], skills: Array[SkillInstance] = []) -> Array[Dictionary]:
+	var available: Array[Dictionary] = []
+	for mutation: Dictionary in CORRUPTED_SUPPORT_POOL:
 		if mutation.id in exclude_ids:
 			continue
 		if not skills.is_empty() and not skills.any(func(skill: SkillInstance): return can_apply(mutation, skill)):
