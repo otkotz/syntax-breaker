@@ -8,6 +8,7 @@ func check(value: bool, message: String) -> void:
 
 func _ready() -> void:
 	var session := ExpeditionSession.create(20261014, "burning_grounds", ["fractured_prism", "", "furnace_heart", ""])
+	check(session.difficulty == 1, "New sessions use difficulty one")
 	check(session.artifact_loadout_ids == ["fractured_prism", "", "furnace_heart", ""], "Session captures four artifact slots")
 	check(session.get_available_room_ids().size() == 2, "Start exposes two routes")
 	check(not session.enter_room("missing"), "Unknown room cannot be entered")
@@ -25,7 +26,7 @@ func _ready() -> void:
 	schema_one["schema_version"] = 1
 	schema_one.erase("artifact_loadout_ids")
 	var migrated := ExpeditionSession.from_dict(schema_one)
-	check(migrated != null and migrated.artifact_loadout_ids == ["", "", "", ""], "Schema one session migrates to empty slots")
+	check(migrated != null and migrated.artifact_loadout_ids == ["", "", "", ""] and migrated.difficulty == 1, "Schema one session migrates to empty slots and difficulty one")
 	var corrupt_slots := session.to_dict()
 	corrupt_slots["artifact_loadout_ids"] = ["furnace_heart", null, "furnace_heart", "missing", "ashen_needle"]
 	var normalized := ExpeditionSession.from_dict(corrupt_slots)

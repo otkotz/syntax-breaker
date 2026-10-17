@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -15,6 +15,9 @@ var current_hp: float = 100.0
 var max_hp: float = 100.0
 var status: String = "active"
 var artifact_loadout_ids: Array[String] = ["", "", "", ""]
+var difficulty: int = 1
+var pending_rewards: Array[Dictionary] = []
+var rolled_reward_ids: Array[String] = []
 
 static func create(seed_value: int, region_id: String, artifact_ids: Array[String] = []) -> ExpeditionSession:
 	var result := ExpeditionSession.new()
@@ -64,6 +67,25 @@ func complete_current_room(completion_id: String, hp: float, hp_max: float) -> b
 	_sync_layout()
 	return true
 
+func reward_id_for(room_id: String, suffix: String = "room") -> String:
+	return "%s:%s:%s" % [session_id, room_id, suffix]
+
+func record_reward(reward: Dictionary) -> bool:
+	if not _is_valid_reward(reward):
+		return false
+	var reward_id := str(reward.get("reward_id"))
+	if rolled_reward_ids.has(reward_id):
+		return false
+	pending_rewards.append(reward.duplicate(true))
+	rolled_reward_ids.append(reward_id)
+	return true
+
+func get_reward(reward_id: String) -> Dictionary:
+	for reward: Dictionary in pending_rewards:
+		if reward.get("reward_id", "") == reward_id:
+			return reward.duplicate(true)
+	return {}
+
 func to_dict() -> Dictionary:
 	return {
 		"schema_version": SCHEMA_VERSION,
@@ -78,13 +100,16 @@ func to_dict() -> Dictionary:
 		"max_hp": max_hp,
 		"status": status,
 		"artifact_loadout_ids": artifact_loadout_ids,
+		"difficulty": difficulty,
+		"pending_rewards": pending_rewards,
+		"rolled_reward_ids": rolled_reward_ids,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionSession:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -122,7 +147,15 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	result.max_hp = restored_max_hp
 	result.status = restored_status
 	result.artifact_loadout_ids = ArtifactLoadout.normalize_snapshot(
-		data.get("artifact_loadout_ids", []) if schema_version == SCHEMA_VERSION else [])
+		data.get("artifact_loadout_ids", []) if schema_version >= 2 else [])
+	if schema_version == SCHEMA_VERSION:
+		if typeof(data.get("difficulty")) in [TYPE_INT, TYPE_FLOAT]:
+			result.difficulty = maxi(1, int(data.get("difficulty")))
+		var raw_rewards: Variant = data.get("pending_rewards", [])
+		if raw_rewards is Array:
+			for reward: Variant in raw_rewards:
+				if reward is Dictionary:
+					result.record_reward(reward)
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):
@@ -137,6 +170,20 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 			result.completion_ids.append(completion_id)
 	result._sync_layout()
 	return result
+
+static func _is_valid_reward(reward: Dictionary) -> bool:
+	if not reward.get("reward_id") is String or str(reward.get("reward_id")).is_empty():
+		return false
+	if not reward.get("source_tag", "") is String or not reward.get("artifact_ids", []) is Array:
+		return false
+	for artifact_id: Variant in reward.get("artifact_ids", []):
+		if not artifact_id is String:
+			return false
+	if typeof(reward.get("shard_amount", 0)) not in [TYPE_INT, TYPE_FLOAT]:
+		return false
+	if not reward.get("pity_key", "") is String or not reward.get("chase_awarded", false) is bool:
+		return false
+	return true
 
 func _sync_layout() -> void:
 	if layout == null:
