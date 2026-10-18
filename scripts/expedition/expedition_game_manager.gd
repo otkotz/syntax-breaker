@@ -151,7 +151,7 @@ func _start_combat(room: DungeonRoomData) -> void:
 	arena = ARENA_SCENE.instantiate() as Arena
 	add_child(arena)
 	artifact_runtime = ArtifactRuntime.new()
-	artifact_runtime.setup(session.effective_artifact_ids(), skill_instances, arena)
+	artifact_runtime.setup(session.effective_artifact_ids(), skill_instances, arena, session.tempered_artifact_ids)
 	artifact_runtime.artifact_triggered.connect(_on_artifact_triggered)
 	(arena.player.get_node("SkillCaster") as SkillCaster).set_artifact_hooks(artifact_runtime.hooks)
 	arena.stage_completed.connect(_on_stage_completed, CONNECT_ONE_SHOT)
@@ -229,6 +229,8 @@ func checkpoint_room_rewards(room: DungeonRoomData) -> bool:
 	var rewards := _roll_rewards_for(room)
 	for reward: Dictionary in rewards:
 		if not session.rolled_reward_ids.has(str(reward.get("reward_id", ""))):
+			var artifact_ids: Array = reward.get("artifact_ids", [])
+			reward["is_duplicate"] = not artifact_ids.is_empty() and ExpeditionManager.profile.owned_artifact_ids.has(str(artifact_ids[0]))
 			session.record_reward(reward)
 	if ExpeditionManager.save_session():
 		return true

@@ -16,7 +16,9 @@ static func roll(table: LootTableResource, seed_value: int, reward_id: String, s
 			eligible.append(entry)
 	if eligible.is_empty(): return result
 	var rng := _rng(seed_value, reward_id)
-	if rng.randf() >= table.drop_chance: return result
+	if rng.randf() >= table.drop_chance:
+		result["shard_amount"] = 2 if source_tag == "elite" else 4 if source_tag == "treasure" else 0
+		return result
 	var total := 0.0
 	for entry in eligible: total += float(entry.get("weight", 0.0))
 	var needle := rng.randf() * total

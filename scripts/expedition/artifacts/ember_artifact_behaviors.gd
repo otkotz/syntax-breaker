@@ -16,7 +16,7 @@ class FurnaceHeartBehavior extends ArtifactBehavior:
 		var current: Array = target.get_dot_stacks("burn")
 		context["pre_burn_count"] = current.size()
 		var limit := runtime.burn_stack_limit()
-		target.apply_dot_stack("burn", float(context.get("damage", 0.0)) * 0.3, 3.0, 0.5,
+		target.apply_dot_stack("burn", float(context.get("damage", 0.0)) * 0.3, float(parameters.get("burn_duration", 3.0)), 0.5,
 			skill.base, "furnace-%s" % context.get("event_id", 0), limit)
 		runtime.trigger("furnace_heart", context.get("world_position", Vector2.ZERO))
 	func teardown() -> void:
@@ -55,14 +55,16 @@ class CinderCrownBehavior extends ArtifactBehavior:
 		var burns: Array = context.get("burns", dead.get_dot_stacks("burn"))
 		if burns.is_empty(): return
 		burns.sort_custom(func(a: Dictionary, b: Dictionary): return float(a.damage) > float(b.damage))
+		var transfers := 0
 		for enemy: Node2D in Targeting.find_enemies_in_range(dead.global_position, 400.0, 8):
 			if enemy != dead and enemy.has_method("apply_dot_stack"):
 				var burn: Dictionary = burns[0]
-				enemy.apply_dot_stack("burn", burn.damage, burn.remaining, burn.interval, burn.source,
+				enemy.apply_dot_stack("burn", float(burn.damage) * float(parameters.get("transfer_damage_mult", 1.0)), burn.remaining, burn.interval, burn.source,
 					"cinder-%s" % context.get("event_id", 0), runtime.burn_stack_limit(),
 					int(context.get("generation", 0)) + 1)
 				runtime.trigger("cinder_crown", enemy.global_position)
-				break
+				transfers += 1
+				if transfers >= int(parameters.get("transfer_count", 1)): break
 
 class KindlingEngineBehavior extends ArtifactBehavior:
 	pass

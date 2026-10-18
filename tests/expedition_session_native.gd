@@ -47,6 +47,11 @@ func _ready() -> void:
 	var migrated_three := ExpeditionSession.from_dict(schema_three)
 	check(migrated_three != null and migrated_three.echo_artifact_ids == ["", "", "", ""], "Schema three migrates to empty Echo slots")
 	check(migrated_three != null and migrated_three.unresolved_reward_id.is_empty(), "Schema three migrates without an unresolved choice")
+	var schema_five := session.to_dict()
+	schema_five["schema_version"] = 5
+	schema_five.erase("tempered_artifact_ids")
+	var migrated_five := ExpeditionSession.from_dict(schema_five)
+	check(migrated_five != null and migrated_five.tempered_artifact_ids.is_empty(), "Schema five migrates without run-only Temper state")
 	var schema_one := session.to_dict()
 	schema_one["schema_version"] = 1
 	schema_one.erase("artifact_loadout_ids")

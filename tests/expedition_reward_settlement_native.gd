@@ -35,6 +35,20 @@ func _ready() -> void:
 	check(repeated.ember_shards == 33 and repeated.reward_history.size() == 100, "Repeated reward IDs have no effect")
 	var hit := ExpeditionRewardSettlement.apply(repeated, [reward("chase_hit", "boss_chase", ["bloodwritten_sigil"], ExpeditionLootRoller.CHASE_PITY_KEY, true)])
 	check(hit.pity_counters.get(ExpeditionLootRoller.CHASE_PITY_KEY) == 0, "Awarded chase artifact resets pity")
+	var consolation: Array[Dictionary] = [
+		{"reward_id": "empty_elite", "source_tag": "elite", "artifact_ids": [], "shard_amount": 2, "pity_key": "", "chase_awarded": false},
+		{"reward_id": "empty_treasure", "source_tag": "treasure", "artifact_ids": [], "shard_amount": 4, "pity_key": "", "chase_awarded": false},
+	]
+	var conso_settled := ExpeditionRewardSettlement.apply(ExpeditionProfile.fresh(), consolation)
+	check(conso_settled.ember_shards == 16, "Elite and treasure no-drop grant 2 and 4 shards plus victory reward")
+	var shatter_profile := ExpeditionProfile.fresh()
+	shatter_profile.owned_artifact_ids = ["fractured_prism"]
+	var shattered := reward("shattered", "elite", ["fractured_prism"])
+	shattered["decision_action"] = "shatter"
+	shattered["decision_shard_amount"] = 5
+	var shattered_result := ExpeditionRewardSettlement.apply(shatter_profile, [shattered])
+	check(shatter_profile.ember_shards == 0 and shattered_result.ember_shards == 15, "Shatter remains pending until victory and then grants its exact conversion")
+	check(ExpeditionRewardSettlement.apply(shattered_result, [shattered]).ember_shards == 15, "Shatter settlement retry is idempotent")
 
 	_test_manager_transaction()
 	print(JSON.stringify({"failures": failures}))

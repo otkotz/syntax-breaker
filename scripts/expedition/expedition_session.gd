@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 5
+const SCHEMA_VERSION := 6
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -17,6 +17,7 @@ var status: String = "active"
 var artifact_loadout_ids: Array[String] = ["", "", "", ""]
 var echo_artifact_ids: Array[String] = ["", "", "", ""]
 var unresolved_reward_id: String = ""
+var tempered_artifact_ids: Array[String] = []
 var difficulty: int = 1
 var pending_rewards: Array[Dictionary] = []
 var rolled_reward_ids: Array[String] = []
@@ -122,14 +123,32 @@ func apply_echo(artifact_id: String, slot: int) -> bool:
 func resolve_reward(reward_id: String, action: String, slot: int = -1) -> bool:
 	if reward_id.is_empty() or reward_id != unresolved_reward_id:
 		return false
-	var artifact_ids: Array = get_reward(reward_id).get("artifact_ids", [])
+	var reward := get_reward(reward_id)
+	var artifact_ids: Array = reward.get("artifact_ids", [])
 	if artifact_ids.is_empty(): return false
+	var artifact_id := str(artifact_ids[0])
+	var reward_index := _reward_index(reward_id)
 	if action == "echo":
-		if not apply_echo(str(artifact_ids[0]), slot): return false
+		if not apply_echo(artifact_id, slot): return false
+	elif action == "temper":
+		if not bool(reward.get("is_duplicate", false)) or not effective_artifact_ids().has(artifact_id) or tempered_artifact_ids.has(artifact_id): return false
+		tempered_artifact_ids.append(artifact_id)
+		pending_rewards[reward_index]["decision_action"] = "temper"
+	elif action == "shatter":
+		if not bool(reward.get("is_duplicate", false)): return false
+		var artifact := ArtifactCatalog.get_artifact(artifact_id)
+		if artifact == null: return false
+		pending_rewards[reward_index]["decision_action"] = "shatter"
+		pending_rewards[reward_index]["decision_shard_amount"] = maxi(0, artifact.duplicate_shard_value)
 	elif action != "keep_loadout":
 		return false
 	unresolved_reward_id = ""
 	return true
+
+func _reward_index(reward_id: String) -> int:
+	for index in pending_rewards.size():
+		if str(pending_rewards[index].get("reward_id", "")) == reward_id: return index
+	return -1
 
 func to_dict() -> Dictionary:
 	return {
@@ -147,6 +166,7 @@ func to_dict() -> Dictionary:
 		"artifact_loadout_ids": artifact_loadout_ids,
 		"echo_artifact_ids": echo_artifact_ids,
 		"unresolved_reward_id": unresolved_reward_id,
+		"tempered_artifact_ids": tempered_artifact_ids,
 		"difficulty": difficulty,
 		"pending_rewards": pending_rewards,
 		"rolled_reward_ids": rolled_reward_ids,
@@ -156,7 +176,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, 3, 4, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, 4, 5, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -206,6 +226,10 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 				if reward is Dictionary:
 					result.record_reward(reward)
 	result.unresolved_reward_id = str(data.get("unresolved_reward_id", "")) if schema_version >= 5 else ""
+	if schema_version >= 6:
+		for value: Variant in data.get("tempered_artifact_ids", []):
+			var artifact_id := str(value)
+			if not artifact_id.is_empty() and not result.tempered_artifact_ids.has(artifact_id): result.tempered_artifact_ids.append(artifact_id)
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):

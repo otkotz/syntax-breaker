@@ -28,5 +28,28 @@ func _ready() -> void:
 	check(overlay.is_inside_tree(), "Android back cannot dismiss an unresolved reward")
 	check(overlay.scroll_container != null and overlay.scroll_container.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED, "Portrait decision content supports touch scrolling")
 	overlay.queue_free()
+	var duplicate := reward.duplicate(true)
+	duplicate["reward_id"] = "duplicate:reward"
+	duplicate["is_duplicate"] = true
+	session = ExpeditionSession.create(34, "burning_grounds", ["fractured_prism", "", "", ""])
+	session.record_reward(duplicate)
+	var duplicate_overlay := preload("res://scenes/ui/expedition_reward_overlay.tscn").instantiate() as ExpeditionRewardOverlay
+	add_child(duplicate_overlay)
+	duplicate_overlay.setup_decision(duplicate, session)
+	check(duplicate_overlay.temper_button != null and duplicate_overlay.temper_button.text == "TEMPER", "Equipped duplicate offers Temper")
+	check(duplicate_overlay.shatter_button != null and duplicate_overlay.shatter_button.text == "SHATTER", "Duplicate offers Shatter")
+	var duplicate_decisions: Array[Array] = []
+	duplicate_overlay.decision_requested.connect(func(id: String, action: String, slot: int) -> void: duplicate_decisions.append([id, action, slot]))
+	duplicate_overlay.temper_button.pressed.emit()
+	duplicate_overlay.shatter_button.pressed.emit()
+	check(duplicate_decisions == [["duplicate:reward", "temper", -1]], "Duplicate reward accepts exactly one Temper or Shatter action")
+	duplicate_overlay.queue_free()
+	var inactive_session := ExpeditionSession.create(35, "burning_grounds", ["furnace_heart", "", "", ""])
+	inactive_session.record_reward(duplicate)
+	var inactive_overlay := preload("res://scenes/ui/expedition_reward_overlay.tscn").instantiate() as ExpeditionRewardOverlay
+	add_child(inactive_overlay)
+	inactive_overlay.setup_decision(duplicate, inactive_session)
+	check(inactive_overlay.temper_button.disabled, "Temper is disabled when the duplicate is not in the effective loadout")
+	inactive_overlay.queue_free()
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)

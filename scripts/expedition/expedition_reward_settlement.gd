@@ -14,8 +14,9 @@ static func apply(profile: ExpeditionProfile, rewards: Array[Dictionary]) -> Exp
 		processed_any = true
 		result.settled_reward_ids.append(reward_id)
 		result.ember_shards += maxi(0, int(reward.get("shard_amount", 0)))
+		result.ember_shards += maxi(0, int(reward.get("decision_shard_amount", 0)))
 		var artifact_ids: Variant = reward.get("artifact_ids", [])
-		if artifact_ids is Array:
+		if artifact_ids is Array and str(reward.get("decision_action", "")) not in ["temper", "shatter"]:
 			for value: Variant in artifact_ids:
 				_settle_artifact(result, str(value))
 		_update_pity(result, reward)

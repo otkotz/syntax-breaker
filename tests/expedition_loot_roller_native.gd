@@ -22,10 +22,31 @@ func _ready() -> void:
 	var saw_no_drop := false
 	for value in 1000:
 		var reward := ExpeditionLootRoller.roll(elite, value, "elite-%d" % value, "elite", 1, {})
-		if reward.artifact_ids.is_empty(): saw_no_drop = true
+		if reward.artifact_ids.is_empty():
+			saw_no_drop = true
+			check(reward.shard_amount == 2, "Elite no-drop always grants two consolation shards")
 		else: seen[reward.artifact_ids[0]] = true
 	check(saw_no_drop, "Chance table has an explicit no-drop outcome")
 	check(seen.has("fractured_prism") and seen.has("echoing_hourglass"), "Equal-weight entries are both reachable")
+	var treasure := ExpeditionLootCatalog.get_table("burning_treasure")
+	for value in 1000:
+		var treasure_reward := ExpeditionLootRoller.roll(treasure, value, "treasure-%d" % value, "treasure", 1, {})
+		if treasure_reward.artifact_ids.is_empty():
+			check(treasure_reward.shard_amount == 4, "Treasure no-drop always grants four consolation shards")
+			break
+	var artifact_hits := 0
+	var prism_hits := 0
+	var natural_chase_hits := 0
+	for value in 10000:
+		var simulated := ExpeditionLootRoller.roll(elite, value, "frequency-%d" % value, "elite", 1, {})
+		if not simulated.artifact_ids.is_empty():
+			artifact_hits += 1
+			if simulated.artifact_ids[0] == "fractured_prism": prism_hits += 1
+		if ExpeditionLootRoller.roll_chase(value, "frequency-chase-%d" % value, 1, {}).chase_awarded:
+			natural_chase_hits += 1
+	check(artifact_hits >= 3300 and artifact_hits <= 3700, "10,000-run elite artifact frequency remains near 35 percent")
+	check(prism_hits >= 1550 and prism_hits <= 1950, "10,000-run equal-weight Prism frequency remains stable")
+	check(natural_chase_hits >= 1350 and natural_chase_hits <= 1650, "10,000-run natural chase frequency remains near 15 percent")
 	var guaranteed := ExpeditionLootRoller.roll_chase(1, "boss-guarantee", 1, {"burning_boss_sigil": 4})
 	check(guaranteed.artifact_ids == ["bloodwritten_sigil"] and guaranteed.chase_awarded,
 		"Fifth eligible victory guarantees the chase item")

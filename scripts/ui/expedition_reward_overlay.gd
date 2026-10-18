@@ -8,6 +8,8 @@ var result_label: Label
 var preview_label: Label
 var confirm_button: Button
 var keep_button: Button
+var temper_button: Button
+var shatter_button: Button
 var slot_buttons: Array[Button] = []
 var scroll_container: ScrollContainer
 var _panel: VBoxContainer
@@ -64,6 +66,14 @@ func setup_decision(reward: Dictionary, session: ExpeditionSession) -> void:
 	var artifact_id := str(artifact_ids[0]) if not artifact_ids.is_empty() else ""
 	var artifact := ArtifactCatalog.get_artifact(artifact_id)
 	result_label.text = artifact.display_name if artifact != null else "UNKNOWN ARTIFACT"
+	if bool(reward.get("is_duplicate", false)):
+		preview_label.text = "DUPLICATE — empower this run or bank shards on victory"
+		temper_button = _add_button("TEMPER")
+		temper_button.disabled = not session.effective_artifact_ids().has(artifact_id) or session.tempered_artifact_ids.has(artifact_id)
+		temper_button.pressed.connect(_request_decision.bind("temper", -1))
+		shatter_button = _add_button("SHATTER")
+		shatter_button.pressed.connect(_request_decision.bind("shatter", -1))
+		return
 	var before := _tier_summary(ArtifactLoadout.active_set_tiers(session.effective_artifact_ids()))
 	for slot in ArtifactLoadout.SLOT_COUNT:
 		var preview := session.preview_echo(artifact_id, slot)
@@ -88,6 +98,8 @@ func _request_decision(action: String, slot: int) -> void:
 	_decision_locked = true
 	for button in slot_buttons: button.disabled = true
 	if keep_button != null: keep_button.disabled = true
+	if temper_button != null: temper_button.disabled = true
+	if shatter_button != null: shatter_button.disabled = true
 	decision_requested.emit(_reward_id, action, slot)
 
 func _tier_summary(tiers: Dictionary) -> String:
