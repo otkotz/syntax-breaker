@@ -15,6 +15,7 @@ func room(id: String, type: DungeonRoomData.Type) -> DungeonRoomData:
 
 func _ready() -> void:
 	ExpeditionManager.session_path = "res://.godot/loot_flow_session.json"
+	ExpeditionManager.profile_path = "res://.godot/loot_flow_profile.json"
 	_cleanup()
 	ExpeditionManager.start_new_profile()
 	ExpeditionManager.session = ExpeditionSession.create(8128, "burning_grounds")
@@ -41,8 +42,15 @@ func _ready() -> void:
 	var count_after_elite := ExpeditionManager.session.pending_rewards.size()
 	var stored_elite_id := str(elite_reward.get("reward_id"))
 	check(game.checkpoint_room_rewards(room("elite", DungeonRoomData.Type.ELITE)) and ExpeditionManager.session.pending_rewards.size() == count_after_elite and str(ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("elite")).get("reward_id")) == stored_elite_id, "Resume reuses stored elite outcome")
+	ExpeditionManager.profile.forge_commitments["discovery_ward"] = true
+	ExpeditionManager.profile.forge_commitments["treasure_choice"] = true
+	check(ExpeditionManager.save_profile(), "Forge flow fixture saves active ward")
 	check(game.checkpoint_room_rewards(room("treasure", DungeonRoomData.Type.TREASURE)), "Treasure reward checkpoints")
 	check(ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("treasure")).get("source_tag") == "treasure", "Treasure stores its source reward")
+	var stored_treasure := ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("treasure"))
+	var treasure_count := ExpeditionManager.session.pending_rewards.size()
+	check(not ExpeditionManager.profile.forge_commitments.has("discovery_ward") and not ExpeditionManager.profile.forge_commitments.has("treasure_choice"), "Affected reward atomically consumes Ward and Treasure Choice only after checkpoint")
+	check(game.checkpoint_room_rewards(room("treasure", DungeonRoomData.Type.TREASURE)) and ExpeditionManager.session.pending_rewards.size() == treasure_count and ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("treasure")) == stored_treasure, "Resume reuses the committed ward result without rerolling")
 	if ExpeditionManager.session.unresolved_reward_id.is_empty():
 		ExpeditionManager.session.record_reward({"reward_id": "fixture:treasure", "source_tag": "treasure", "artifact_ids": ["echoing_hourglass"], "shard_amount": 0, "pity_key": "", "chase_awarded": false})
 		ExpeditionManager.save_session()
@@ -87,3 +95,7 @@ func _cleanup() -> void:
 		var path := ExpeditionManager.session_path + suffix
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	for suffix: String in ["", ".tmp", ".bak"]:
+		var profile_path := ExpeditionManager.profile_path + suffix
+		if FileAccess.file_exists(profile_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(profile_path))

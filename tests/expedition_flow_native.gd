@@ -160,6 +160,8 @@ func run_checks() -> void:
 			var hub: Node = ui_game.get("hub")
 			check(hub != null, "Expedition manager shows hub")
 			if hub != null:
+				var forge_button := _find_named(hub, "ForgeButton") as Button
+				check(forge_button != null and forge_button.custom_minimum_size.y >= 88.0, "Hub exposes a touch-sized Ember Forge route")
 				var codex_button := _find_named(hub, "CodexButton") as Button
 				check(codex_button != null and codex_button.custom_minimum_size.y >= 88.0,
 					"Hub exposes a touch-sized Codex route")

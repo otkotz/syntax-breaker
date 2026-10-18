@@ -69,6 +69,15 @@ func _ready() -> void:
 	check(partial_counts.furnace_heart > 0 and partial_counts.ashen_needle > 0, "Protection favors but never guarantees the missing piece")
 	for artifact_id in complete_counts:
 		check(complete_counts[artifact_id] >= 3000 and complete_counts[artifact_id] <= 3700, "Completed Covenant returns %s to equal weight" % artifact_id)
+	var treasure_choice := ExpeditionLootRoller.roll(treasure, 101, "forge:treasure", "treasure", 1, {}, [], {"treasure_choice": true})
+	var treasure_choice_repeat := ExpeditionLootRoller.roll(treasure, 101, "forge:treasure", "treasure", 1, {}, [], {"treasure_choice": true})
+	check(treasure_choice == treasure_choice_repeat and treasure_choice.get("forge_commitment_id") == "treasure_choice", "Treasure Choice alternative is stable across resume")
+	check(treasure_choice.get("alternative_reward_id") == "forge:treasure:forge_alternative", "Treasure Choice derives its alternative from a stable suffix")
+	check(not treasure_choice.get("alternative_artifact_ids", []).is_empty() and treasure_choice.get("alternative_artifact_ids") != treasure_choice.artifact_ids, "Treasure Choice always adds a distinct usable alternative")
+	var ward := ExpeditionLootRoller.roll(treasure, 102, "forge:ward", "treasure", 1, {}, ["fractured_prism"], {"discovery_ward": true})
+	check(ward.artifact_ids.is_empty() or ward.artifact_ids[0] != "fractured_prism", "Discovery Ward excludes owned entries once")
+	var mark := ExpeditionLootRoller.roll(boss_set, 103, "forge:mark", "boss_set", 1, {}, partial_owned, {"covenant_mark": true})
+	check(mark.artifact_ids == ["cinder_crown"] and mark.get("forge_commitment_id") == "covenant_mark", "Covenant Mark deterministically selects a missing piece")
 	var guaranteed := ExpeditionLootRoller.roll_chase(1, "boss-guarantee", 1, {"burning_boss_sigil": 4})
 	check(guaranteed.artifact_ids == ["bloodwritten_sigil"] and guaranteed.chase_awarded,
 		"Fifth eligible victory guarantees the chase item")

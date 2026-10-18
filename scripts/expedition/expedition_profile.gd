@@ -1,7 +1,9 @@
 class_name ExpeditionProfile
 extends RefCounted
 
-const SCHEMA_VERSION := 3
+const FORGE := preload("res://scripts/expedition/ember_forge.gd")
+
+const SCHEMA_VERSION := 4
 const REWARD_HISTORY_LIMIT := 100
 
 var character_id: String = "breaker"
@@ -15,6 +17,7 @@ var discovered_artifact_ids: Array[String] = []
 var pity_counters: Dictionary = {}
 var settled_reward_ids: Array[String] = []
 var reward_history: Array[Dictionary] = []
+var forge_commitments: Dictionary = {}
 
 static func fresh() -> ExpeditionProfile:
 	var profile := ExpeditionProfile.new()
@@ -35,6 +38,7 @@ func to_dict() -> Dictionary:
 		"pity_counters": pity_counters,
 		"settled_reward_ids": settled_reward_ids,
 		"reward_history": reward_history,
+		"forge_commitments": forge_commitments,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionProfile:
@@ -42,7 +46,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return profile
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, SCHEMA_VERSION]:
 		return profile
 	if data.get("character_id") is String and not str(data.get("character_id")).is_empty():
 		profile.character_id = data.get("character_id")
@@ -74,7 +78,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 		for artifact_id: String in profile.owned_artifact_ids:
 			if ArtifactCatalog.get_artifact(artifact_id) != null:
 				profile.discovered_artifact_ids.append(artifact_id)
-	elif schema_version == SCHEMA_VERSION:
+	elif schema_version >= 3:
 		profile.discovered_artifact_ids = _unique_strings(data.get("discovered_artifact_ids", []))
 		if typeof(data.get("ember_shards")) in [TYPE_INT, TYPE_FLOAT]:
 			profile.ember_shards = maxi(0, int(data.get("ember_shards")))
@@ -92,6 +96,9 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 			for index: int in range(start, raw_history.size()):
 				if raw_history[index] is Dictionary:
 					profile.reward_history.append((raw_history[index] as Dictionary).duplicate(true))
+	if schema_version >= 4 and data.get("forge_commitments", {}) is Dictionary:
+		for id: String in FORGE.ids():
+			if bool(data.get("forge_commitments", {}).get(id, false)): profile.forge_commitments[id] = true
 	return profile
 
 static func _unique_strings(raw_values: Variant) -> Array[String]:

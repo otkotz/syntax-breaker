@@ -6,6 +6,7 @@ signal resume_pressed
 signal back_pressed
 signal artifacts_pressed
 signal codex_pressed
+signal forge_pressed
 
 var new_button: Button
 var resume_button: Button
@@ -85,6 +86,10 @@ func _build_ui() -> void:
 	codex_button.name = "CodexButton"
 	codex_button.pressed.connect(func() -> void: codex_pressed.emit())
 	content.add_child(codex_button)
+	var forge_button := _make_button("EMBER FORGE")
+	forge_button.name = "ForgeButton"
+	forge_button.pressed.connect(func() -> void: forge_pressed.emit())
+	content.add_child(forge_button)
 
 	back_button = _make_button("BACK")
 	back_button.name = "BackButton"

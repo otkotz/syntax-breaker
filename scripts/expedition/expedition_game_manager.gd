@@ -12,6 +12,7 @@ const MAP_SCENE := preload("res://scenes/ui/expedition_map.tscn")
 const ARTIFACTS_SCENE := preload("res://scenes/ui/expedition_artifacts.tscn")
 const CODEX_SCENE := preload("res://scenes/ui/expedition_codex.tscn")
 const REWARD_OVERLAY_SCENE := preload("res://scenes/ui/expedition_reward_overlay.tscn")
+const FORGE_SCENE := preload("res://scenes/ui/ember_forge.tscn")
 
 var state: State = State.HUB
 var arena: Arena
@@ -22,6 +23,7 @@ var map_ui: ExpeditionMapUI
 var artifacts_ui: ExpeditionArtifactsUI
 var codex_ui: ExpeditionCodexUI
 var reward_overlay: ExpeditionRewardOverlay
+var forge_ui: Control
 var artifact_runtime: ArtifactRuntime
 var _active_room_id: String = ""
 var _ui_layer: CanvasLayer
@@ -52,6 +54,19 @@ func open_hub() -> void:
 	hub.back_pressed.connect(func() -> void: return_to_main_menu.emit(), CONNECT_ONE_SHOT)
 	hub.artifacts_pressed.connect(open_artifacts, CONNECT_ONE_SHOT)
 	hub.codex_pressed.connect(open_codex, CONNECT_ONE_SHOT)
+	hub.forge_pressed.connect(open_forge, CONNECT_ONE_SHOT)
+
+func open_forge() -> void:
+	_clear_ui()
+	forge_ui = FORGE_SCENE.instantiate() as Control
+	_ui_layer.add_child(forge_ui)
+	forge_ui.setup(ExpeditionManager.profile)
+	forge_ui.purchase_requested.connect(_on_forge_purchase)
+	forge_ui.back_pressed.connect(open_hub, CONNECT_ONE_SHOT)
+
+func _on_forge_purchase(id: String) -> void:
+	ExpeditionManager.buy_forge_commitment(id)
+	forge_ui.setup(ExpeditionManager.profile)
 
 func open_codex() -> void:
 	_clear_ui()
@@ -226,6 +241,7 @@ func checkpoint_room_rewards(room: DungeonRoomData) -> bool:
 	if session == null or room == null:
 		return false
 	var snapshot := session.to_dict().duplicate(true)
+	var profile_snapshot := ExpeditionManager.profile.to_dict().duplicate(true)
 	var rewards := _roll_rewards_for(room)
 	for reward: Dictionary in rewards:
 		if not session.rolled_reward_ids.has(str(reward.get("reward_id", ""))):
@@ -233,6 +249,18 @@ func checkpoint_room_rewards(room: DungeonRoomData) -> bool:
 			reward["is_duplicate"] = not artifact_ids.is_empty() and ExpeditionManager.profile.owned_artifact_ids.has(str(artifact_ids[0]))
 			session.record_reward(reward)
 	if ExpeditionManager.save_session():
+		for reward: Dictionary in rewards:
+			var commitment_ids: Array[String] = []
+			for value: Variant in reward.get("forge_commitment_ids", []):
+				var id := str(value)
+				if not id.is_empty() and not commitment_ids.has(id): commitment_ids.append(id)
+			var single_id := str(reward.get("forge_commitment_id", ""))
+			if not single_id.is_empty() and not commitment_ids.has(single_id): commitment_ids.append(single_id)
+			if not commitment_ids.is_empty() and not ExpeditionManager.consume_forge_commitments(commitment_ids, str(reward.get("reward_id", ""))):
+				ExpeditionManager.profile = ExpeditionProfile.from_dict(profile_snapshot)
+				ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
+				ExpeditionManager.save_session()
+				return false
 		return true
 	ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 	return false
@@ -243,16 +271,16 @@ func _roll_rewards_for(room: DungeonRoomData) -> Array[Dictionary]:
 	if room.type == DungeonRoomData.Type.ELITE:
 		var id := session.reward_id_for(room.id)
 		if not session.rolled_reward_ids.has(id):
-			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_elite"), session.seed_value, id, "elite", session.difficulty, ExpeditionManager.profile.pity_counters))
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_elite"), session.seed_value, id, "elite", session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate(), ExpeditionManager.profile.forge_commitments.duplicate()))
 	elif room.type == DungeonRoomData.Type.TREASURE:
 		var id := session.reward_id_for(room.id)
 		if not session.rolled_reward_ids.has(id):
-			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_treasure"), session.seed_value, id, "treasure", session.difficulty, ExpeditionManager.profile.pity_counters))
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_treasure"), session.seed_value, id, "treasure", session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate(), ExpeditionManager.profile.forge_commitments.duplicate()))
 	elif room.type == DungeonRoomData.Type.BOSS:
 		var set_id := session.reward_id_for(room.id, "boss_set")
 		var chase_id := session.reward_id_for(room.id, "boss_chase")
 		if not session.rolled_reward_ids.has(set_id):
-			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), session.seed_value, set_id, "boss_set", session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate()))
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), session.seed_value, set_id, "boss_set", session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate(), ExpeditionManager.profile.forge_commitments.duplicate()))
 		if not session.rolled_reward_ids.has(chase_id):
 			rewards.append(ExpeditionLootRoller.roll_chase(session.seed_value, chase_id, session.difficulty, ExpeditionManager.profile.pity_counters))
 	return rewards
@@ -330,6 +358,7 @@ func _clear_ui() -> void:
 	hub = null
 	map_ui = null
 	artifacts_ui = null
+	forge_ui = null
 	reward_overlay = null
 	if _ui_layer == null:
 		return
