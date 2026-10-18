@@ -3,7 +3,7 @@ extends RefCounted
 
 const FORGE := preload("res://scripts/expedition/ember_forge.gd")
 
-const SCHEMA_VERSION := 4
+const SCHEMA_VERSION := 5
 const REWARD_HISTORY_LIMIT := 100
 
 var character_id: String = "breaker"
@@ -18,6 +18,7 @@ var pity_counters: Dictionary = {}
 var settled_reward_ids: Array[String] = []
 var reward_history: Array[Dictionary] = []
 var forge_commitments: Dictionary = {}
+var discovered_synergy_ids: Array[String] = []
 
 static func fresh() -> ExpeditionProfile:
 	var profile := ExpeditionProfile.new()
@@ -39,6 +40,7 @@ func to_dict() -> Dictionary:
 		"settled_reward_ids": settled_reward_ids,
 		"reward_history": reward_history,
 		"forge_commitments": forge_commitments,
+		"discovered_synergy_ids": discovered_synergy_ids,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionProfile:
@@ -46,7 +48,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return profile
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, 3, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, 4, SCHEMA_VERSION]:
 		return profile
 	if data.get("character_id") is String and not str(data.get("character_id")).is_empty():
 		profile.character_id = data.get("character_id")
@@ -99,6 +101,8 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 	if schema_version >= 4 and data.get("forge_commitments", {}) is Dictionary:
 		for id: String in FORGE.ids():
 			if bool(data.get("forge_commitments", {}).get(id, false)): profile.forge_commitments[id] = true
+	if schema_version >= 5:
+		profile.discovered_synergy_ids = _unique_strings(data.get("discovered_synergy_ids", []))
 	return profile
 
 static func _unique_strings(raw_values: Variant) -> Array[String]:

@@ -53,7 +53,8 @@ class EchoingHourglassBehavior extends ArtifactBehavior:
 
 class BloodwrittenSigilBehavior extends ArtifactBehavior:
 	func handle(event: StringName, context: Dictionary) -> void:
-		if event != &"skill_cast" or "bloodwritten_sigil" in context.get("origin_flags", []): return
+		var flags: Array = context.get("origin_flags", [])
+		if event != &"skill_cast" or "bloodwritten_sigil" in flags or "secondary_artifact_projectile" in flags: return
 		var player: Variant = context.get("player")
 		if player == null or not is_instance_valid(player): return
 		var ratio := float(player.current_hp) / maxf(float(player.max_hp), 1.0)
@@ -68,6 +69,9 @@ class BloodwrittenSigilBehavior extends ArtifactBehavior:
 			"damage_mult": float(parameters.get("damage_mult", 1.35)),
 			"area_mult": float(parameters.get("area_mult", 1.3)),
 			"origin_flags": ["bloodwritten_sigil"],
+			"generation": int(context.get("generation", 0)),
+			"spawn_echo": context.get("spawn_echo", Callable()),
+			"world_position": player.global_position,
 		})
 		runtime.trigger("bloodwritten_sigil", player.global_position)
 

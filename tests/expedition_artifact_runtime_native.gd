@@ -40,7 +40,7 @@ func _ready() -> void:
 	var session := ExpeditionSession.create(7, "burning_grounds", ["furnace_heart", "ashen_needle", "cinder_crown", ""])
 	check(session.apply_echo("fractured_prism", 2), "Runtime fixture applies session Echo")
 	runtime.setup(session.effective_artifact_ids(), [], null)
-	check(runtime.behaviors.size() == 4, "Runtime consumes effective Echo ids and recalculates set tiers")
+	check(runtime.behaviors.size() == 5, "Runtime consumes effective Echo ids, recalculates set tiers, and installs the explicit Prism-Needle synergy")
 	runtime.teardown()
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)

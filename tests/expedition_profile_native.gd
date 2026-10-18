@@ -56,6 +56,8 @@ func _ready() -> void:
 	check(schema_three.pity_counters == {"burning_boss_sigil": 0, "valid": 2}, "Pity counters are nonnegative and malformed values are skipped")
 	check(schema_three.settled_reward_ids == ["reward_1", "reward_2"], "Settled reward IDs are nonempty and deduplicated")
 	check(schema_three.reward_history.size() == 100 and schema_three.reward_history[0].get("reward_id") == "reward_5" and schema_three.reward_history[99].get("reward_id") == "reward_104", "Reward history retains the newest 100 entries")
+	var schema_four := ExpeditionProfile.from_dict({"schema_version": 4, "discovered_synergy_ids": ["prism_needle_crossfire"]})
+	check(schema_four.discovered_synergy_ids.is_empty(), "Schema four migrates without synergy discoveries")
 
 	var broken := FileAccess.open(ExpeditionManager.profile_path, FileAccess.WRITE)
 	broken.store_string("{broken")

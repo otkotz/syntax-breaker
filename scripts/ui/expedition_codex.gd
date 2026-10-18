@@ -8,6 +8,7 @@ var filter_buttons: Dictionary = {}
 var goal_label: Label
 var set_progress_label: Label
 var pity_label: Label
+var synergy_label: Label
 var back_button: Button
 var _cards: VBoxContainer
 var _profile: ExpeditionProfile
@@ -77,6 +78,11 @@ func _build_ui() -> void:
 		label.add_theme_font_size_override("font_size", 24)
 		label.add_theme_color_override("font_color", UITheme.C_RARITY_LEGENDARY)
 		progress.add_child(label)
+	synergy_label = Label.new()
+	synergy_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	synergy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	synergy_label.add_theme_font_size_override("font_size", 22)
+	content.add_child(synergy_label)
 	var filters := HBoxContainer.new()
 	filters.alignment = BoxContainer.ALIGNMENT_CENTER
 	filters.add_theme_constant_override("separation", 10)
@@ -122,6 +128,10 @@ func _render_summary() -> void:
 			missing_set = artifact
 	set_progress_label.text = "COVENANT %d/3" % covenant_owned
 	pity_label.text = "SIGIL %d/5" % clampi(int(_profile.pity_counters.get("burning_boss_sigil", 0)), 0, 4)
+	var synergy_names: Array[String] = []
+	for id in _profile.discovered_synergy_ids:
+		synergy_names.append(id.to_upper().replace("_", " "))
+	synergy_label.text = "DISCOVERED SYNERGIES: %s" % (", ".join(synergy_names) if not synergy_names.is_empty() else "NONE")
 	if _profile.owned_artifact_ids.size() >= ArtifactCatalog.all_ids().size():
 		goal_label.text = "NEXT HUNT  ·  COLLECTION COMPLETE"
 	elif missing_set != null:

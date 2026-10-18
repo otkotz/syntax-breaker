@@ -168,6 +168,7 @@ func _start_combat(room: DungeonRoomData) -> void:
 	artifact_runtime = ArtifactRuntime.new()
 	artifact_runtime.setup(session.effective_artifact_ids(), skill_instances, arena, session.tempered_artifact_ids)
 	artifact_runtime.artifact_triggered.connect(_on_artifact_triggered)
+	artifact_runtime.synergy_triggered.connect(_on_synergy_triggered)
 	(arena.player.get_node("SkillCaster") as SkillCaster).set_artifact_hooks(artifact_runtime.hooks)
 	arena.stage_completed.connect(_on_stage_completed, CONNECT_ONE_SHOT)
 	arena.start_stage(room.depth + 1, skill_instances, _make_stage_data(room))
@@ -175,6 +176,10 @@ func _start_combat(room: DungeonRoomData) -> void:
 func _on_artifact_triggered(artifact_id: String, world_position: Vector2) -> void:
 	if arena != null:
 		ArtifactVFX.spawn(arena, artifact_id, world_position)
+
+func _on_synergy_triggered(synergy_id: StringName, world_position: Vector2) -> void:
+	if ExpeditionManager.discover_synergy(str(synergy_id)) and arena != null:
+		ArtifactVFX.spawn(arena, str(synergy_id), world_position)
 
 func _make_stage_data(room: DungeonRoomData) -> StageData:
 	var stage := StageData.new()

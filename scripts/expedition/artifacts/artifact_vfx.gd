@@ -11,7 +11,11 @@ static func spawn(parent: Node, artifact_id: String, world_position: Vector2) ->
 		"fractured_prism": Color(0.72, 0.35, 1.0), "echoing_hourglass": Color(0.5, 0.8, 1.0),
 		"bloodwritten_sigil": Color(1.0, 0.15, 0.2), "ashen_needle": Color(1.0, 0.55, 0.15),
 		"cinder_crown": Color(1.0, 0.3, 0.05), "chain_conflagration": Color(1.0, 0.65, 0.1),
+		"prism_needle_crossfire": Color(0.35, 0.9, 1.0), "hourglass_sigil_blood_echo": Color(1.0, 0.12, 0.38),
+		"crown_prism_split_transfer": Color(0.95, 0.32, 0.8),
 	}.get(artifact_id, Color(1.0, 0.45, 0.1))
+	effect.radius = {"prism_needle_crossfire": 22.0, "hourglass_sigil_blood_echo": 34.0,
+		"crown_prism_split_transfer": 46.0}.get(artifact_id, 28.0)
 	effect.global_position = world_position
 	effect.add_to_group("artifact_vfx")
 	parent.add_child(effect)

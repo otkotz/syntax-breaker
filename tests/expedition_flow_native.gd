@@ -34,7 +34,7 @@ func run_checks() -> void:
 	check(game.state == ExpeditionGameManager.State.COMBAT, "Combat room opens arena")
 	check(game.arena != null, "Existing arena is reused")
 	check(game.artifact_runtime != null and game.artifact_runtime.active, "Combat creates artifact runtime")
-	check(game.artifact_runtime.behaviors.size() == 6, "Prism plus full Ember set activates six behaviors")
+	check(game.artifact_runtime.behaviors.size() == 8, "Prism plus full Ember set activates six base/set behaviors and two explicit synergies")
 	check((game.arena.player.get_node("SkillCaster") as SkillCaster).artifact_hooks == game.artifact_runtime.hooks, "Real caster receives artifact hooks")
 	ExpeditionManager.profile.equipped_artifact_ids = ["bloodwritten_sigil", "", "", ""]
 	check(ExpeditionManager.session.artifact_loadout_ids[0] == "fractured_prism", "Combat keeps frozen session loadout")

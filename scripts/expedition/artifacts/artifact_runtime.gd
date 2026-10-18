@@ -2,8 +2,10 @@ class_name ArtifactRuntime
 extends RefCounted
 
 const TEMPER_DATA := preload("res://scripts/expedition/artifact_temper_data.gd")
+const SYNERGY_REGISTRY := preload("res://scripts/expedition/artifacts/artifact_synergy_registry.gd")
 
 signal artifact_triggered(artifact_id: String, world_position: Vector2)
+signal synergy_triggered(synergy_id: StringName, world_position: Vector2)
 
 var behaviors: Array[ArtifactBehavior] = []
 var hooks: ArtifactCombatHooks
@@ -11,6 +13,7 @@ var registry: ArtifactRegistry
 var active := false
 var active_loadout_ids: Array[String] = []
 var active_tempered_artifact_ids: Array[String] = []
+var active_synergy_ids: Array[StringName] = []
 var _skills: Array = []
 var _arena: Node
 
@@ -34,6 +37,7 @@ func setup(ids: Array[String], skills: Array, arena: Node, tempered_ids: Array[S
 	_arena = arena
 	active_loadout_ids = normalized.duplicate()
 	active_tempered_artifact_ids = normalized_tempered
+	active_synergy_ids = SYNERGY_REGISTRY.get_active_pairs(normalized)
 	hooks.active_artifact_ids = normalized.duplicate()
 	for artifact_id in normalized:
 		if artifact_id.is_empty(): continue
@@ -49,6 +53,14 @@ func setup(ids: Array[String], skills: Array, arena: Node, tempered_ids: Array[S
 		for tier in [2, 3]:
 			if int(tiers[set_id]) >= tier:
 				_add_behavior(str(set_resource.tier_behavior_keys.get(tier, "")), "%s_%d" % [set_id, tier], set_resource.behavior_parameters)
+	for synergy_id in active_synergy_ids:
+		var synergy_behavior: ArtifactBehavior = SYNERGY_REGISTRY.create_behavior(synergy_id)
+		if synergy_behavior != null:
+			synergy_behavior.runtime = self
+			synergy_behavior.artifact_id = str(synergy_id)
+			behaviors.append(synergy_behavior)
+			synergy_behavior.setup({"skills": _skills, "arena": _arena, "hooks": hooks})
+	hooks.active_synergy_ids = active_synergy_ids.duplicate()
 	hooks.burn_stack_limit = burn_stack_limit()
 	if not hooks.combat_event.is_connected(_on_combat_event):
 		hooks.combat_event.connect(_on_combat_event)
@@ -106,6 +118,9 @@ func burn_stack_limit() -> int:
 func trigger(artifact_id: String, world_position: Vector2 = Vector2.ZERO) -> void:
 	if active: artifact_triggered.emit(artifact_id, world_position)
 
+func trigger_synergy(synergy_id: StringName, world_position: Vector2 = Vector2.ZERO) -> void:
+	if active: synergy_triggered.emit(synergy_id, world_position)
+
 func teardown() -> void:
 	if not active: return
 	active = false
@@ -117,6 +132,7 @@ func teardown() -> void:
 	hooks.active_artifact_ids.clear()
 	active_loadout_ids.clear()
 	active_tempered_artifact_ids.clear()
+	active_synergy_ids.clear()
 	for behavior in behaviors:
 		behavior.teardown()
 		behavior.runtime = null

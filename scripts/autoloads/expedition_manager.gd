@@ -23,7 +23,7 @@ func load_profile() -> bool:
 	for candidate: String in [profile_path, profile_path + ".bak", profile_path + ".tmp"]:
 		var data := _read_json_dictionary(candidate)
 		if data.is_empty() or typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
-			or int(data.get("schema_version")) not in [1, 2, 3, ExpeditionProfile.SCHEMA_VERSION]:
+			or int(data.get("schema_version")) not in [1, 2, 3, 4, ExpeditionProfile.SCHEMA_VERSION]:
 			continue
 		profile = ExpeditionProfile.from_dict(data)
 		if candidate != profile_path:
@@ -75,6 +75,16 @@ func consume_forge_commitments(ids: Array[String], reward_id: String) -> bool:
 		if not profile.forge_commitments.has(id): return false
 	var candidate := ExpeditionProfile.from_dict(profile.to_dict())
 	for id in ids: candidate.forge_commitments.erase(id)
+	if not _write_json_atomic(profile_path, candidate.to_dict()): return false
+	profile = candidate
+	return true
+
+func discover_synergy(id: String) -> bool:
+	var registry := preload("res://scripts/expedition/artifacts/artifact_synergy_registry.gd")
+	if profile == null or not registry.is_known(id): return false
+	if profile.discovered_synergy_ids.has(id): return true
+	var candidate := ExpeditionProfile.from_dict(profile.to_dict())
+	candidate.discovered_synergy_ids.append(id)
 	if not _write_json_atomic(profile_path, candidate.to_dict()): return false
 	profile = candidate
 	return true

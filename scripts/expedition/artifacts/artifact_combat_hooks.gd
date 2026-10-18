@@ -6,6 +6,7 @@ signal combat_event(event_name: StringName, context: Dictionary)
 var active := true
 var _next_event_id := 1
 var active_artifact_ids: Array[String] = []
+var active_synergy_ids: Array[StringName] = []
 var burn_stack_limit: int = 1
 
 func emit_event(event_name: StringName, context: Dictionary = {}) -> void:
@@ -24,3 +25,4 @@ func emit_event(event_name: StringName, context: Dictionary = {}) -> void:
 func deactivate() -> void:
 	active = false
 	burn_stack_limit = 1
+	active_synergy_ids.clear()

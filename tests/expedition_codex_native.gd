@@ -10,6 +10,7 @@ func _ready() -> void:
 	var profile := ExpeditionProfile.fresh()
 	profile.owned_artifact_ids = ["furnace_heart", "ashen_needle"]
 	profile.discovered_artifact_ids = ["furnace_heart", "ashen_needle", "fractured_prism"]
+	profile.discovered_synergy_ids = ["prism_needle_crossfire"]
 	profile.pity_counters["burning_boss_sigil"] = 4
 	var screen := ExpeditionCodexUI.new()
 	add_child(screen)
@@ -28,6 +29,7 @@ func _ready() -> void:
 	check(unknown_text.contains("TREASURE") or unknown_text.contains("ELITE"), "Unknown card still identifies its source category")
 	check(screen.set_progress_label.text.contains("2/3"), "Codex exposes Covenant collection progress")
 	check(screen.pity_label.text.contains("4/5"), "Codex exposes the exact chase pity state")
+	check(screen.synergy_label.text.contains("PRISM NEEDLE CROSSFIRE"), "Codex exposes triggered synergy discoveries")
 	check(screen.goal_label.text.contains("Cinder Crown") and screen.goal_label.text.contains("BOSS"),
 		"Next Hunt points to a missing set piece and its source")
 	screen.apply_filter("owned")

@@ -21,7 +21,7 @@ func _ready() -> void:
 	var old_behaviors := runtime.behaviors.duplicate()
 	check(session.apply_echo("fractured_prism", 2), "Pending artifact can Echo into a frozen slot")
 	runtime.setup(session.effective_artifact_ids(), [], null)
-	check(runtime.behaviors.size() == 4, "Echo replacement changes artifacts and drops the tier-three set behavior")
+	check(runtime.behaviors.size() == 5, "Echo replacement drops tier three and activates the explicit Prism-Needle synergy")
 	check(runtime.hooks.active_artifact_ids == ["furnace_heart", "ashen_needle", "fractured_prism", ""], "Runtime installs the effective Echo loadout")
 	for behavior: FakeBehavior in old_behaviors:
 		check(behavior.teardown_count == 1, "Runtime rebuild disconnects every old behavior")
