@@ -252,7 +252,7 @@ func _roll_rewards_for(room: DungeonRoomData) -> Array[Dictionary]:
 		var set_id := session.reward_id_for(room.id, "boss_set")
 		var chase_id := session.reward_id_for(room.id, "boss_chase")
 		if not session.rolled_reward_ids.has(set_id):
-			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), session.seed_value, set_id, "boss_set", session.difficulty, ExpeditionManager.profile.pity_counters))
+			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), session.seed_value, set_id, "boss_set", session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate()))
 		if not session.rolled_reward_ids.has(chase_id):
 			rewards.append(ExpeditionLootRoller.roll_chase(session.seed_value, chase_id, session.difficulty, ExpeditionManager.profile.pity_counters))
 	return rewards

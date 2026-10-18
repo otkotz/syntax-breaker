@@ -54,8 +54,11 @@ func _ready() -> void:
 	check(ExpeditionManager.session.to_dict() == decision_snapshot and game.reward_overlay != null, "Failed decision save rolls back session and keeps the choice visible")
 	ExpeditionManager.session_path = decision_valid_path
 	game.reward_overlay.keep_button.pressed.emit()
+	ExpeditionManager.profile.owned_artifact_ids = ["furnace_heart", "ashen_needle"]
 	check(game.checkpoint_room_rewards(room("boss", DungeonRoomData.Type.BOSS)), "Boss rewards checkpoint together")
 	check(not ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_set")).is_empty() and not ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_chase")).is_empty(), "Boss stores distinct set and chase rewards")
+	var expected_boss_set := ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), ExpeditionManager.session.seed_value, ExpeditionManager.session.reward_id_for("boss", "boss_set"), "boss_set", ExpeditionManager.session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate())
+	check(ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_set")).artifact_ids == expected_boss_set.artifact_ids, "Boss set roll uses the profile ownership snapshot")
 
 	var before := ExpeditionManager.session.to_dict().duplicate(true)
 	var valid_path := ExpeditionManager.session_path

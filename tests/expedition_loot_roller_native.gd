@@ -47,6 +47,28 @@ func _ready() -> void:
 	check(artifact_hits >= 3300 and artifact_hits <= 3700, "10,000-run elite artifact frequency remains near 35 percent")
 	check(prism_hits >= 1550 and prism_hits <= 1950, "10,000-run equal-weight Prism frequency remains stable")
 	check(natural_chase_hits >= 1350 and natural_chase_hits <= 1650, "10,000-run natural chase frequency remains near 15 percent")
+	var boss_set := ExpeditionLootCatalog.get_table("burning_boss_set")
+	var partial_owned: Array[String] = ["furnace_heart", "ashen_needle"]
+	var protected_first := ExpeditionLootRoller.roll(boss_set, 77, "protected", "boss_set", 1, {}, partial_owned)
+	var protected_second := ExpeditionLootRoller.roll(boss_set, 77, "protected", "boss_set", 1, {}, partial_owned)
+	check(protected_first == protected_second, "Protected set roll remains deterministic for identical ownership")
+	seed(177)
+	var protected_global := randf()
+	seed(177)
+	ExpeditionLootRoller.roll(boss_set, 77, "protected-rng", "boss_set", 1, {}, partial_owned)
+	check(is_equal_approx(randf(), protected_global), "Protected weighting does not mutate global RNG")
+	var partial_counts := {"furnace_heart": 0, "ashen_needle": 0, "cinder_crown": 0}
+	var complete_counts := {"furnace_heart": 0, "ashen_needle": 0, "cinder_crown": 0}
+	var complete_owned: Array[String] = ["furnace_heart", "ashen_needle", "cinder_crown"]
+	for value in 10000:
+		var partial := ExpeditionLootRoller.roll(boss_set, value, "partial-%d" % value, "boss_set", 1, {}, partial_owned)
+		var complete := ExpeditionLootRoller.roll(boss_set, value, "complete-%d" % value, "boss_set", 1, {}, complete_owned)
+		partial_counts[partial.artifact_ids[0]] += 1
+		complete_counts[complete.artifact_ids[0]] += 1
+	check(partial_counts.cinder_crown >= 6200 and partial_counts.cinder_crown <= 7100, "Missing Covenant piece receives the expected 4:1 weighting")
+	check(partial_counts.furnace_heart > 0 and partial_counts.ashen_needle > 0, "Protection favors but never guarantees the missing piece")
+	for artifact_id in complete_counts:
+		check(complete_counts[artifact_id] >= 3000 and complete_counts[artifact_id] <= 3700, "Completed Covenant returns %s to equal weight" % artifact_id)
 	var guaranteed := ExpeditionLootRoller.roll_chase(1, "boss-guarantee", 1, {"burning_boss_sigil": 4})
 	check(guaranteed.artifact_ids == ["bloodwritten_sigil"] and guaranteed.chase_awarded,
 		"Fifth eligible victory guarantees the chase item")
