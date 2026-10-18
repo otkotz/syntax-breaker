@@ -14,6 +14,7 @@ var active := false
 var active_loadout_ids: Array[String] = []
 var active_tempered_artifact_ids: Array[String] = []
 var active_synergy_ids: Array[StringName] = []
+var active_sigil_variant: String = ""
 var _skills: Array = []
 var _arena: Node
 
@@ -21,12 +22,12 @@ func _init(custom_registry: ArtifactRegistry = null, custom_hooks: ArtifactComba
 	registry = custom_registry if custom_registry != null else ArtifactRegistry.with_defaults()
 	hooks = custom_hooks if custom_hooks != null else ArtifactCombatHooks.new()
 
-func setup(ids: Array[String], skills: Array, arena: Node, tempered_ids: Array[String] = []) -> void:
+func setup(ids: Array[String], skills: Array, arena: Node, tempered_ids: Array[String] = [], sigil_variant: String = "") -> void:
 	var normalized := ArtifactLoadout.normalize(ArtifactCatalog.all_ids(), ids)
 	var normalized_tempered: Array[String] = []
 	for artifact_id in tempered_ids:
 		if normalized.has(artifact_id) and not normalized_tempered.has(artifact_id): normalized_tempered.append(artifact_id)
-	if active and normalized == active_loadout_ids and normalized_tempered == active_tempered_artifact_ids:
+	if active and normalized == active_loadout_ids and normalized_tempered == active_tempered_artifact_ids and sigil_variant == active_sigil_variant:
 		return
 	if active:
 		teardown()
@@ -38,12 +39,16 @@ func setup(ids: Array[String], skills: Array, arena: Node, tempered_ids: Array[S
 	active_loadout_ids = normalized.duplicate()
 	active_tempered_artifact_ids = normalized_tempered
 	active_synergy_ids = SYNERGY_REGISTRY.get_active_pairs(normalized)
+	active_sigil_variant = sigil_variant
 	hooks.active_artifact_ids = normalized.duplicate()
 	for artifact_id in normalized:
 		if artifact_id.is_empty(): continue
 		var artifact := ArtifactCatalog.get_artifact(artifact_id)
 		if artifact != null:
 			var params := artifact.behavior_parameters.duplicate(true)
+			if artifact_id == "bloodwritten_sigil" and not active_sigil_variant.is_empty():
+				var omen := preload("res://scripts/expedition/blood_omen.gd")
+				params.merge(omen.get_variant(active_sigil_variant), true)
 			if active_tempered_artifact_ids.has(artifact_id): params = _temper_parameters(artifact_id, params)
 			_add_behavior(artifact.behavior_key, artifact.id, params)
 	var tiers := ArtifactLoadout.active_set_tiers(normalized)
@@ -133,6 +138,7 @@ func teardown() -> void:
 	active_loadout_ids.clear()
 	active_tempered_artifact_ids.clear()
 	active_synergy_ids.clear()
+	active_sigil_variant = ""
 	for behavior in behaviors:
 		behavior.teardown()
 		behavior.runtime = null

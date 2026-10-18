@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 6
+const SCHEMA_VERSION := 7
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -18,6 +18,7 @@ var artifact_loadout_ids: Array[String] = ["", "", "", ""]
 var echo_artifact_ids: Array[String] = ["", "", "", ""]
 var unresolved_reward_id: String = ""
 var tempered_artifact_ids: Array[String] = []
+var blood_omen_active: bool = false
 var difficulty: int = 1
 var pending_rewards: Array[Dictionary] = []
 var rolled_reward_ids: Array[String] = []
@@ -41,6 +42,12 @@ func get_available_room_ids() -> Array[String]:
 		return []
 	_sync_layout()
 	return layout.get_available_room_ids()
+
+func activate_blood_omen(profile: ExpeditionProfile) -> bool:
+	var omen := preload("res://scripts/expedition/blood_omen.gd")
+	if blood_omen_active or not omen.is_available(profile): return false
+	blood_omen_active = true
+	return true
 
 func can_enter(room_id: String) -> bool:
 	return status == "active" \
@@ -167,6 +174,7 @@ func to_dict() -> Dictionary:
 		"echo_artifact_ids": echo_artifact_ids,
 		"unresolved_reward_id": unresolved_reward_id,
 		"tempered_artifact_ids": tempered_artifact_ids,
+		"blood_omen_active": blood_omen_active,
 		"difficulty": difficulty,
 		"pending_rewards": pending_rewards,
 		"rolled_reward_ids": rolled_reward_ids,
@@ -176,7 +184,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, 3, 4, 5, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, 4, 5, 6, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -230,6 +238,7 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 		for value: Variant in data.get("tempered_artifact_ids", []):
 			var artifact_id := str(value)
 			if not artifact_id.is_empty() and not result.tempered_artifact_ids.has(artifact_id): result.tempered_artifact_ids.append(artifact_id)
+	result.blood_omen_active = bool(data.get("blood_omen_active", false)) if schema_version >= 7 else false
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):

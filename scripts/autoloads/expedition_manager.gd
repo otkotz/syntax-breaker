@@ -23,7 +23,7 @@ func load_profile() -> bool:
 	for candidate: String in [profile_path, profile_path + ".bak", profile_path + ".tmp"]:
 		var data := _read_json_dictionary(candidate)
 		if data.is_empty() or typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT] \
-			or int(data.get("schema_version")) not in [1, 2, 3, 4, ExpeditionProfile.SCHEMA_VERSION]:
+			or int(data.get("schema_version")) not in [1, 2, 3, 4, 5, ExpeditionProfile.SCHEMA_VERSION]:
 			continue
 		profile = ExpeditionProfile.from_dict(data)
 		if candidate != profile_path:
@@ -89,14 +89,28 @@ func discover_synergy(id: String) -> bool:
 	profile = candidate
 	return true
 
+func select_sigil_variant(id: String) -> bool:
+	var omen := preload("res://scripts/expedition/blood_omen.gd")
+	if profile == null or not profile.selected_sigil_variant.is_empty() or profile.bloodwritten_fragments < 3 \
+			or not profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID) or omen.get_variant(id).is_empty(): return false
+	var candidate := ExpeditionProfile.from_dict(profile.to_dict())
+	candidate.bloodwritten_fragments -= 3
+	candidate.selected_sigil_variant = id
+	if not _write_json_atomic(profile_path, candidate.to_dict()): return false
+	profile = candidate
+	return true
+
 func has_saved_session() -> bool:
 	return FileAccess.file_exists(session_path) or FileAccess.file_exists(session_path + ".bak") \
 		or FileAccess.file_exists(session_path + ".tmp")
 
-func start_expedition(seed_value: int, region_id: String) -> bool:
+func start_expedition(seed_value: int, region_id: String, blood_omen: bool = false) -> bool:
 	if profile == null or not profile.unlocked_regions.has(region_id):
 		return false
 	session = ExpeditionSession.create(seed_value, region_id, profile.equipped_artifact_ids.duplicate())
+	if blood_omen and not session.activate_blood_omen(profile):
+		session = null
+		return false
 	if save_session():
 		return true
 	session = null

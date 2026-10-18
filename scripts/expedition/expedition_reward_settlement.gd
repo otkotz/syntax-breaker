@@ -15,6 +15,7 @@ static func apply(profile: ExpeditionProfile, rewards: Array[Dictionary]) -> Exp
 		result.settled_reward_ids.append(reward_id)
 		result.ember_shards += maxi(0, int(reward.get("shard_amount", 0)))
 		result.ember_shards += maxi(0, int(reward.get("decision_shard_amount", 0)))
+		result.bloodwritten_fragments += maxi(0, int(reward.get("bloodwritten_fragments", 0)))
 		var artifact_ids: Variant = reward.get("artifact_ids", [])
 		if artifact_ids is Array and str(reward.get("decision_action", "")) not in ["temper", "shatter"]:
 			for value: Variant in artifact_ids:

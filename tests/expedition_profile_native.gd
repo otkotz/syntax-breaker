@@ -58,6 +58,8 @@ func _ready() -> void:
 	check(schema_three.reward_history.size() == 100 and schema_three.reward_history[0].get("reward_id") == "reward_5" and schema_three.reward_history[99].get("reward_id") == "reward_104", "Reward history retains the newest 100 entries")
 	var schema_four := ExpeditionProfile.from_dict({"schema_version": 4, "discovered_synergy_ids": ["prism_needle_crossfire"]})
 	check(schema_four.discovered_synergy_ids.is_empty(), "Schema four migrates without synergy discoveries")
+	var schema_five := ExpeditionProfile.from_dict({"schema_version": 5, "bloodwritten_fragments": 3, "selected_sigil_variant": "crimson_overdrive"})
+	check(schema_five.bloodwritten_fragments == 0 and schema_five.selected_sigil_variant.is_empty(), "Schema five migrates without post-Sigil variant state")
 
 	var broken := FileAccess.open(ExpeditionManager.profile_path, FileAccess.WRITE)
 	broken.store_string("{broken")

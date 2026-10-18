@@ -49,6 +49,13 @@ func _ready() -> void:
 	var shattered_result := ExpeditionRewardSettlement.apply(shatter_profile, [shattered])
 	check(shatter_profile.ember_shards == 0 and shattered_result.ember_shards == 15, "Shatter remains pending until victory and then grants its exact conversion")
 	check(ExpeditionRewardSettlement.apply(shattered_result, [shattered]).ember_shards == 15, "Shatter settlement retry is idempotent")
+	var fragment_reward := reward("fragment_miss", "boss_chase", [], ExpeditionLootRoller.CHASE_PITY_KEY, false)
+	fragment_reward["bloodwritten_fragments"] = 1
+	var fragment_profile := ExpeditionProfile.fresh()
+	fragment_profile.owned_artifact_ids = ["bloodwritten_sigil"]
+	var fragment_settled := ExpeditionRewardSettlement.apply(fragment_profile, [fragment_reward])
+	check(fragment_profile.bloodwritten_fragments == 0 and fragment_settled.bloodwritten_fragments == 1, "Bloodwritten fragment remains pending until victory settlement")
+	check(ExpeditionRewardSettlement.apply(fragment_settled, [fragment_reward]).bloodwritten_fragments == 1, "Bloodwritten fragment retry is idempotent")
 
 	_test_manager_transaction()
 	print(JSON.stringify({"failures": failures}))

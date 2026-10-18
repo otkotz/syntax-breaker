@@ -3,7 +3,7 @@ extends RefCounted
 
 const FORGE := preload("res://scripts/expedition/ember_forge.gd")
 
-const SCHEMA_VERSION := 5
+const SCHEMA_VERSION := 6
 const REWARD_HISTORY_LIMIT := 100
 
 var character_id: String = "breaker"
@@ -19,6 +19,8 @@ var settled_reward_ids: Array[String] = []
 var reward_history: Array[Dictionary] = []
 var forge_commitments: Dictionary = {}
 var discovered_synergy_ids: Array[String] = []
+var bloodwritten_fragments: int = 0
+var selected_sigil_variant: String = ""
 
 static func fresh() -> ExpeditionProfile:
 	var profile := ExpeditionProfile.new()
@@ -41,6 +43,8 @@ func to_dict() -> Dictionary:
 		"reward_history": reward_history,
 		"forge_commitments": forge_commitments,
 		"discovered_synergy_ids": discovered_synergy_ids,
+		"bloodwritten_fragments": bloodwritten_fragments,
+		"selected_sigil_variant": selected_sigil_variant,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionProfile:
@@ -48,7 +52,7 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return profile
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, 3, 4, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, 4, 5, SCHEMA_VERSION]:
 		return profile
 	if data.get("character_id") is String and not str(data.get("character_id")).is_empty():
 		profile.character_id = data.get("character_id")
@@ -103,6 +107,11 @@ static func from_dict(data: Dictionary) -> ExpeditionProfile:
 			if bool(data.get("forge_commitments", {}).get(id, false)): profile.forge_commitments[id] = true
 	if schema_version >= 5:
 		profile.discovered_synergy_ids = _unique_strings(data.get("discovered_synergy_ids", []))
+	if schema_version >= 6:
+		profile.bloodwritten_fragments = maxi(0, int(data.get("bloodwritten_fragments", 0))) if typeof(data.get("bloodwritten_fragments", 0)) in [TYPE_INT, TYPE_FLOAT] else 0
+		var variant := str(data.get("selected_sigil_variant", ""))
+		var omen := preload("res://scripts/expedition/blood_omen.gd")
+		if not omen.get_variant(variant).is_empty(): profile.selected_sigil_variant = variant
 	return profile
 
 static func _unique_strings(raw_values: Variant) -> Array[String]:

@@ -93,15 +93,19 @@ static func _with_treasure_choice(result: Dictionary, table: LootTableResource, 
 	result["forge_commitment_id"] = "treasure_choice"
 	return result
 
-static func roll_chase(seed_value: int, reward_id: String, difficulty: int, pity: Dictionary) -> Dictionary:
+static func roll_chase(seed_value: int, reward_id: String, difficulty: int, pity: Dictionary,
+		omen_active: bool = false, initial_owned: bool = false) -> Dictionary:
 	var result := _empty_reward(reward_id, "boss_chase")
 	result["pity_key"] = CHASE_PITY_KEY
 	var artifact := ArtifactCatalog.get_artifact(CHASE_ID)
 	if artifact == null or difficulty < artifact.minimum_difficulty: return result
 	var guaranteed := int(pity.get(CHASE_PITY_KEY, 0)) >= 4
-	if guaranteed or _rng(seed_value, reward_id).randf() < CHASE_CHANCE:
+	var chance := 0.25 if omen_active else CHASE_CHANCE
+	if guaranteed or _rng(seed_value, reward_id).randf() < chance:
 		result["artifact_ids"] = [CHASE_ID]
 		result["chase_awarded"] = true
+	elif initial_owned:
+		result["bloodwritten_fragments"] = 1
 	return result
 
 static func _empty_reward(reward_id: String, source_tag: String) -> Dictionary:

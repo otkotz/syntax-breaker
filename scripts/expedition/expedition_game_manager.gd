@@ -104,12 +104,12 @@ func show_map() -> void:
 	map_ui.room_chosen.connect(enter_room)
 	map_ui.abandon_pressed.connect(abandon_expedition, CONNECT_ONE_SHOT)
 
-func start_new_expedition(seed_value: int) -> bool:
+func start_new_expedition(seed_value: int, blood_omen: bool = false) -> bool:
 	if ExpeditionManager.profile == null:
 		ExpeditionManager.start_new_profile()
 		if not ExpeditionManager.save_profile():
 			return false
-	if not ExpeditionManager.start_expedition(seed_value, "burning_grounds"):
+	if not ExpeditionManager.start_expedition(seed_value, "burning_grounds", blood_omen):
 		return false
 	skill_instances.clear()
 	skill_instances.append(SkillInstance.new(FIREBALL))
@@ -166,7 +166,7 @@ func _start_combat(room: DungeonRoomData) -> void:
 	arena = ARENA_SCENE.instantiate() as Arena
 	add_child(arena)
 	artifact_runtime = ArtifactRuntime.new()
-	artifact_runtime.setup(session.effective_artifact_ids(), skill_instances, arena, session.tempered_artifact_ids)
+	artifact_runtime.setup(session.effective_artifact_ids(), skill_instances, arena, session.tempered_artifact_ids, ExpeditionManager.profile.selected_sigil_variant)
 	artifact_runtime.artifact_triggered.connect(_on_artifact_triggered)
 	artifact_runtime.synergy_triggered.connect(_on_synergy_triggered)
 	(arena.player.get_node("SkillCaster") as SkillCaster).set_artifact_hooks(artifact_runtime.hooks)
@@ -183,7 +183,7 @@ func _on_synergy_triggered(synergy_id: StringName, world_position: Vector2) -> v
 
 func _make_stage_data(room: DungeonRoomData) -> StageData:
 	var stage := StageData.new()
-	stage.depth = room.depth + 1
+	stage.depth = room.depth + 1 + (1 if room.type == DungeonRoomData.Type.BOSS and ExpeditionManager.session != null and ExpeditionManager.session.blood_omen_active else 0)
 	var region_path := "res://resources/regions/%s.tres" % room.region_id
 	if ResourceLoader.exists(region_path):
 		stage.region = load(region_path) as RegionResource
@@ -287,7 +287,7 @@ func _roll_rewards_for(room: DungeonRoomData) -> Array[Dictionary]:
 		if not session.rolled_reward_ids.has(set_id):
 			rewards.append(ExpeditionLootRoller.roll(ExpeditionLootCatalog.get_table("burning_boss_set"), session.seed_value, set_id, "boss_set", session.difficulty, ExpeditionManager.profile.pity_counters, ExpeditionManager.profile.owned_artifact_ids.duplicate(), ExpeditionManager.profile.forge_commitments.duplicate()))
 		if not session.rolled_reward_ids.has(chase_id):
-			rewards.append(ExpeditionLootRoller.roll_chase(session.seed_value, chase_id, session.difficulty, ExpeditionManager.profile.pity_counters))
+			rewards.append(ExpeditionLootRoller.roll_chase(session.seed_value, chase_id, session.difficulty, ExpeditionManager.profile.pity_counters, session.blood_omen_active, ExpeditionManager.profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID)))
 	return rewards
 
 func _rewards_since(start: int) -> Array[Dictionary]:

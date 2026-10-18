@@ -9,6 +9,7 @@ var goal_label: Label
 var set_progress_label: Label
 var pity_label: Label
 var synergy_label: Label
+var omen_label: Label
 var back_button: Button
 var _cards: VBoxContainer
 var _profile: ExpeditionProfile
@@ -83,6 +84,10 @@ func _build_ui() -> void:
 	synergy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	synergy_label.add_theme_font_size_override("font_size", 22)
 	content.add_child(synergy_label)
+	omen_label = Label.new()
+	omen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	omen_label.add_theme_font_size_override("font_size", 22)
+	content.add_child(omen_label)
 	var filters := HBoxContainer.new()
 	filters.alignment = BoxContainer.ALIGNMENT_CENTER
 	filters.add_theme_constant_override("separation", 10)
@@ -132,6 +137,17 @@ func _render_summary() -> void:
 	for id in _profile.discovered_synergy_ids:
 		synergy_names.append(id.to_upper().replace("_", " "))
 	synergy_label.text = "DISCOVERED SYNERGIES: %s" % (", ".join(synergy_names) if not synergy_names.is_empty() else "NONE")
+	var omen := preload("res://scripts/expedition/blood_omen.gd")
+	if not _profile.selected_sigil_variant.is_empty():
+		omen_label.text = "SIGIL PATH: %s" % str(omen.get_variant(_profile.selected_sigil_variant).get("name", "UNKNOWN"))
+	elif _profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID) and _profile.bloodwritten_fragments >= 3:
+		omen_label.text = "NEXT: CHOOSE A SIGIL PATH"
+	elif _profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID):
+		omen_label.text = "SIGIL FRAGMENTS %d/3" % mini(3, _profile.bloodwritten_fragments)
+	elif omen.is_available(_profile):
+		omen_label.text = "BLOOD OMEN READY — OPT IN BEFORE EXPEDITION"
+	else:
+		omen_label.text = "BLOOD OMEN DORMANT"
 	if _profile.owned_artifact_ids.size() >= ArtifactCatalog.all_ids().size():
 		goal_label.text = "NEXT HUNT  ·  COLLECTION COMPLETE"
 	elif missing_set != null:

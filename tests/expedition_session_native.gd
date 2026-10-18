@@ -52,6 +52,11 @@ func _ready() -> void:
 	schema_five.erase("tempered_artifact_ids")
 	var migrated_five := ExpeditionSession.from_dict(schema_five)
 	check(migrated_five != null and migrated_five.tempered_artifact_ids.is_empty(), "Schema five migrates without run-only Temper state")
+	var schema_six := session.to_dict()
+	schema_six["schema_version"] = 6
+	schema_six.erase("blood_omen_active")
+	var migrated_six := ExpeditionSession.from_dict(schema_six)
+	check(migrated_six != null and not migrated_six.blood_omen_active, "Schema six migrates with Blood Omen inactive")
 	var schema_one := session.to_dict()
 	schema_one["schema_version"] = 1
 	schema_one.erase("artifact_loadout_ids")
