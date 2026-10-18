@@ -2,6 +2,8 @@ extends Node
 
 const SCHEMA_VERSION := 1
 const MAX_EVENTS := 5000
+const EXPEDITION_EVENT_TYPES: Array[String] = ["room_source", "rolled_result", "decision", "loadout_delta", "forge_commitment", "post_run_settlement"]
+const EXPEDITION_PAYLOAD_KEYS: Array[String] = ["room_id", "room_type", "source_tag", "reward_id", "artifact_id", "artifact_ids", "action", "slot", "before_ids", "after_ids", "commitment_id", "cost", "shards", "status", "new_ids", "duplicate_ids", "difficulty", "blood_omen"]
 var enabled: bool = true
 var log_directory: String = "user://telemetry"
 var data: Dictionary = {}
@@ -10,6 +12,7 @@ var _open_decisions: Dictionary = {}
 var _decision_serial: int = 0
 var _last_opportunity: float = 0.0
 var _has_opportunity: bool = false
+var _pending_expedition_events: Array[Dictionary] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -34,6 +37,7 @@ func begin(metadata: Dictionary, synthetic: bool = false) -> void:
 		"decision_intervals": [], "first_decision_seconds": null,
 		"spawns_by_role": {}, "kills": 0, "stages": [], "events": [], "dropped_events": 0,
 		"frame_samples": 0, "frame_ms_sum": 0.0, "frame_ms_max": 0.0, "frames_over_33ms": 0,
+		"expedition_event_keys": [],
 	}
 	active = true
 	_open_decisions.clear()
@@ -41,6 +45,10 @@ func begin(metadata: Dictionary, synthetic: bool = false) -> void:
 	_last_opportunity = 0.0
 	_has_opportunity = false
 	record("run_start", {})
+	var queued := _pending_expedition_events.duplicate(true)
+	_pending_expedition_events.clear()
+	for event: Dictionary in queued:
+		record_expedition(str(event.type), str(event.id), event.payload)
 	flush()
 
 func record(event_type: String, payload: Dictionary) -> void:
@@ -51,6 +59,37 @@ func record(event_type: String, payload: Dictionary) -> void:
 		return
 	data.events.append({"type": event_type, "combat_seconds": data.combat_seconds,
 		"app_seconds": data.app_seconds, "data": payload.duplicate(true)})
+
+func record_expedition(event_type: String, event_id: String, payload: Dictionary) -> bool:
+	if not EXPEDITION_EVENT_TYPES.has(event_type) or event_id.is_empty(): return false
+	if not active:
+		if event_type != "forge_commitment" or _pending_expedition_events.size() >= 32: return false
+		_pending_expedition_events.append({"type": event_type, "id": event_id.left(96), "payload": _bounded_expedition_payload(payload)})
+		return true
+	if data.events.size() >= MAX_EVENTS: return false
+	if not data.has("expedition_event_keys"): data["expedition_event_keys"] = []
+	var event_key := event_type + ":" + event_id.left(96)
+	if data.expedition_event_keys.has(event_key): return false
+	var bounded := _bounded_expedition_payload(payload)
+	bounded["event_id"] = event_id.left(96)
+	data.expedition_event_keys.append(event_key)
+	record("expedition_" + event_type, bounded)
+	return true
+
+func _bounded_expedition_payload(payload: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+	for key: String in EXPEDITION_PAYLOAD_KEYS:
+		if not payload.has(key): continue
+		var value: Variant = payload[key]
+		if value is String:
+			result[key] = str(value).left(96)
+		elif value is bool or value is int or value is float:
+			result[key] = value
+		elif value is Array:
+			var bounded_values: Array[String] = []
+			for item: Variant in value.slice(0, 8): bounded_values.append(str(item).left(64))
+			result[key] = bounded_values
+	return result
 
 func begin_stage(stage: StageData) -> void:
 	if not active:

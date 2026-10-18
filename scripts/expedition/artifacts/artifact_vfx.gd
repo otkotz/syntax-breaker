@@ -3,8 +3,9 @@ extends Node2D
 
 var color := Color.WHITE
 var radius := 28.0
+var reduced_motion := false
 
-static func spawn(parent: Node, artifact_id: String, world_position: Vector2) -> ArtifactVFX:
+static func spawn(parent: Node, artifact_id: String, world_position: Vector2, use_reduced_motion: bool = false) -> ArtifactVFX:
 	if parent == null: return null
 	var effect := ArtifactVFX.new()
 	effect.color = {
@@ -17,12 +18,14 @@ static func spawn(parent: Node, artifact_id: String, world_position: Vector2) ->
 	effect.radius = {"prism_needle_crossfire": 22.0, "hourglass_sigil_blood_echo": 34.0,
 		"crown_prism_split_transfer": 46.0}.get(artifact_id, 28.0)
 	effect.global_position = world_position
+	effect.reduced_motion = use_reduced_motion
+	effect.z_index = 2
 	effect.add_to_group("artifact_vfx")
 	parent.add_child(effect)
-	var tween := effect.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(effect, "scale", Vector2.ONE * 2.2, 0.28)
-	tween.tween_property(effect, "modulate:a", 0.0, 0.28)
+	var tween := effect.create_tween().set_parallel(true)
+	if not use_reduced_motion:
+		tween.tween_property(effect, "scale", Vector2.ONE * 2.2, 0.28)
+	tween.tween_property(effect, "modulate:a", 0.0, 0.12 if use_reduced_motion else 0.28)
 	tween.chain().tween_callback(effect.queue_free)
 	return effect
 

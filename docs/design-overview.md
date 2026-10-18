@@ -27,9 +27,17 @@ form Covenant of Embers: 2/3 enables five independent burn stacks and 3/3 adds c
 detonation while retaining the 2/3 bonus. Artifact combat state is created only for an Expedition
 arena and torn down before the roguelite snapshot is restored.
 
-This remains an RPG-mode vertical slice. Artifact loot tables, duplicates, pity counters, Codex
-discovery, XP, the character progression board, the three-region campaign and Fractured Realms
-endgame are intentionally deferred.
+The Burning Grounds slice now includes deterministic elite, treasure, Covenant-set and chase
+loot. Every elite/treasure result advances the account with an artifact or Ember Shards;
+duplicates become a run-only Echo/Temper choice or a persistent Shatter payout. The Codex tracks
+artifacts and curated pair synergies, the Ember Forge sells three bounded one-shot commitments,
+and Blood Omen trades a harder boss for improved Sigil odds. Rewards use six presentation tiers
+(`SHARDS`, `DUPLICATE`, `NEW`, `SET_PIECE`, `SET_COMPLETE`, `CHASE`) without making gameplay
+state wait for animation completion.
+
+XP, the character progression board, the three-region campaign and Fractured Realms endgame
+remain deferred. Current balance gates and telemetry semantics are documented in
+[Expedition loot-hunt tuning](expedition-loot-hunt-tuning.md).
 
 ---
 

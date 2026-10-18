@@ -34,7 +34,7 @@ func setup(ids: Array[String], skills: Array, arena: Node, tempered_ids: Array[S
 	behaviors.clear()
 	active = true
 	hooks.active = true
-	_skills = skills
+	_skills = skills.duplicate()
 	_arena = arena
 	active_loadout_ids = normalized.duplicate()
 	active_tempered_artifact_ids = normalized_tempered
@@ -142,5 +142,5 @@ func teardown() -> void:
 	for behavior in behaviors:
 		behavior.teardown()
 		behavior.runtime = null
-	_skills.clear()
+	_skills = []
 	_arena = null

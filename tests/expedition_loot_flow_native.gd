@@ -58,9 +58,14 @@ func _ready() -> void:
 	var decision_valid_path := ExpeditionManager.session_path
 	ExpeditionManager.session_path = "res://missing_directory/decision.json"
 	game.show_map()
-	game.reward_overlay.slot_buttons[0].pressed.emit()
+	if not game.reward_overlay.choice_buttons.is_empty():
+		game.reward_overlay.choice_buttons[0].pressed.emit()
+	else:
+		game.reward_overlay.slot_buttons[0].pressed.emit()
+		game.reward_overlay.echo_button.pressed.emit()
 	check(ExpeditionManager.session.to_dict() == decision_snapshot and game.reward_overlay != null, "Failed decision save rolls back session and keeps the choice visible")
 	ExpeditionManager.session_path = decision_valid_path
+	if not game.reward_overlay.choice_buttons.is_empty(): game.reward_overlay.choice_buttons[0].pressed.emit()
 	game.reward_overlay.keep_button.pressed.emit()
 	ExpeditionManager.profile.owned_artifact_ids = ["furnace_heart", "ashen_needle"]
 	check(game.checkpoint_room_rewards(room("boss", DungeonRoomData.Type.BOSS)), "Boss rewards checkpoint together")

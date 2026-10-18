@@ -24,6 +24,13 @@ func _ready() -> void:
 	var session := ExpeditionSession.create(81, "burning_grounds")
 	check(not session.blood_omen_active, "Blood Omen is opt-in rather than automatic")
 	check(session.activate_blood_omen(profile), "Available Blood Omen can be explicitly activated")
+	var omen_hub := ExpeditionHub.new()
+	add_child(omen_hub)
+	omen_hub.setup(profile, false)
+	check(omen_hub.omen_button != null and omen_hub.omen_button.visible and omen_hub.omen_button.text.contains("OFF"), "Hub exposes visible Blood Omen opt-in before a run")
+	omen_hub.omen_button.pressed.emit()
+	check(omen_hub.omen_button.text.contains("ON"), "Blood Omen opt-in visibly toggles")
+	omen_hub.queue_free()
 	check(ExpeditionSession.from_dict(session.to_dict()).blood_omen_active, "Blood Omen survives resume and therefore death/restart boundaries")
 	profile.owned_artifact_ids.append("bloodwritten_sigil")
 	profile.pity_counters[ExpeditionLootRoller.CHASE_PITY_KEY] = 0
@@ -60,6 +67,15 @@ func _ready() -> void:
 	ExpeditionManager.start_new_profile()
 	ExpeditionManager.profile.owned_artifact_ids = ["bloodwritten_sigil"]
 	ExpeditionManager.profile.bloodwritten_fragments = 3
+	var variant_codex := ExpeditionCodexUI.new()
+	add_child(variant_codex)
+	variant_codex.setup(ExpeditionManager.profile)
+	check(variant_codex.variant_buttons.size() == 2 and variant_codex.variant_buttons[0].text.contains("12%") and variant_codex.variant_buttons[1].text.contains("5%"), "Codex exposes both Sigil paths with visible tradeoffs")
+	var selected_variants: Array[String] = []
+	variant_codex.variant_selected.connect(func(id: String) -> void: selected_variants.append(id))
+	variant_codex.variant_buttons[1].pressed.emit()
+	check(selected_variants == ["hematic_reserve"], "Sigil path control emits an explicit selection")
+	variant_codex.queue_free()
 	check(ExpeditionManager.select_sigil_variant("crimson_overdrive"), "Three fragments unlock Crimson Overdrive")
 	check(ExpeditionManager.profile.selected_sigil_variant == "crimson_overdrive" and ExpeditionManager.profile.bloodwritten_fragments == 0, "Variant selection spends fragments and persists one choice")
 	check(not ExpeditionManager.select_sigil_variant("hematic_reserve"), "Sigil variants are mutually exclusive")

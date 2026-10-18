@@ -47,8 +47,8 @@ func open_hub() -> void:
 	hub = HUB_SCENE.instantiate() as ExpeditionHub
 	_ui_layer.add_child(hub)
 	hub.setup(ExpeditionManager.profile, ExpeditionManager.has_saved_session(), last_result)
-	hub.new_expedition_pressed.connect(func() -> void:
-		start_new_expedition(int(Time.get_unix_time_from_system()))
+	hub.new_expedition_pressed.connect(func(blood_omen: bool) -> void:
+		start_new_expedition(int(Time.get_unix_time_from_system()), blood_omen)
 	, CONNECT_ONE_SHOT)
 	hub.resume_pressed.connect(resume_expedition, CONNECT_ONE_SHOT)
 	hub.back_pressed.connect(func() -> void: return_to_main_menu.emit(), CONNECT_ONE_SHOT)
@@ -65,7 +65,12 @@ func open_forge() -> void:
 	forge_ui.back_pressed.connect(open_hub, CONNECT_ONE_SHOT)
 
 func _on_forge_purchase(id: String) -> void:
-	ExpeditionManager.buy_forge_commitment(id)
+	var before_shards := ExpeditionManager.profile.ember_shards
+	if ExpeditionManager.buy_forge_commitment(id):
+		RunTelemetry.record_expedition("forge_commitment", id + ":" + str(before_shards), {
+			"commitment_id": id, "cost": before_shards - ExpeditionManager.profile.ember_shards,
+			"shards": ExpeditionManager.profile.ember_shards,
+		})
 	forge_ui.setup(ExpeditionManager.profile)
 
 func open_codex() -> void:
@@ -73,7 +78,11 @@ func open_codex() -> void:
 	codex_ui = CODEX_SCENE.instantiate() as ExpeditionCodexUI
 	_ui_layer.add_child(codex_ui)
 	codex_ui.setup(ExpeditionManager.profile)
+	codex_ui.variant_selected.connect(_on_sigil_variant_selected)
 	codex_ui.back_pressed.connect(open_hub, CONNECT_ONE_SHOT)
+
+func _on_sigil_variant_selected(id: String) -> void:
+	if ExpeditionManager.select_sigil_variant(id): codex_ui.setup(ExpeditionManager.profile)
 
 func open_artifacts() -> void:
 	_clear_ui()
@@ -111,6 +120,7 @@ func start_new_expedition(seed_value: int, blood_omen: bool = false) -> bool:
 			return false
 	if not ExpeditionManager.start_expedition(seed_value, "burning_grounds", blood_omen):
 		return false
+	RunTelemetry.begin({"mode": "expedition", "region": "burning_grounds", "difficulty": ExpeditionManager.session.difficulty}, DisplayServer.get_name() == "headless")
 	skill_instances.clear()
 	skill_instances.append(SkillInstance.new(FIREBALL))
 	last_result = ""
@@ -121,9 +131,20 @@ func resume_expedition() -> bool:
 	if not ExpeditionManager.load_session():
 		open_hub()
 		return false
+	if not RunTelemetry.active and not ExpeditionManager.session.telemetry_snapshot.is_empty():
+		RunTelemetry.restore(ExpeditionManager.session.telemetry_snapshot)
+	if not ExpeditionManager.reconcile_forge_commitments():
+		open_hub()
+		return false
 	if skill_instances.is_empty():
 		skill_instances.append(SkillInstance.new(FIREBALL))
+	if not RunTelemetry.active:
+		RunTelemetry.begin({"mode": "expedition", "region": ExpeditionManager.session.region_id,
+			"difficulty": ExpeditionManager.session.difficulty, "resumed_without_earlier_telemetry": true}, DisplayServer.get_name() == "headless")
 	last_result = ""
+	if ExpeditionManager.session.status == "victory" and ExpeditionManager.session.unresolved_reward_id.is_empty():
+		_attempt_victory_settlement()
+		return true
 	if not ExpeditionManager.session.completed_room_ids.has(ExpeditionManager.session.current_room_id):
 		return _open_entered_room(ExpeditionManager.session.current_room_id)
 	show_map()
@@ -137,6 +158,11 @@ func enter_room(room_id: String) -> bool:
 	if not ExpeditionManager.save_session():
 		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 		return false
+	var room := session.layout.rooms.get(room_id) as DungeonRoomData
+	RunTelemetry.record_expedition("room_source", session.session_id + ":" + room_id, {
+		"room_id": room_id, "room_type": str(room.type) if room != null else "unknown",
+		"difficulty": session.difficulty, "blood_omen": session.blood_omen_active,
+	})
 	return _open_entered_room(room_id)
 
 func _open_entered_room(room_id: String) -> bool:
@@ -145,6 +171,10 @@ func _open_entered_room(room_id: String) -> bool:
 	var room := session.layout.rooms.get(room_id) as DungeonRoomData
 	if room == null:
 		return false
+	RunTelemetry.record_expedition("room_source", session.session_id + ":" + room_id, {
+		"room_id": room_id, "room_type": str(room.type), "difficulty": session.difficulty,
+		"blood_omen": session.blood_omen_active,
+	})
 	if room.type in [DungeonRoomData.Type.COMBAT, DungeonRoomData.Type.ELITE, DungeonRoomData.Type.BOSS]:
 		_start_combat(room)
 	else:
@@ -153,6 +183,7 @@ func _open_entered_room(room_id: String) -> bool:
 
 func abandon_expedition() -> void:
 	last_result = "abandoned"
+	RunTelemetry.finish("abandoned", [])
 	_clear_arena()
 	ExpeditionManager.clear_active_session()
 	open_hub()
@@ -175,11 +206,11 @@ func _start_combat(room: DungeonRoomData) -> void:
 
 func _on_artifact_triggered(artifact_id: String, world_position: Vector2) -> void:
 	if arena != null:
-		ArtifactVFX.spawn(arena, artifact_id, world_position)
+		ArtifactVFX.spawn(arena, artifact_id, world_position, QualitySettings.reduced_motion)
 
 func _on_synergy_triggered(synergy_id: StringName, world_position: Vector2) -> void:
 	if ExpeditionManager.discover_synergy(str(synergy_id)) and arena != null:
-		ArtifactVFX.spawn(arena, str(synergy_id), world_position)
+		ArtifactVFX.spawn(arena, str(synergy_id), world_position, QualitySettings.reduced_motion)
 
 func _make_stage_data(room: DungeonRoomData) -> StageData:
 	var stage := StageData.new()
@@ -219,9 +250,7 @@ func _on_stage_completed() -> void:
 	if won:
 		if not ExpeditionManager.session.unresolved_reward_id.is_empty():
 			_show_reward_overlay(rewards)
-		elif ExpeditionManager.settle_victory():
-			last_result = "victory"
-			open_hub()
+		elif _attempt_victory_settlement():
 			_show_reward_overlay(rewards)
 	else:
 		show_map()
@@ -253,6 +282,10 @@ func checkpoint_room_rewards(room: DungeonRoomData) -> bool:
 			var artifact_ids: Array = reward.get("artifact_ids", [])
 			reward["is_duplicate"] = not artifact_ids.is_empty() and ExpeditionManager.profile.owned_artifact_ids.has(str(artifact_ids[0]))
 			session.record_reward(reward)
+		RunTelemetry.record_expedition("rolled_result", str(reward.get("reward_id", "")), {
+			"reward_id": str(reward.get("reward_id", "")), "source_tag": str(reward.get("source_tag", "")),
+			"artifact_ids": reward.get("artifact_ids", []), "shards": int(reward.get("shard_amount", 0)),
+		})
 	if ExpeditionManager.save_session():
 		for reward: Dictionary in rewards:
 			var commitment_ids: Array[String] = []
@@ -266,6 +299,11 @@ func checkpoint_room_rewards(room: DungeonRoomData) -> bool:
 				ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 				ExpeditionManager.save_session()
 				return false
+			for commitment_id: String in commitment_ids:
+				RunTelemetry.record_expedition("forge_commitment", str(reward.get("reward_id", "")) + ":" + commitment_id, {
+					"reward_id": str(reward.get("reward_id", "")), "commitment_id": commitment_id,
+					"action": "consumed", "source_tag": str(reward.get("source_tag", "")),
+				})
 		return true
 	ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 	return false
@@ -324,18 +362,52 @@ func _show_unresolved_reward() -> void:
 func _on_reward_decision(reward_id: String, action: String, slot: int) -> void:
 	var session := ExpeditionManager.session
 	if session == null: return
+	var before_ids := session.effective_artifact_ids()
 	var snapshot := session.to_dict().duplicate(true)
 	if not session.resolve_reward(reward_id, action, slot) or not ExpeditionManager.save_session():
 		ExpeditionManager.session = ExpeditionSession.from_dict(snapshot)
 		_clear_ui()
 		_show_unresolved_reward()
 		return
+	var after_ids := session.effective_artifact_ids()
+	RunTelemetry.record_expedition("decision", reward_id, {"reward_id": reward_id, "action": action, "slot": slot})
+	RunTelemetry.record_expedition("loadout_delta", reward_id, {"reward_id": reward_id,
+		"before_ids": before_ids, "after_ids": after_ids})
+	if not session.unresolved_reward_id.is_empty():
+		_clear_ui()
+		_show_unresolved_reward()
+		return
 	if session.status == "victory":
-		if ExpeditionManager.settle_victory():
-			last_result = "victory"
-			open_hub()
+		_attempt_victory_settlement()
 		return
 	show_map()
+
+func _attempt_victory_settlement() -> bool:
+	var session := ExpeditionManager.session
+	if session == null or session.status != "victory": return false
+	var settlement_event_id := session.session_id
+	var settlement_reward_ids: Array[String] = session.rolled_reward_ids.duplicate()
+	if not ExpeditionManager.settle_victory():
+		_show_settlement_retry()
+		return false
+	RunTelemetry.record_expedition("post_run_settlement", settlement_event_id, {
+		"status": "victory", "reward_id": ",".join(settlement_reward_ids),
+		"shards": ExpeditionManager.profile.ember_shards,
+	})
+	RunTelemetry.finish("victory", [])
+	last_result = "victory"
+	open_hub()
+	return true
+
+func _show_settlement_retry() -> void:
+	_clear_ui()
+	state = State.MAP
+	reward_overlay = REWARD_OVERLAY_SCENE.instantiate() as ExpeditionRewardOverlay
+	_ui_layer.add_child(reward_overlay)
+	reward_overlay.setup([])
+	reward_overlay.result_label.text = "COULD NOT SAVE EXPEDITION REWARDS\nYOUR VICTORY IS SAFE"
+	reward_overlay.confirm_button.text = "RETRY SETTLEMENT"
+	reward_overlay.confirmed.connect(_attempt_victory_settlement, CONNECT_ONE_SHOT)
 
 func _on_player_died() -> void:
 	if state != State.COMBAT or ExpeditionManager.session == null:
@@ -345,6 +417,10 @@ func _on_player_died() -> void:
 
 func _finish_expedition(result: String) -> void:
 	last_result = result
+	if ExpeditionManager.session != null:
+		RunTelemetry.record_expedition("post_run_settlement", ExpeditionManager.session.session_id,
+			{"status": result, "shards": ExpeditionManager.profile.ember_shards})
+	RunTelemetry.finish(result, [])
 	_clear_arena()
 	ExpeditionManager.save_profile()
 	ExpeditionManager.clear_active_session()

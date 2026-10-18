@@ -27,7 +27,8 @@ class FurnaceHeartBehavior extends ArtifactBehavior:
 
 class AshenNeedleBehavior extends ArtifactBehavior:
 	func handle(event: StringName, context: Dictionary) -> void:
-		if event != &"projectile_hit" or "ashen_needle" in context.get("origin_flags", []): return
+		var origin_flags: Array = context.get("origin_flags", [])
+		if event != &"projectile_hit" or "ashen_needle" in origin_flags or "secondary_artifact_projectile" in origin_flags: return
 		var target: Node2D = context.get("target")
 		var projectile: Node2D = context.get("projectile")
 		if target == null or projectile == null or not target.has_method("get_dot_stacks"): return
@@ -54,6 +55,8 @@ class CinderCrownBehavior extends ArtifactBehavior:
 		if dead == null or not dead.has_method("get_dot_stacks"): return
 		var burns: Array = context.get("burns", dead.get_dot_stacks("burn"))
 		if burns.is_empty(): return
+		for burn: Dictionary in burns:
+			if str(burn.get("stack_id", "")).begins_with("split-transfer-"): return
 		burns.sort_custom(func(a: Dictionary, b: Dictionary): return float(a.damage) > float(b.damage))
 		var transfers := 0
 		for enemy: Node2D in Targeting.find_enemies_in_range(dead.global_position, 400.0, 8):

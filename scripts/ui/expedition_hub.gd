@@ -1,7 +1,7 @@
 class_name ExpeditionHub
 extends Control
 
-signal new_expedition_pressed
+signal new_expedition_pressed(blood_omen: bool)
 signal resume_pressed
 signal back_pressed
 signal artifacts_pressed
@@ -11,6 +11,8 @@ signal forge_pressed
 var new_button: Button
 var resume_button: Button
 var back_button: Button
+var omen_button: Button
+var _blood_omen_selected := false
 var _level_label: Label
 var _result_label: Label
 
@@ -21,6 +23,9 @@ func _ready() -> void:
 func setup(profile: ExpeditionProfile, can_resume: bool, result: String = "") -> void:
 	_level_label.text = "CHARACTER LEVEL %d" % profile.level
 	resume_button.visible = can_resume
+	_blood_omen_selected = false
+	omen_button.visible = preload("res://scripts/expedition/blood_omen.gd").is_available(profile) and not can_resume
+	_update_omen_button()
 	_result_label.text = _result_text(result)
 	_result_label.visible = not result.is_empty()
 
@@ -71,8 +76,15 @@ func _build_ui() -> void:
 
 	new_button = _make_button("NEW EXPEDITION")
 	new_button.name = "NewExpeditionButton"
-	new_button.pressed.connect(func() -> void: new_expedition_pressed.emit())
+	new_button.pressed.connect(func() -> void: new_expedition_pressed.emit(_blood_omen_selected))
 	content.add_child(new_button)
+	omen_button = _make_button("BLOOD OMEN — OFF")
+	omen_button.name = "BloodOmenButton"
+	omen_button.pressed.connect(func() -> void:
+		_blood_omen_selected = not _blood_omen_selected
+		_update_omen_button()
+	)
+	content.add_child(omen_button)
 
 	resume_button = _make_button("RESUME EXPEDITION")
 	resume_button.name = "ResumeExpeditionButton"
@@ -110,3 +122,6 @@ func _result_text(result: String) -> String:
 		"failed": return "EXPEDITION FAILED"
 		"abandoned": return "EXPEDITION ABANDONED"
 	return ""
+
+func _update_omen_button() -> void:
+	if omen_button != null: omen_button.text = "BLOOD OMEN — %s · HARDER BOSS · 25%% SIGIL" % ("ON" if _blood_omen_selected else "OFF")

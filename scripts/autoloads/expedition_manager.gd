@@ -79,6 +79,25 @@ func consume_forge_commitments(ids: Array[String], reward_id: String) -> bool:
 	profile = candidate
 	return true
 
+func reconcile_forge_commitments() -> bool:
+	if profile == null or session == null: return false
+	for reward: Dictionary in session.pending_rewards:
+		var active_ids: Array[String] = []
+		for value: Variant in reward.get("forge_commitment_ids", []):
+			var id := str(value)
+			if profile.forge_commitments.has(id) and not active_ids.has(id): active_ids.append(id)
+		var single_id := str(reward.get("forge_commitment_id", ""))
+		if profile.forge_commitments.has(single_id) and not active_ids.has(single_id): active_ids.append(single_id)
+		if not active_ids.is_empty():
+			var reward_id := str(reward.get("reward_id", ""))
+			if not consume_forge_commitments(active_ids, reward_id): return false
+			for id: String in active_ids:
+				RunTelemetry.record_expedition("forge_commitment", reward_id + ":" + id, {
+					"reward_id": reward_id, "commitment_id": id, "action": "reconciled",
+					"source_tag": str(reward.get("source_tag", "")),
+				})
+	return true
+
 func discover_synergy(id: String) -> bool:
 	var registry := preload("res://scripts/expedition/artifacts/artifact_synergy_registry.gd")
 	if profile == null or not registry.is_known(id): return false
@@ -119,6 +138,8 @@ func start_expedition(seed_value: int, region_id: String, blood_omen: bool = fal
 func save_session() -> bool:
 	if session == null:
 		return false
+	if RunTelemetry.active:
+		session.telemetry_snapshot = RunTelemetry.snapshot()
 	return _write_json_atomic(session_path, session.to_dict())
 
 func load_session() -> bool:

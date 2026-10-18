@@ -2,6 +2,7 @@ class_name ExpeditionCodexUI
 extends Control
 
 signal back_pressed
+signal variant_selected(id: String)
 
 var card_buttons: Dictionary = {}
 var filter_buttons: Dictionary = {}
@@ -11,6 +12,7 @@ var pity_label: Label
 var synergy_label: Label
 var omen_label: Label
 var back_button: Button
+var variant_buttons: Array[Button] = []
 var _cards: VBoxContainer
 var _profile: ExpeditionProfile
 var _active_filter := "all"
@@ -88,6 +90,20 @@ func _build_ui() -> void:
 	omen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	omen_label.add_theme_font_size_override("font_size", 22)
 	content.add_child(omen_label)
+	var variants := HBoxContainer.new()
+	variants.alignment = BoxContainer.ALIGNMENT_CENTER
+	variants.add_theme_constant_override("separation", 12)
+	content.add_child(variants)
+	for entry: Dictionary in [
+		{"id": "crimson_overdrive", "text": "CRIMSON · 12% HP · 1.55× DMG"},
+		{"id": "hematic_reserve", "text": "RESERVE · 5% HP · 1.15× DMG"},
+	]:
+		var variant_button := Button.new()
+		variant_button.text = entry.text
+		variant_button.custom_minimum_size = Vector2(430, 88)
+		variant_button.pressed.connect(_emit_variant.bind(str(entry.id)))
+		variants.add_child(variant_button)
+		variant_buttons.append(variant_button)
 	var filters := HBoxContainer.new()
 	filters.alignment = BoxContainer.ALIGNMENT_CENTER
 	filters.add_theme_constant_override("separation", 10)
@@ -148,7 +164,11 @@ func _render_summary() -> void:
 		omen_label.text = "BLOOD OMEN READY — OPT IN BEFORE EXPEDITION"
 	else:
 		omen_label.text = "BLOOD OMEN DORMANT"
-	if _profile.owned_artifact_ids.size() >= ArtifactCatalog.all_ids().size():
+	for button: Button in variant_buttons:
+		button.visible = _profile.selected_sigil_variant.is_empty() and _profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID) and _profile.bloodwritten_fragments >= 3
+	var known_owned := 0
+	for known_id: String in ArtifactCatalog.all_ids(): known_owned += int(_profile.owned_artifact_ids.has(known_id))
+	if known_owned >= ArtifactCatalog.all_ids().size():
 		goal_label.text = "NEXT HUNT  ·  COLLECTION COMPLETE"
 	elif missing_set != null:
 		goal_label.text = "NEXT HUNT  ·  %s  ·  BOSS" % missing_set.display_name
@@ -196,3 +216,6 @@ func _source_label(artifact: ArtifactResource) -> String:
 	for source: String in artifact.source_tags:
 		labels.append(source.to_upper().replace("_", " "))
 	return " / ".join(labels) if not labels.is_empty() else "UNKNOWN"
+
+func _emit_variant(id: String) -> void:
+	variant_selected.emit(id)

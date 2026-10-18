@@ -33,7 +33,11 @@ func _ready() -> void:
 	runtime.teardown()
 	runtime.teardown()
 	hooks.emit_event(&"skill_cast", {"event_id": 2})
-	for behavior in runtime.behaviors: check(behavior.teardown_count == 1 and behavior.event_count == 1, "Teardown is final and idempotent")
+	for behavior in stable_behaviors: check(behavior.teardown_count == 1 and behavior.event_count == 1, "Teardown is final and idempotent")
+	var caller_skills: Array = [SkillInstance.new(load("res://resources/skills/fireball.tres"))]
+	runtime.setup(["furnace_heart"], caller_skills, null)
+	runtime.teardown()
+	check(caller_skills.size() == 1, "Runtime teardown never clears the manager's skill array")
 	runtime.setup(["furnace_heart", "", "", ""], [], null)
 	check(runtime.behaviors.size() == 1, "Runtime reuse discards behaviors from the previous setup")
 	runtime.teardown()

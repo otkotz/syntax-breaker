@@ -13,6 +13,7 @@ func run_checks() -> void:
 	ExpeditionManager.profile_path = "res://.godot/expedition_flow_profile_test.json"
 	ExpeditionManager.session_path = "res://.godot/expedition_flow_session_test.json"
 	RunManager.save_path = "res://.godot/expedition_flow_roguelite_test.json"
+	RunTelemetry.log_directory = "res://.godot/expedition_flow_telemetry"
 	RunManager.gold = 321
 	_cleanup_files()
 	ExpeditionManager.profile = null
@@ -44,24 +45,29 @@ func run_checks() -> void:
 	game.arena.player.current_hp = 63.0
 	game.arena._on_all_waves_cleared()
 	check(ExpeditionManager.session.completed_room_ids.has(chosen_room_id), "Arena clear completes room")
+	check(RunTelemetry.data.events.filter(func(event: Dictionary): return event.type == "expedition_room_source" and event.data.room_id == chosen_room_id).size() == 1, "Room source telemetry is recorded once")
 	check(game.state == ExpeditionGameManager.State.MAP, "Clear returns to expedition map")
 	check(ExpeditionManager.has_saved_session(), "Clear checkpoints session")
 	check(RunManager.gold == 321 and RunManager.current_shield == 17.0, "Expedition restores roguelite economy and shield")
 	check(RunManager.owned_passives.size() == 1 and RunManager.owned_consumables.size() == 1 and not RunManager.has_saved_run(), "Expedition restores roguelite build and inventory")
 	check(game.artifact_runtime == null, "Leaving combat tears artifact runtime down")
+	var expedition_run_id := str(RunTelemetry.data.run_id)
 	game.queue_free()
 	await get_tree().process_frame
+	RunTelemetry.restore({})
 	ExpeditionManager.session = null
 	check(ExpeditionManager.load_session(), "Active expedition resumes")
 	check(ExpeditionManager.session.current_hp == 63.0, "Resume preserves health")
 	check(ExpeditionManager.session.completed_room_ids.has(chosen_room_id), "Resume preserves cleared room")
 	check(ExpeditionManager.session.layout.seed_value == 20261014, "Resume preserves seed")
+	check(not RunTelemetry.active, "Fixture simulates a cold process before manager resume")
 	check(not ExpeditionManager.session.can_enter(chosen_room_id), "Resume cannot replay cleared room")
 
 	var resume_game := ExpeditionGameManager.new()
 	resume_game.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(resume_game)
 	check(resume_game.resume_expedition(), "Game manager resumes checkpoint")
+	check(RunTelemetry.data.run_id == expedition_run_id, "Cold Expedition resume restores telemetry identity and dedupe state")
 	check(resume_game.enter_room("room_3"), "Resumed route reaches merge room")
 	if resume_game.state == ExpeditionGameManager.State.COMBAT:
 		resume_game.arena._on_all_waves_cleared()
@@ -72,6 +78,11 @@ func run_checks() -> void:
 	if resume_game.reward_overlay != null and resume_game.reward_overlay.keep_button != null:
 		resume_game.reward_overlay.keep_button.pressed.emit()
 	check(resume_game.last_result == "victory" and resume_game.state == ExpeditionGameManager.State.HUB, "Boss victory returns to hub")
+	var expedition_events: Array = RunTelemetry.data.events.filter(func(event: Dictionary): return str(event.type).begins_with("expedition_"))
+	check(expedition_events.any(func(event: Dictionary): return event.type == "expedition_rolled_result"), "Rolled expedition rewards are telemetered")
+	check(expedition_events.any(func(event: Dictionary): return event.type == "expedition_decision"), "Reward decision is telemetered")
+	check(expedition_events.any(func(event: Dictionary): return event.type == "expedition_loadout_delta"), "Effective loadout delta is telemetered")
+	check(expedition_events.any(func(event: Dictionary): return event.type == "expedition_post_run_settlement"), "Victory settlement is telemetered")
 	check(ExpeditionManager.session == null and not ExpeditionManager.has_saved_session(), "Victory clears active checkpoint")
 	resume_game.queue_free()
 	await get_tree().process_frame
@@ -119,6 +130,23 @@ func run_checks() -> void:
 	ExpeditionManager.session_path = valid_session_path
 	completion_transaction.abandon_expedition()
 	completion_transaction.queue_free()
+	await get_tree().process_frame
+
+	var settlement_retry := ExpeditionGameManager.new()
+	settlement_retry.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(settlement_retry)
+	ExpeditionManager.session = ExpeditionSession.create(20261019, "burning_grounds", [])
+	ExpeditionManager.session.status = "victory"
+	ExpeditionManager.session.record_reward({"reward_id": "retry:settlement", "source_tag": "elite", "artifact_ids": [], "shard_amount": 2, "pity_key": "", "chase_awarded": false})
+	check(ExpeditionManager.save_session(), "Settlement retry fixture saves victorious session")
+	var retry_profile_path := ExpeditionManager.profile_path
+	ExpeditionManager.profile_path = "res://.godot/missing/subdir/profile.json"
+	check(settlement_retry.resume_expedition(), "Victorious cold resume opens a settlement retry route")
+	check(ExpeditionManager.session != null and settlement_retry.reward_overlay != null and settlement_retry.reward_overlay.confirm_button != null, "Failed settlement remains recoverable")
+	ExpeditionManager.profile_path = retry_profile_path
+	settlement_retry.reward_overlay.confirm_button.pressed.emit()
+	check(settlement_retry.last_result == "victory" and ExpeditionManager.session == null, "Retry completes settlement after storage recovers")
+	settlement_retry.queue_free()
 	await get_tree().process_frame
 
 	var death_game := ExpeditionGameManager.new()

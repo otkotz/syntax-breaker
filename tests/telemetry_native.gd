@@ -84,18 +84,36 @@ func run_checks() -> void:
 	player.queue_free()
 	manager.queue_free()
 	RunTelemetry.begin({"fixture": "bounded_events"}, true)
+	var expedition_types: Array[String] = ["room_source", "rolled_result", "decision", "loadout_delta", "forge_commitment", "post_run_settlement"]
+	for event_type: String in expedition_types:
+		check(RunTelemetry.record_expedition(event_type, "stable:" + event_type, {
+			"reward_id": "reward-1", "artifact_ids": ["fractured_prism"], "action": "echo",
+			"device_id": "must-not-leak", "platform": "must-not-leak", "oversized": "x".repeat(500)
+		}), "First expedition event is recorded")
+		check(not RunTelemetry.record_expedition(event_type, "stable:" + event_type, {"action": "duplicate"}), "Expedition event IDs are idempotent")
+	var expedition_events: Array = RunTelemetry.data.events.filter(func(event: Dictionary): return str(event.type).begins_with("expedition_"))
+	check(expedition_events.size() == expedition_types.size(), "Exactly one event is stored per expedition event ID")
+	for event: Dictionary in expedition_events:
+		check(not event.data.has("device_id") and not event.data.has("platform") and not event.data.has("oversized"), "Expedition payload excludes device and unbounded fields")
+	var expedition_snapshot := RunTelemetry.snapshot()
+	RunTelemetry.restore(expedition_snapshot)
+	check(not RunTelemetry.record_expedition("decision", "stable:decision", {"action": "resume_duplicate"}), "Resume cannot duplicate an expedition event")
 	for i in RunTelemetry.MAX_EVENTS + 10:
 		RunTelemetry.record("fixture", {"sample": i})
 	check(RunTelemetry.data.events.size() == RunTelemetry.MAX_EVENTS and RunTelemetry.data.dropped_events > 0, "Telemetry memory is bounded and truncation explicit")
 	RunTelemetry.finish("abandoned", [])
 	RunTelemetry.restore({})
 	check(not RunTelemetry.active and RunTelemetry.data.is_empty(), "Legacy saves cannot inherit a previous recording")
+	check(RunTelemetry.record_expedition("forge_commitment", "queued:forge", {"commitment_id": "treasure_choice", "cost": 15}), "Forge purchase queues before an expedition recording exists")
+	RunTelemetry.begin({"fixture": "queued_forge"}, true)
+	check(RunTelemetry.data.events.filter(func(event: Dictionary): return event.type == "expedition_forge_commitment" and event.data.event_id == "queued:forge").size() == 1, "Queued Forge purchase attaches to the next expedition")
+	RunTelemetry.finish("abandoned", [])
 	RunTelemetry.begin({"fixture": "invalid_restore"}, true)
 	RunTelemetry.restore({"data": {"schema_version": 999, "status": "in_progress"}})
 	check(not RunTelemetry.active and RunTelemetry._open_decisions.is_empty(), "Invalid schema cannot remain active")
 	var reporter := preload("res://tests/telemetry_report.gd").new()
 	var excluded: Dictionary = reporter.aggregate(RunTelemetry.log_directory, false)
-	check(excluded.completed_runs == 0 and excluded.synthetic_excluded == 53, "Report excludes all synthetic fixtures by default")
+	check(excluded.completed_runs == 0 and excluded.synthetic_excluded == 54, "Report excludes all synthetic fixtures by default")
 	var included: Dictionary = reporter.aggregate(RunTelemetry.log_directory, true)
 	check(included.completed_runs == 51 and included.completed_playtests == 0, "Explicit synthetic analysis cannot satisfy playtest sample")
 	check(included.metrics.first_decision_seconds.median == 17.5 and included.metrics.spawn_wait_seconds.median == 2.0, "Report preserves measured cadence and wait values")

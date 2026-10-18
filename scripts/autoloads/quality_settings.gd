@@ -9,6 +9,7 @@ var projectile_cap: int = 60
 var minimap_enabled: bool = true
 var minimap_interval: int = 3
 var viewport_scale: float = 1.0
+var reduced_motion: bool = false
 
 func _ready() -> void:
 	_auto_detect()

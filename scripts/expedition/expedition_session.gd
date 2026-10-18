@@ -1,7 +1,7 @@
 class_name ExpeditionSession
 extends RefCounted
 
-const SCHEMA_VERSION := 7
+const SCHEMA_VERSION := 8
 const VALID_STATUSES: Array[String] = ["active", "victory", "failed"]
 
 var session_id: String = ""
@@ -22,6 +22,7 @@ var blood_omen_active: bool = false
 var difficulty: int = 1
 var pending_rewards: Array[Dictionary] = []
 var rolled_reward_ids: Array[String] = []
+var telemetry_snapshot: Dictionary = {}
 
 static func create(seed_value: int, region_id: String, artifact_ids: Array[String] = []) -> ExpeditionSession:
 	var result := ExpeditionSession.new()
@@ -88,7 +89,7 @@ func record_reward(reward: Dictionary) -> bool:
 		return false
 	pending_rewards.append(reward.duplicate(true))
 	rolled_reward_ids.append(reward_id)
-	if unresolved_reward_id.is_empty() and not reward.get("artifact_ids", []).is_empty():
+	if unresolved_reward_id.is_empty() and (not reward.get("artifact_ids", []).is_empty() or not reward.get("alternative_artifact_ids", []).is_empty()):
 		unresolved_reward_id = reward_id
 	return true
 
@@ -132,9 +133,22 @@ func resolve_reward(reward_id: String, action: String, slot: int = -1) -> bool:
 		return false
 	var reward := get_reward(reward_id)
 	var artifact_ids: Array = reward.get("artifact_ids", [])
+	var reward_index := _reward_index(reward_id)
+	if action in ["choose_original", "choose_alternative"]:
+		if not pending_rewards[reward_index].has("alternative_artifact_ids") or bool(pending_rewards[reward_index].get("choice_selected", false)): return false
+		if action == "choose_alternative":
+			var alternative_ids: Array = pending_rewards[reward_index].get("alternative_artifact_ids", [])
+			if alternative_ids.is_empty(): return false
+			pending_rewards[reward_index]["artifact_ids"] = alternative_ids.duplicate()
+		pending_rewards[reward_index]["choice_selected"] = true
+		pending_rewards[reward_index]["treasure_choice_action"] = action
+		if action == "choose_original" and artifact_ids.is_empty():
+			pending_rewards[reward_index]["decision_action"] = "keep_loadout"
+			unresolved_reward_id = _next_unresolved_reward_id(reward_id)
+		return true
+	artifact_ids = pending_rewards[reward_index].get("artifact_ids", [])
 	if artifact_ids.is_empty(): return false
 	var artifact_id := str(artifact_ids[0])
-	var reward_index := _reward_index(reward_id)
 	if action == "echo":
 		if not apply_echo(artifact_id, slot): return false
 	elif action == "temper":
@@ -149,8 +163,20 @@ func resolve_reward(reward_id: String, action: String, slot: int = -1) -> bool:
 		pending_rewards[reward_index]["decision_shard_amount"] = maxi(0, artifact.duplicate_shard_value)
 	elif action != "keep_loadout":
 		return false
-	unresolved_reward_id = ""
+	pending_rewards[reward_index]["decision_action"] = action
+	unresolved_reward_id = _next_unresolved_reward_id(reward_id)
 	return true
+
+func _next_unresolved_reward_id(after_reward_id: String) -> String:
+	var found_current := false
+	for reward: Dictionary in pending_rewards:
+		var candidate_id := str(reward.get("reward_id", ""))
+		if candidate_id == after_reward_id:
+			found_current = true
+			continue
+		if found_current and not reward.get("artifact_ids", []).is_empty() and str(reward.get("decision_action", "")).is_empty():
+			return candidate_id
+	return ""
 
 func _reward_index(reward_id: String) -> int:
 	for index in pending_rewards.size():
@@ -178,13 +204,14 @@ func to_dict() -> Dictionary:
 		"difficulty": difficulty,
 		"pending_rewards": pending_rewards,
 		"rolled_reward_ids": rolled_reward_ids,
+		"telemetry_snapshot": telemetry_snapshot,
 	}
 
 static func from_dict(data: Dictionary) -> ExpeditionSession:
 	if typeof(data.get("schema_version")) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 	var schema_version := int(data.get("schema_version"))
-	if schema_version not in [1, 2, 3, 4, 5, 6, SCHEMA_VERSION]:
+	if schema_version not in [1, 2, 3, 4, 5, 6, 7, SCHEMA_VERSION]:
 		return null
 	if not data.get("layout", {}) is Dictionary:
 		return null
@@ -239,6 +266,8 @@ static func from_dict(data: Dictionary) -> ExpeditionSession:
 			var artifact_id := str(value)
 			if not artifact_id.is_empty() and not result.tempered_artifact_ids.has(artifact_id): result.tempered_artifact_ids.append(artifact_id)
 	result.blood_omen_active = bool(data.get("blood_omen_active", false)) if schema_version >= 7 else false
+	if schema_version >= 8 and data.get("telemetry_snapshot", {}) is Dictionary:
+		result.telemetry_snapshot = data.get("telemetry_snapshot", {}).duplicate(true)
 	for value: Variant in data.get("completed_room_ids", []):
 		var room_id := str(value)
 		if not restored_layout.rooms.has(room_id):
