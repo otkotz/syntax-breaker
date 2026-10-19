@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="ArtifactResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ArtifactResource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/artifact_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/artifacts/furnace-heart-v1.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1")
 id = "furnace_heart"
 display_name = "Furnace Heart"
 description = "Fire hits ignite enemies, but direct hits deal 20% less damage."
+icon = ExtResource("2_icon")
 behavior_key = "furnace_heart"
 behavior_parameters = {"direct_hit_mult": 0.8, "burn_duration": 3.0}
 set_id = "covenant_of_embers"

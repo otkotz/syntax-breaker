@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="ArtifactResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ArtifactResource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/artifact_resource.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/artifacts/echoing-hourglass-v1.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1")
 id = "echoing_hourglass"
 display_name = "Echoing Hourglass"
 description = "Every third cast echoes after 0.35 seconds, but cooldowns are 20% longer."
+icon = ExtResource("2_icon")
 behavior_key = "echoing_hourglass"
 behavior_parameters = {"cast_interval": 3, "delay": 0.35, "cooldown_mult": 1.2}
 source_tags = ["elite", "treasure"]
