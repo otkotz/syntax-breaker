@@ -12,6 +12,9 @@ var new_button: Button
 var resume_button: Button
 var back_button: Button
 var omen_button: Button
+var reliquary_slots: Array[PanelContainer] = []
+var secondary_tiles: Array[Button] = []
+var objective_label: Label
 var _blood_omen_selected := false
 var _level_label: Label
 var _result_label: Label
@@ -28,6 +31,13 @@ func setup(profile: ExpeditionProfile, can_resume: bool, result: String = "") ->
 	_update_omen_button()
 	_result_label.text = _result_text(result)
 	_result_label.visible = not result.is_empty()
+	for index in reliquary_slots.size():
+		var artifact := ArtifactCatalog.get_artifact(profile.equipped_artifact_ids[index])
+		(reliquary_slots[index].get_child(0) as Label).text = artifact.display_name if artifact else "EMPTY SLOT"
+	var missing := "COLLECTION COMPLETE"
+	for id in ArtifactCatalog.all_ids():
+		if not profile.owned_artifact_ids.has(id): missing = "NEXT HUNT  ·  %s" % ArtifactCatalog.get_artifact(id).display_name; break
+	objective_label.text = missing
 
 func _build_ui() -> void:
 	var background := ColorRect.new()
@@ -37,10 +47,10 @@ func _build_ui() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 72)
-	margin.add_theme_constant_override("margin_right", 72)
-	margin.add_theme_constant_override("margin_top", 180)
-	margin.add_theme_constant_override("margin_bottom", 120)
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 36)
+	margin.add_theme_constant_override("margin_bottom", 36)
 	add_child(margin)
 
 	var content := VBoxContainer.new()
@@ -73,6 +83,27 @@ func _build_ui() -> void:
 	_result_label.add_theme_font_size_override("font_size", 28)
 	_result_label.add_theme_color_override("font_color", UITheme.C_RARITY_LEGENDARY)
 	content.add_child(_result_label)
+	objective_label = Label.new()
+	objective_label.name = "NextHuntObjective"
+	objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_label.custom_minimum_size.y = 64
+	content.add_child(objective_label)
+	var reliquary := GridContainer.new()
+	reliquary.columns = 2
+	reliquary.add_theme_constant_override("h_separation", 12)
+	reliquary.add_theme_constant_override("v_separation", 12)
+	content.add_child(reliquary)
+	for index in ArtifactLoadout.SLOT_COUNT:
+		var slot := PanelContainer.new()
+		slot.custom_minimum_size = Vector2(300, 92)
+		slot.add_theme_stylebox_override("panel", ExpeditionVisualTheme.make_frame())
+		var label := Label.new()
+		label.text = "EMPTY SLOT"
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot.add_child(label)
+		reliquary.add_child(slot)
+		reliquary_slots.append(slot)
 
 	new_button = _make_button("NEW EXPEDITION")
 	new_button.name = "NewExpeditionButton"
@@ -102,6 +133,7 @@ func _build_ui() -> void:
 	forge_button.name = "ForgeButton"
 	forge_button.pressed.connect(func() -> void: forge_pressed.emit())
 	content.add_child(forge_button)
+	secondary_tiles.assign([codex_button, forge_button])
 
 	back_button = _make_button("BACK")
 	back_button.name = "BackButton"

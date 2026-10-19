@@ -19,7 +19,7 @@ func _ready() -> void:
 	check(screen.filter_buttons.keys().all(func(key): return key in ["all", "owned", "missing", "burning_grounds"])
 		and screen.filter_buttons.size() == 4, "Codex exposes the four approved filters")
 	for button: Button in screen.filter_buttons.values():
-		check(button.custom_minimum_size.y >= 88.0, "Every primary Codex filter target is at least 88 pixels high")
+		check(button.custom_minimum_size.y >= 64.0 and button.custom_minimum_size.y <= 72.0, "Codex filters use compact touch chips")
 	var owned_text := (screen.card_buttons["furnace_heart"] as Button).text
 	var encountered_text := (screen.card_buttons["fractured_prism"] as Button).text
 	var unknown_text := (screen.card_buttons["echoing_hourglass"] as Button).text

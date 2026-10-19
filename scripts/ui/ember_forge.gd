@@ -8,6 +8,8 @@ signal back_pressed
 
 var action_buttons: Array[Button] = []
 var back_button: Button
+var detail_sheet: PanelContainer
+var detail_label: Label
 var _profile: ExpeditionProfile
 var _pending_id := ""
 
@@ -27,6 +29,15 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 48)
 	content.add_child(title)
+	detail_sheet = PanelContainer.new()
+	detail_sheet.custom_minimum_size.y = 180
+	detail_sheet.add_theme_stylebox_override("panel", ExpeditionVisualTheme.make_frame())
+	detail_label = Label.new()
+	detail_label.text = "SELECT A FORGE COMMITMENT"
+	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	detail_sheet.add_child(detail_label)
+	content.add_child(detail_sheet)
 	for id: String in FORGE.ids():
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(800, 96)
@@ -48,14 +59,19 @@ func _refresh() -> void:
 	for index in action_buttons.size():
 		var id: String = FORGE.ids()[index]
 		var definition: Dictionary = FORGE.get_commitment(id)
-		action_buttons[index].text = "%s — %d SHARDS" % [definition.name, definition.cost]
-		action_buttons[index].disabled = _profile == null or _profile.forge_commitments.has(id) or _profile.ember_shards < int(definition.cost)
+		var owned := _profile != null and _profile.forge_commitments.has(id)
+		var affordable := _profile != null and _profile.ember_shards >= int(definition.cost)
+		var state := ("ACTIVE · CONFIRM" if _pending_id == id else "ACTIVE") if owned or _pending_id == id else ("READY" if affordable else "INSUFFICIENT")
+		action_buttons[index].text = "%s · %d SHARDS · %s" % [definition.name, definition.cost, state]
+		action_buttons[index].disabled = _profile == null or owned or not affordable
 
 func _on_action(id: String) -> void:
 	var index: int = FORGE.ids().find(id)
 	if _pending_id != id:
 		_pending_id = id
-		action_buttons[index].text = "CONFIRM %s" % FORGE.get_commitment(id).name
+		var definition := FORGE.get_commitment(id)
+		detail_label.text = "%s\n%s\nTAP ACTIVE AGAIN TO COMMIT" % [definition.name, definition.description]
+		_refresh()
 		return
 	_pending_id = ""
 	purchase_requested.emit(id)
@@ -63,6 +79,7 @@ func _on_action(id: String) -> void:
 func _on_back() -> void:
 	if not _pending_id.is_empty():
 		_pending_id = ""
+		detail_label.text = "SELECT A FORGE COMMITMENT"
 		_refresh()
 	else: back_pressed.emit()
 

@@ -10,6 +10,10 @@ var card_buttons: Array[Button] = []
 var set_label: Label
 var lock_label: Label
 var message_label: Label
+var detail_sheet: PanelContainer
+var detail_card: ArtifactCard
+var equip_button: Button
+var _selected_artifact_id := ""
 var _profile: ExpeditionProfile
 var _locked := false
 
@@ -60,9 +64,23 @@ func _build_ui() -> void:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(650, 112)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.pressed.connect(_request_equip.bind(artifact_id))
+		button.pressed.connect(_preview_artifact.bind(artifact_id))
 		card_buttons.append(button)
 		content.add_child(button)
+	detail_sheet = PanelContainer.new()
+	detail_sheet.visible = false
+	detail_sheet.custom_minimum_size.y = 300
+	detail_sheet.add_theme_stylebox_override("panel", ExpeditionVisualTheme.make_frame())
+	var detail_content := VBoxContainer.new()
+	detail_sheet.add_child(detail_content)
+	detail_card = ArtifactCard.new()
+	detail_content.add_child(detail_card)
+	equip_button = Button.new()
+	equip_button.text = "EQUIP SELECTED RELIC"
+	equip_button.custom_minimum_size.y = 88
+	equip_button.pressed.connect(func(): _request_equip(_selected_artifact_id))
+	detail_content.add_child(equip_button)
+	content.add_child(detail_sheet)
 	var back := Button.new()
 	back.text = "BACK"
 	back.custom_minimum_size = Vector2(650, 88)
@@ -75,8 +93,22 @@ func _request_equip(artifact_id: String) -> void:
 	if slot < 0: slot = 0
 	equip_requested.emit(artifact_id, slot)
 
+func _preview_artifact(artifact_id: String) -> void:
+	var artifact := ArtifactCatalog.get_artifact(artifact_id)
+	if artifact == null: return
+	_selected_artifact_id = artifact_id
+	detail_card.setup(artifact, "owned", {"source_tag": artifact.source_tags.front() if not artifact.source_tags.is_empty() else "treasure"})
+	equip_button.disabled = _locked or _profile.equipped_artifact_ids.has(artifact_id)
+	detail_sheet.visible = true
+
 func _request_unequip(slot: int) -> void:
 	if not _locked: unequip_requested.emit(slot)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("ui_cancel"): return
+	if detail_sheet.visible: detail_sheet.visible = false
+	else: back_pressed.emit()
+	get_viewport().set_input_as_handled()
 
 func _render() -> void:
 	if _profile == null: return

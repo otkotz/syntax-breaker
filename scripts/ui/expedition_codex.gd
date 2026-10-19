@@ -12,6 +12,8 @@ var pity_label: Label
 var synergy_label: Label
 var omen_label: Label
 var back_button: Button
+var detail_sheet: PanelContainer
+var detail_card: ArtifactCard
 var variant_buttons: Array[Button] = []
 var _cards: VBoxContainer
 var _profile: ExpeditionProfile
@@ -113,7 +115,7 @@ func _build_ui() -> void:
 		{"id": "missing", "label": "MISSING"}, {"id": "burning_grounds", "label": "BURNING"}]:
 		var button := Button.new()
 		button.text = entry.label
-		button.custom_minimum_size = Vector2(175, 88)
+		button.custom_minimum_size = Vector2(150, 68)
 		UITheme.style_button(button, 22)
 		button.pressed.connect(apply_filter.bind(entry.id))
 		filters.add_child(button)
@@ -125,6 +127,13 @@ func _build_ui() -> void:
 	_cards.size_flags_horizontal = SIZE_EXPAND_FILL
 	_cards.add_theme_constant_override("separation", 12)
 	scroll.add_child(_cards)
+	detail_sheet = PanelContainer.new()
+	detail_sheet.visible = false
+	detail_sheet.custom_minimum_size.y = 280
+	detail_sheet.add_theme_stylebox_override("panel", ExpeditionVisualTheme.make_frame())
+	content.add_child(detail_sheet)
+	detail_card = ArtifactCard.new()
+	detail_sheet.add_child(detail_card)
 	back_button = Button.new()
 	back_button.text = "BACK"
 	back_button.custom_minimum_size = Vector2(600, 88)
@@ -193,6 +202,7 @@ func _render_cards() -> void:
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.text = _card_text(artifact)
 		button.visible = _matches_filter(artifact)
+		button.pressed.connect(_show_detail.bind(artifact))
 		UITheme.style_button(button, 23)
 		_cards.add_child(button)
 		card_buttons[artifact_id] = button
@@ -219,3 +229,14 @@ func _source_label(artifact: ArtifactResource) -> String:
 
 func _emit_variant(id: String) -> void:
 	variant_selected.emit(id)
+
+func _show_detail(artifact: ArtifactResource) -> void:
+	var state := "owned" if _profile.owned_artifact_ids.has(artifact.id) else ("encountered" if _profile.discovered_artifact_ids.has(artifact.id) else "unknown")
+	detail_card.setup(artifact, state, {"source_tag": artifact.source_tags.front() if not artifact.source_tags.is_empty() else "treasure"})
+	detail_sheet.visible = true
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("ui_cancel"): return
+	if detail_sheet.visible: detail_sheet.visible = false
+	else: back_pressed.emit()
+	get_viewport().set_input_as_handled()

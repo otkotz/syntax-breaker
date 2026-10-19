@@ -217,6 +217,9 @@ func run_checks() -> void:
 								available_buttons.append(room_button)
 						if not available_buttons.is_empty():
 							available_buttons[0].pressed.emit()
+							var enter_button := map_ui.get("enter_button") as Button
+							check(ui_game.get("state") == ExpeditionGameManager.State.MAP, "First room tap only previews")
+							if enter_button != null: enter_button.pressed.emit()
 							check(ui_game.get("state") == ExpeditionGameManager.State.COMBAT, "Room tile enters combat")
 							var ui_arena := ui_game.get("arena") as Arena
 							ui_arena._on_all_waves_cleared()
