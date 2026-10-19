@@ -26,6 +26,9 @@ var _boss_phase_timer: float = 0.0
 var _keystone_label: Label
 var _keystone_timer: float = 0.0
 var _keystone_cooldown: float = 0.0
+var omen_vignette: ColorRect
+var omen_rune: Label
+var omen_boss_frame_active := false
 
 const C_BRONZE_LINE := UITheme.C_V_LINE
 const C_BRONZE_HI := UITheme.C_V_BRIGHT
@@ -92,6 +95,7 @@ func setup(player: Player) -> void:
 	_boss_bar.show_percentage = true
 	_boss_bar.visible = false
 	add_child(_boss_bar)
+	_build_omen_treatment()
 	_synergy_label = Label.new()
 	_synergy_label.position = Vector2(180, 214)
 	_synergy_label.add_theme_font_size_override("font_size", 28)
@@ -251,6 +255,33 @@ func _build_pause_button() -> void:
 	_pause_btn.position = Vector2(16, 80)
 	_pause_btn.pressed.connect(_on_pause_pressed)
 	add_child(_pause_btn)
+
+func _build_omen_treatment() -> void:
+	var omen_active := ExpeditionManager.session != null and ExpeditionManager.session.blood_omen_active
+	omen_boss_frame_active = omen_active
+	if not omen_active: return
+	omen_vignette = ColorRect.new()
+	omen_vignette.color = Color(0.32, 0.0, 0.04, 0.075)
+	omen_vignette.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	omen_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(omen_vignette)
+	move_child(omen_vignette, 0)
+	omen_rune = Label.new()
+	omen_rune.text = "☒"
+	omen_rune.position = Vector2(1010, 300)
+	omen_rune.add_theme_font_size_override("font_size", 42)
+	omen_rune.add_theme_color_override("font_color", Color(0.78, 0.08, 0.12, 0.72))
+	omen_rune.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(omen_rune)
+	var boss_frame := StyleBoxFlat.new()
+	boss_frame.bg_color = Color(0.035, 0.01, 0.018, 0.92)
+	boss_frame.border_color = ExpeditionVisualTheme.BLOOD
+	boss_frame.set_border_width_all(3)
+	boss_frame.corner_radius_top_left = 0
+	boss_frame.corner_radius_bottom_right = 0
+	boss_frame.corner_radius_top_right = 10
+	boss_frame.corner_radius_bottom_left = 10
+	_boss_bar.add_theme_stylebox_override("background", boss_frame)
 
 func _on_pause_pressed() -> void:
 	get_tree().paused = true

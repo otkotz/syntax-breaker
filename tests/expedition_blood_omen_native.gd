@@ -30,6 +30,28 @@ func _ready() -> void:
 	check(omen_hub.omen_button != null and omen_hub.omen_button.visible and omen_hub.omen_button.text.contains("OFF"), "Hub exposes visible Blood Omen opt-in before a run")
 	omen_hub.omen_button.pressed.emit()
 	check(omen_hub.omen_button.text.contains("ON"), "Blood Omen opt-in visibly toggles")
+	check(omen_hub.omen_cut_labels.size() == 5 and omen_hub.omen_cut_labels.all(func(label: Label): return label.visible), "Hub seal exposes five visible pity cuts")
+	check(omen_hub.omen_button.text.contains("+RISK") and omen_hub.omen_button.text.contains("+CHASE CHANCE"), "Omen opt-in states risk and chase upside explicitly")
+	var omen_map := ExpeditionMapUI.new()
+	add_child(omen_map)
+	omen_map.setup(session)
+	var boss_button := omen_map.room_buttons[session.layout.boss_room_id] as Button
+	check(boss_button.text.contains("OMEN") and boss_button.icon != null, "Omen boss is distinguishable by symbol and words, not crimson alone")
+	omen_map.queue_free()
+	ExpeditionManager.session = session
+	var omen_player := preload("res://scenes/player/player.tscn").instantiate() as Player
+	add_child(omen_player)
+	omen_player.set_process(false)
+	omen_player.set_physics_process(false)
+	var hud := preload("res://scenes/ui/hud.tscn").instantiate() as HUD
+	add_child(hud)
+	hud.setup(omen_player)
+	check(hud.omen_vignette != null and hud.omen_vignette.color.a >= 0.06 and hud.omen_vignette.color.a <= 0.09, "Active Omen uses a restrained 6–9% combat vignette")
+	check(hud.omen_rune != null and hud.omen_rune.visible and not hud.omen_rune.text.is_empty(), "Active Omen shows one peripheral rune")
+	check(hud.omen_boss_frame_active, "Active Omen selects a distinct boss-bar frame")
+	hud.queue_free()
+	omen_player.queue_free()
+	ExpeditionManager.session = null
 	omen_hub.queue_free()
 	check(ExpeditionSession.from_dict(session.to_dict()).blood_omen_active, "Blood Omen survives resume and therefore death/restart boundaries")
 	profile.owned_artifact_ids.append("bloodwritten_sigil")

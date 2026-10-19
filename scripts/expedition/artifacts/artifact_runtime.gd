@@ -139,6 +139,8 @@ func teardown() -> void:
 	active_tempered_artifact_ids.clear()
 	active_synergy_ids.clear()
 	active_sigil_variant = ""
+	if _arena != null:
+		ArtifactVFX.release_all(_arena)
 	for behavior in behaviors:
 		behavior.teardown()
 		behavior.runtime = null

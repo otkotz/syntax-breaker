@@ -15,6 +15,7 @@ var back_button: Button
 var detail_sheet: PanelContainer
 var detail_card: ArtifactCard
 var variant_buttons: Array[Button] = []
+var omen_cut_labels: Array[Label] = []
 var _cards: VBoxContainer
 var _profile: ExpeditionProfile
 var _active_filter := "all"
@@ -92,6 +93,17 @@ func _build_ui() -> void:
 	omen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	omen_label.add_theme_font_size_override("font_size", 22)
 	content.add_child(omen_label)
+	var omen_seal := HBoxContainer.new()
+	omen_seal.alignment = BoxContainer.ALIGNMENT_CENTER
+	omen_seal.add_theme_constant_override("separation", 10)
+	content.add_child(omen_seal)
+	for index in 5:
+		var cut := Label.new()
+		cut.text = "│"
+		cut.add_theme_font_size_override("font_size", 28)
+		cut.add_theme_color_override("font_color", ExpeditionVisualTheme.BLOOD)
+		omen_seal.add_child(cut)
+		omen_cut_labels.append(cut)
 	var variants := HBoxContainer.new()
 	variants.alignment = BoxContainer.ALIGNMENT_CENTER
 	variants.add_theme_constant_override("separation", 12)
@@ -163,14 +175,18 @@ func _render_summary() -> void:
 		synergy_names.append(id.to_upper().replace("_", " "))
 	synergy_label.text = "DISCOVERED SYNERGIES: %s" % (", ".join(synergy_names) if not synergy_names.is_empty() else "NONE")
 	var omen := preload("res://scripts/expedition/blood_omen.gd")
+	var pity_cuts := clampi(int(_profile.pity_counters.get(ExpeditionLootRoller.CHASE_PITY_KEY, 0)), 0, 5)
+	for index in omen_cut_labels.size(): omen_cut_labels[index].text = "╱" if index < pity_cuts else "│"
 	if not _profile.selected_sigil_variant.is_empty():
 		omen_label.text = "SIGIL PATH: %s" % str(omen.get_variant(_profile.selected_sigil_variant).get("name", "UNKNOWN"))
 	elif _profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID) and _profile.bloodwritten_fragments >= 3:
 		omen_label.text = "NEXT: CHOOSE A SIGIL PATH"
 	elif _profile.owned_artifact_ids.has(ExpeditionLootRoller.CHASE_ID):
 		omen_label.text = "SIGIL FRAGMENTS %d/3" % mini(3, _profile.bloodwritten_fragments)
+	elif ExpeditionManager.session != null and ExpeditionManager.session.blood_omen_active:
+		omen_label.text = "BLOOD OMEN ACTIVE · +RISK · +CHASE CHANCE"
 	elif omen.is_available(_profile):
-		omen_label.text = "BLOOD OMEN READY — OPT IN BEFORE EXPEDITION"
+		omen_label.text = "BLOOD OMEN AVAILABLE · +RISK · +CHASE CHANCE"
 	else:
 		omen_label.text = "BLOOD OMEN DORMANT"
 	for button: Button in variant_buttons:

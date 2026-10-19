@@ -25,12 +25,19 @@ func run_checks() -> void:
 	_check_warning_activation()
 	_check_boss_ground_opacity()
 	_check_damage_telemetry()
+	_check_friendly_vfx_priority()
 	if failures.is_empty():
 		print("PASS: opaque hostile projectiles, readable silhouettes, A0 boss damage budget, warning/activation phases and uncapped damage telemetry")
 	else:
 		for failure in failures:
 			push_error(failure)
 	get_tree().quit(0 if failures.is_empty() else 1)
+
+func _check_friendly_vfx_priority() -> void:
+	var effect := ArtifactVFX.spawn(self, "hourglass_sigil_blood_echo", Vector2.ZERO, true)
+	check(effect != null and effect.z_index < 20, "Friendly artifact feedback stays below hostile projectiles")
+	check(effect != null and effect.modulate.a <= 1.0 and effect.scale == Vector2.ONE, "Reduced-motion feedback has no scale punch")
+	ArtifactVFX.release_all(self)
 
 # Catches glow overwriting the opaque core in the baked image, not color declarations.
 func _check_projectile() -> void:

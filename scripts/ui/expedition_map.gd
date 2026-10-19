@@ -59,6 +59,13 @@ func setup(session: ExpeditionSession) -> void:
 			var button := Button.new()
 			button.name = "Room_%s" % room.id
 			button.text = "%s\n%s" % [SHAPES.get(room.type, "●"), TYPE_NAMES.get(room.type, "ROOM")]
+			if room.type == DungeonRoomData.Type.BOSS:
+				button.icon = ExpeditionVisualTheme.source_icon("boss")
+				if session.blood_omen_active:
+					button.text = "☒\nOMEN BOSS"
+					var omen_frame := ExpeditionVisualTheme.make_frame(ExpeditionVisualTheme.BLOOD)
+					omen_frame.set_border_width_all(4)
+					button.add_theme_stylebox_override("normal", omen_frame)
 			button.custom_minimum_size = Vector2(120, 120)
 			button.position = (node_centers[room.id] as Vector2) - Vector2(60, 60)
 			button.disabled = not available.has(room.id)

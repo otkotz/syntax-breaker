@@ -15,6 +15,7 @@ var omen_button: Button
 var reliquary_slots: Array[PanelContainer] = []
 var secondary_tiles: Array[Button] = []
 var objective_label: Label
+var omen_cut_labels: Array[Label] = []
 var _blood_omen_selected := false
 var _level_label: Label
 var _result_label: Label
@@ -28,6 +29,8 @@ func setup(profile: ExpeditionProfile, can_resume: bool, result: String = "") ->
 	resume_button.visible = can_resume
 	_blood_omen_selected = false
 	omen_button.visible = preload("res://scripts/expedition/blood_omen.gd").is_available(profile) and not can_resume
+	var pity := clampi(int(profile.pity_counters.get(ExpeditionLootRoller.CHASE_PITY_KEY, 0)), 0, 5)
+	for index in omen_cut_labels.size(): omen_cut_labels[index].text = "╱" if index < pity else "│"
 	_update_omen_button()
 	_result_label.text = _result_text(result)
 	_result_label.visible = not result.is_empty()
@@ -116,6 +119,17 @@ func _build_ui() -> void:
 		_update_omen_button()
 	)
 	content.add_child(omen_button)
+	var omen_seal := HBoxContainer.new()
+	omen_seal.alignment = BoxContainer.ALIGNMENT_CENTER
+	omen_seal.add_theme_constant_override("separation", 12)
+	content.add_child(omen_seal)
+	for index in 5:
+		var cut := Label.new()
+		cut.text = "│"
+		cut.add_theme_font_size_override("font_size", 32)
+		cut.add_theme_color_override("font_color", ExpeditionVisualTheme.BLOOD)
+		omen_seal.add_child(cut)
+		omen_cut_labels.append(cut)
 
 	resume_button = _make_button("RESUME EXPEDITION")
 	resume_button.name = "ResumeExpeditionButton"
@@ -156,4 +170,4 @@ func _result_text(result: String) -> String:
 	return ""
 
 func _update_omen_button() -> void:
-	if omen_button != null: omen_button.text = "BLOOD OMEN — %s · HARDER BOSS · 25%% SIGIL" % ("ON" if _blood_omen_selected else "OFF")
+	if omen_button != null: omen_button.text = "BLOOD OMEN — %s · +RISK · +CHASE CHANCE" % ("ON" if _blood_omen_selected else "OFF")

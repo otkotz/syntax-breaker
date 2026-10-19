@@ -29,3 +29,18 @@ The first state-driven simulation exposed overuse of Discovery Ward and then Tre
 Expedition events are allow-listed, size-bounded and idempotent by stable event ID. The event stream covers room source, rolled result, reward decision, effective loadout delta, Forge commitment and post-run settlement. Payloads exclude device/platform identifiers and arbitrary metadata. Resume restores recorded event keys, preventing a checkpoint replay from double-counting the same decision or reward.
 
 Presentation animation is observational only. Buttons and state transitions do not wait for a reveal tween, every reveal is skippable, shards/duplicates use a short treatment, and reduced motion lands directly on the final usable frame.
+
+## Visual/VFX verification — 2026-10-19
+
+The native dense-feedback fixture measures the enforced simultaneous ceilings rather than estimating them from draw calls:
+
+| Friendly presentation layer | Measured maximum | Overflow behavior |
+| --- | ---: | --- |
+| Artifact glyphs | 12 | request dropped; identical live origin merges |
+| Line trails | 4 | request dropped |
+| Synergy signatures | 2 | request dropped |
+| Full-screen Omen scrims | 1 | static 7.5% vignette |
+
+Artifact feedback uses pooled `Node2D`/`Line2D` objects, 16–20 arc segments, short open glyphs, and draw priority 1. Hostile projectiles remain at priority 20. Reduced motion removes rotation and scale animation. Blood Omen adds five readable seal cuts, explicit `+RISK / +CHASE CHANCE` wording, a non-color-only Omen boss label, one peripheral rune, and a distinct boss-bar frame.
+
+Android debug export `.tmp/expedition-visual-debug.apk` completed, signed, and verified with Godot 4.7.2. At verification time `adb devices -l` and `adb mdns services` returned no device, so installation and the physical low-brightness/manual-comprehension checklist remain unclaimed until the phone is visible again.

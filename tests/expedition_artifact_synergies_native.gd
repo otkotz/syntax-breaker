@@ -106,6 +106,7 @@ func _ready() -> void:
 	for id in ["prism_needle_crossfire", "hourglass_sigil_blood_echo", "crown_prism_split_transfer"]:
 		var effect := ArtifactVFX.spawn(vfx_parent, id, Vector2.ZERO)
 		vfx_radii.append(effect.radius)
+		ArtifactVFX.release_all(vfx_parent)
 	check(vfx_radii == [22.0, 34.0, 46.0], "Each curated pair has one distinct bounded VFX signature")
 	vfx_parent.queue_free()
 	_cleanup()
