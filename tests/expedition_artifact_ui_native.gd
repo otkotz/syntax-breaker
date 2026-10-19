@@ -5,6 +5,7 @@ func check(value: bool, message: String) -> void:
 	if not value: failures.append(message)
 
 func _ready() -> void:
+	_test_artifact_comparison()
 	var screen := ExpeditionArtifactsUI.new()
 	add_child(screen)
 	var profile := ExpeditionProfile.new()
@@ -25,6 +26,19 @@ func _ready() -> void:
 	print(JSON.stringify({"failures": failures}))
 	get_tree().quit(0 if failures.is_empty() else 1)
 
+func _test_artifact_comparison() -> void:
+	var comparison := ArtifactComparison.new()
+	add_child(comparison)
+	var current: Array[String] = ["furnace_heart", "ashen_needle", "cinder_crown", "fractured_prism"]
+	for slot in ArtifactLoadout.SLOT_COUNT:
+		comparison.setup(current, "echoing_hourglass", slot)
+		check(comparison.preview_slot == slot, "Comparison supports slot %d" % (slot + 1))
+		check(comparison.lost_label.text.contains("LOST") and comparison.gained_label.text.contains("GAINED"), "Comparison labels lost and gained effects")
+		check(comparison.covenant_meter.preview_label.visible or comparison.covenant_meter.progress_label.text.contains("3/3"), "Comparison exposes Covenant before/after")
+		check(comparison.changed_stat_labels.size() <= 3, "Comparison limits changed values to three")
+		check(not comparison.get_combined_text().to_lower().contains("power score"), "Comparison never invents a power score")
+	comparison.queue_free()
+
 func _test_reward_presentation() -> void:
 	var session := ExpeditionSession.create(91, "burning_grounds", ["furnace_heart", "ashen_needle"])
 	var cases: Array[Dictionary] = [
@@ -41,8 +55,10 @@ func _test_reward_presentation() -> void:
 		overlay.configure_presentation(value.reward, session, false)
 		check(overlay.presentation_class == value.expected, "%s reward uses its presentation class" % value.expected)
 		check(overlay.reveal_skippable, "%s reveal can be skipped" % value.expected)
-		if value.expected in ["SHARDS", "DUPLICATE"]:
-			check(overlay.reveal_duration <= 0.2, "%s has no long ceremony" % value.expected)
+		if value.expected == "SHARDS":
+			check(overlay.reveal_duration == 1.0 and not overlay.blocks_gameplay, "Shard toast clears in one second without pausing")
+		if value.expected == "DUPLICATE":
+			check(overlay.reveal_duration == 0.22, "Duplicate uses a brief sheet entry")
 		if value.expected == "CHASE":
 			check(overlay.reveal_accent == "blood_seal" and overlay.reveal_duration > 0.2 and overlay.accent_label.text.contains("CHASE"), "Chase reward has distinctive visible treatment")
 		overlay.skip_button.pressed.emit()

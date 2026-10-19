@@ -66,7 +66,7 @@ func _ready() -> void:
 	check(ExpeditionManager.session.to_dict() == decision_snapshot and game.reward_overlay != null, "Failed decision save rolls back session and keeps the choice visible")
 	ExpeditionManager.session_path = decision_valid_path
 	if not game.reward_overlay.choice_buttons.is_empty(): game.reward_overlay.choice_buttons[0].pressed.emit()
-	game.reward_overlay.keep_button.pressed.emit()
+	if game.reward_overlay != null and game.reward_overlay.keep_button != null: game.reward_overlay.keep_button.pressed.emit()
 	ExpeditionManager.profile.owned_artifact_ids = ["furnace_heart", "ashen_needle"]
 	check(game.checkpoint_room_rewards(room("boss", DungeonRoomData.Type.BOSS)), "Boss rewards checkpoint together")
 	check(not ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_set")).is_empty() and not ExpeditionManager.session.get_reward(ExpeditionManager.session.reward_id_for("boss", "boss_chase")).is_empty(), "Boss stores distinct set and chase rewards")
@@ -83,12 +83,15 @@ func _ready() -> void:
 	var overlay := preload("res://scenes/ui/expedition_reward_overlay.tscn").instantiate() as ExpeditionRewardOverlay
 	add_child(overlay)
 	overlay.setup([elite_reward])
-	check(overlay.confirm_button.custom_minimum_size.y >= 48.0, "Reward confirmation is touch-sized")
 	check(not overlay.result_label.text.is_empty(), "Reward overlay presents a readable result")
-	var confirmation := [false]
-	overlay.confirmed.connect(func() -> void: confirmation[0] = true)
-	overlay.confirm_button.pressed.emit()
-	check(confirmation[0], "Reward overlay emits confirmation")
+	if overlay.presentation_class == ExpeditionRewardOverlay.SHARDS:
+		check(overlay.confirm_button == null and not overlay.blocks_gameplay, "Shard result is a non-modal toast")
+	else:
+		check(overlay.confirm_button.custom_minimum_size.y >= 48.0, "Reward confirmation is touch-sized")
+		var confirmation := [false]
+		overlay.confirmed.connect(func() -> void: confirmation[0] = true)
+		overlay.confirm_button.pressed.emit()
+		check(confirmation[0], "Reward overlay emits confirmation")
 	overlay.queue_free()
 	game.queue_free()
 	_cleanup()

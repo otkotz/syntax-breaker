@@ -13,6 +13,8 @@ func _ready() -> void:
 	overlay.setup_decision(reward, session)
 	check(overlay.keep_button.text == "KEEP LOADOUT", "New artifact offers Keep Loadout")
 	check(overlay.slot_buttons.size() == 4, "New artifact offers all four Echo replacement slots")
+	check(overlay.artifact_icon != null and overlay.artifact_icon.custom_minimum_size.x >= 160.0 and overlay.artifact_icon.custom_minimum_size.x <= 192.0, "Reward reveal gives relic art hero scale")
+	check(overlay.comparison != null, "Echo decision includes real artifact comparison")
 	for button: Button in overlay.slot_buttons + [overlay.echo_button, overlay.keep_button]:
 		check(button.custom_minimum_size.y >= 88.0, "Every reward decision target is touch-sized")
 	check(overlay.preview_label.text.contains("3/3") and overlay.preview_label.text.contains("2/3"), "Replacement preview summarizes before and after set tiers")
@@ -28,6 +30,9 @@ func _ready() -> void:
 	back.pressed = true
 	overlay._unhandled_input(back)
 	check(overlay.is_inside_tree(), "Android back cannot dismiss an unresolved reward")
+	overlay._unhandled_input(back)
+	overlay._unhandled_input(back)
+	check(overlay.preview_label.text.contains("CHOOSE BEFORE CONTINUING"), "Back on a required decision explains why it cannot close")
 	check(overlay.scroll_container != null and overlay.scroll_container.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED, "Portrait decision content supports touch scrolling")
 	overlay.queue_free()
 	var duplicate := reward.duplicate(true)
@@ -52,6 +57,7 @@ func _ready() -> void:
 	add_child(inactive_overlay)
 	inactive_overlay.setup_decision(duplicate, inactive_session)
 	check(inactive_overlay.temper_button.disabled, "Temper is disabled when the duplicate is not in the effective loadout")
+	check(not inactive_overlay.temper_reason_label.text.is_empty(), "Disabled Temper explains why")
 	inactive_overlay.queue_free()
 	var treasure := reward.duplicate(true)
 	treasure["reward_id"] = "treasure:choice"

@@ -23,6 +23,9 @@ var choice_buttons: Array[Button] = []
 var scroll_container: ScrollContainer
 var accent_label: Label
 var skip_button: Button
+var artifact_icon: TextureRect
+var comparison: ArtifactComparison
+var temper_reason_label: Label
 var _panel: VBoxContainer
 var _reward_id := ""
 var _decision_locked := false
@@ -34,6 +37,9 @@ var reveal_skippable := true
 var reveal_duration := 0.35
 var reveal_accent := "ember"
 var reveal_complete := false
+var skip_available_after := 0.25
+var blocks_gameplay := true
+var flash_strength := 0.0
 var _reveal_tween: Tween
 
 func _ready() -> void:
@@ -60,6 +66,11 @@ func _ready() -> void:
 	accent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	accent_label.add_theme_font_size_override("font_size", 22)
 	_panel.add_child(accent_label)
+	artifact_icon = TextureRect.new()
+	artifact_icon.custom_minimum_size = Vector2(176, 176)
+	artifact_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	artifact_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_panel.add_child(artifact_icon)
 	result_label = Label.new()
 	result_label.custom_minimum_size = Vector2(900, 140)
 	result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -71,6 +82,13 @@ func _ready() -> void:
 	preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_panel.add_child(preview_label)
+	comparison = ArtifactComparison.new()
+	comparison.visible = false
+	_panel.add_child(comparison)
+	temper_reason_label = Label.new()
+	temper_reason_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	temper_reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_panel.add_child(temper_reason_label)
 	skip_button = _add_button("SKIP REVEAL")
 	skip_button.custom_minimum_size.y = 64
 	skip_button.pressed.connect(skip_reveal)
@@ -85,6 +103,10 @@ func setup(rewards: Array[Dictionary]) -> void:
 		if reward.get("artifact_ids", []).is_empty() and int(reward.get("shard_amount", 0)) > 0:
 			lines.append("+%d EMBER SHARDS" % int(reward.get("shard_amount")))
 	result_label.text = "\n".join(lines) if not lines.is_empty() else "NO ARTIFACT THIS TIME"
+	if presentation_class == SHARDS:
+		skip_button.visible = false
+		_auto_close_toast()
+		return
 	confirm_button = _add_button("CONTINUE")
 	confirm_button.pressed.connect(func() -> void: confirmed.emit(); queue_free())
 
@@ -97,6 +119,7 @@ func setup_decision(reward: Dictionary, session: ExpeditionSession) -> void:
 	_decision_artifact_id = artifact_id
 	var artifact := ArtifactCatalog.get_artifact(artifact_id)
 	result_label.text = artifact.display_name if artifact != null else "UNKNOWN ARTIFACT"
+	artifact_icon.texture = artifact.icon if artifact != null else null
 	if reward.has("alternative_artifact_ids") and not bool(reward.get("choice_selected", false)):
 		preview_label.text = "TREASURE CHOICE — select the relic to carry forward"
 		var original_button := _add_button("KEEP ORIGINAL — %s" % result_label.text)
@@ -113,6 +136,8 @@ func setup_decision(reward: Dictionary, session: ExpeditionSession) -> void:
 		preview_label.text = "DUPLICATE — empower this run or bank shards on victory"
 		temper_button = _add_button("TEMPER")
 		temper_button.disabled = not session.effective_artifact_ids().has(artifact_id) or session.tempered_artifact_ids.has(artifact_id)
+		if temper_button.disabled:
+			temper_reason_label.text = "TEMPER REQUIRES THIS RELIC IN THE ACTIVE LOADOUT" if not session.effective_artifact_ids().has(artifact_id) else "THIS RELIC IS ALREADY TEMPERED"
 		temper_button.pressed.connect(_request_decision.bind("temper", -1))
 		shatter_button = _add_button("SHATTER")
 		shatter_button.pressed.connect(_request_decision.bind("shatter", -1))
@@ -120,6 +145,7 @@ func setup_decision(reward: Dictionary, session: ExpeditionSession) -> void:
 		keep_button.pressed.connect(_request_decision.bind("keep_loadout", -1))
 		return
 	var before := _tier_summary(ArtifactLoadout.active_set_tiers(session.effective_artifact_ids()))
+	comparison.visible = true
 	for slot in ArtifactLoadout.SLOT_COUNT:
 		var preview := session.preview_echo(artifact_id, slot)
 		var after := _tier_summary(preview.get("after_set_tiers", {}))
@@ -137,13 +163,23 @@ func setup_decision(reward: Dictionary, session: ExpeditionSession) -> void:
 
 func configure_presentation(reward: Dictionary, session: ExpeditionSession, reduced_motion: bool = false) -> void:
 	presentation_class = classify_reward(reward, session)
-	reveal_duration = 0.15 if presentation_class in [SHARDS, DUPLICATE] else 0.42
+	var ids: Array = reward.get("artifact_ids", [])
+	var reveal_artifact := ArtifactCatalog.get_artifact(str(ids[0])) if not ids.is_empty() else null
+	artifact_icon.texture = reveal_artifact.icon if reveal_artifact != null else null
+	artifact_icon.visible = reveal_artifact != null
+	var timings := {SHARDS: 1.0, DUPLICATE: 0.22, NEW: 0.8, SET_PIECE: 0.95, SET_COMPLETE: 1.35, CHASE: 1.6}
+	reveal_duration = float(timings[presentation_class])
+	blocks_gameplay = presentation_class != SHARDS
+	mouse_filter = Control.MOUSE_FILTER_STOP if blocks_gameplay else Control.MOUSE_FILTER_IGNORE
 	reveal_accent = "blood_seal" if presentation_class == CHASE else ("hot_gold" if presentation_class == SET_COMPLETE else "ember")
-	accent_label.text = "%s · %s" % [presentation_class.replace("_", " "), reveal_accent.replace("_", " ").to_upper()]
+	var rank_title := "NEW SET PIECE" if presentation_class == SET_PIECE else presentation_class.replace("_", " ")
+	accent_label.text = "%s · %s" % [rank_title, reveal_accent.replace("_", " ").to_upper()]
 	accent_label.add_theme_color_override("font_color", Color("e52f4f") if presentation_class == CHASE else (Color("ffc04a") if presentation_class == SET_COMPLETE else Color("ffb02e")))
 	reveal_complete = reduced_motion
 	modulate.a = 1.0 if reduced_motion else 0.72
 	scale = Vector2.ONE if reduced_motion else Vector2(0.985, 0.985)
+	rotation = 0.0
+	flash_strength = 0.0
 	if reduced_motion:
 		reveal_duration = 0.0
 		return
@@ -173,10 +209,17 @@ func skip_reveal() -> void:
 	scale = Vector2.ONE
 	reveal_complete = true
 
+func _auto_close_toast() -> void:
+	await get_tree().create_timer(reveal_duration).timeout
+	if not is_inside_tree(): return
+	confirmed.emit()
+	queue_free()
+
 func _select_echo_slot(slot: int) -> void:
 	if _decision_session == null: return
 	_selected_slot = slot
 	var preview := _decision_session.preview_echo(_decision_artifact_id, slot)
+	comparison.setup(_decision_session.effective_artifact_ids(), _decision_artifact_id, slot)
 	preview_label.text = "SLOT %d · SET: %s → %s" % [slot + 1,
 		_tier_summary(preview.get("before_set_tiers", {})), _tier_summary(preview.get("after_set_tiers", {}))]
 
@@ -205,9 +248,14 @@ func _tier_summary(tiers: Dictionary) -> String:
 	return ", ".join(values)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if reveal_skippable and not reveal_complete and event.is_action_pressed("ui_accept"):
+	if reveal_skippable and not reveal_complete and (event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel")):
 		skip_reveal()
 		get_viewport().set_input_as_handled()
 		return
 	if not _reward_id.is_empty() and event.is_action_pressed("ui_cancel"):
+		if not slot_buttons.is_empty() and _selected_slot != 0:
+			_selected_slot = 0
+			_select_echo_slot(0)
+		else:
+			preview_label.text = "CHOOSE BEFORE CONTINUING"
 		get_viewport().set_input_as_handled()
