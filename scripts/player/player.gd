@@ -1,6 +1,8 @@
 class_name Player
 extends CharacterBody2D
 
+const VISUAL_LOADOUT := preload("res://scripts/player/breaker_visual_loadout.gd")
+
 @export var move_speed: float = 250.0
 @export var max_hp: float = 100.0
 
@@ -16,12 +18,14 @@ var _speed_mult: float = 1.0
 var _passive_speed_mult: float = 1.0
 
 const IFRAME_DURATION := 0.5
+const SHIELD_SEGMENTS := 4
 
 @export var energy_element: String = "cold"
 
 var _anim_sprite: AnimatedSprite2D
 var _cast_timer: float = 0.0
 var _facing: String = "S"
+var visual_loadout: Dictionary = {}
 const CAST_ANIM_DURATION := 0.3
 const FACE_RANGE := 1200.0
 
@@ -77,7 +81,12 @@ func _apply_run_passives() -> void:
 
 func _draw() -> void:
 	if current_shield > 0.0:
-		draw_arc(Vector2.ZERO, 21.0, -PI / 2, -PI / 2 + TAU * current_shield / maxf(max_shield, 1.0), 48, Color(0.25, 0.85, 1.0, 0.65), 2.0, true)
+		var ratio := current_shield / maxf(max_shield, 1.0)
+		for segment in SHIELD_SEGMENTS:
+			var filled := clampf(ratio * SHIELD_SEGMENTS - segment, 0.0, 1.0)
+			if filled <= 0.0: continue
+			var start := -PI / 2.0 + TAU * float(segment) / SHIELD_SEGMENTS + 0.08
+			draw_arc(Vector2.ZERO, 21.0, start, start + (TAU / SHIELD_SEGMENTS - 0.16) * filled, 10, Color(0.25, 0.85, 1.0, 0.65), 2.0, true)
 	var bar_width := 40.0
 	var bar_height := 4.0
 	var bar_y := -36.0
@@ -122,6 +131,7 @@ func _setup_animated_sprite() -> void:
 	_anim_sprite.play()
 	_anim_sprite.scale = Vector2(1.5, 1.5)
 	add_child(_anim_sprite)
+	_refresh_visual_loadout()
 
 func _build_mode(frames: SpriteFrames, pal: PackedColorArray, mode: String, dir: String, speed: float, loops: bool) -> void:
 	var anim := _anim_name(mode, dir)
@@ -129,7 +139,7 @@ func _build_mode(frames: SpriteFrames, pal: PackedColorArray, mode: String, dir:
 	frames.set_animation_speed(anim, speed)
 	frames.set_animation_loop(anim, loops)
 	for frame in 5:
-		frames.add_frame(anim, BreakerSprite.build_texture(dir, frame, mode, pal))
+		frames.add_frame(anim, BreakerSprite.build_texture(dir, frame, mode, pal, 0.3, visual_loadout))
 
 func _anim_name(mode: String, dir: String) -> StringName:
 	return StringName(mode + "_" + dir)
@@ -166,6 +176,23 @@ func _connect_caster() -> void:
 	var caster := get_node_or_null("SkillCaster") as SkillCaster
 	if caster:
 		caster.spell_cast.connect(_on_spell_cast)
+		call_deferred("_refresh_visual_loadout")
+
+func _refresh_visual_loadout() -> void:
+	var caster := get_node_or_null("SkillCaster") as SkillCaster
+	var skills: Array = caster.skill_instances if caster else []
+	var artifacts: Array[String] = []
+	if ExpeditionManager.session != null:
+		artifacts.assign(ExpeditionManager.session.artifact_loadout_ids)
+	elif ExpeditionManager.profile != null:
+		artifacts.assign(ExpeditionManager.profile.equipped_artifact_ids)
+	var resolved := VISUAL_LOADOUT.resolve(skills, artifacts)
+	if resolved == visual_loadout: return
+	visual_loadout = resolved
+	if is_instance_valid(_anim_sprite):
+		var old := _anim_sprite
+		remove_child(old); old.queue_free()
+		_setup_animated_sprite()
 
 func _on_spell_cast() -> void:
 	_cast_timer = CAST_ANIM_DURATION

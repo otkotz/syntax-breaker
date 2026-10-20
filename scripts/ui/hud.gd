@@ -1,6 +1,8 @@
 class_name HUD
 extends Control
 
+const BUILD_PORTRAIT := preload("res://scripts/ui/build_portrait.gd")
+
 @onready var hp_bar: ProgressBar = $TopBar/HPBar
 @onready var hp_label: Label = $TopBar/HPBar/HPLabel
 @onready var shield_bar: ProgressBar = $TopBar/ShieldBar
@@ -29,6 +31,7 @@ var _keystone_cooldown: float = 0.0
 var omen_vignette: ColorRect
 var omen_rune: Label
 var omen_boss_frame_active := false
+var build_portrait: Control
 
 const C_BRONZE_LINE := UITheme.C_V_LINE
 const C_BRONZE_HI := UITheme.C_V_BRIGHT
@@ -42,6 +45,11 @@ const MODIFIER_SYMBOLS := {
 
 func setup(player: Player) -> void:
 	_player = player
+	build_portrait = BUILD_PORTRAIT.new()
+	build_portrait.scale = Vector2(0.42, 0.42)
+	build_portrait.position = Vector2(12, 150)
+	build_portrait.setup(player.visual_loadout)
+	add_child(build_portrait)
 	var hp_fill := StyleBoxFlat.new()
 	hp_fill.bg_color = Color(0.18, 0.55, 0.25)
 	hp_bar.add_theme_stylebox_override("fill", hp_fill)

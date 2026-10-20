@@ -1,6 +1,8 @@
 class_name BreakerSprite
 extends RefCounted
 
+const VISUAL_LOADOUT := preload("res://scripts/player/breaker_visual_loadout.gd")
+
 ## Procedural pixel model of "The Breaker" — a GDScript port of the
 ## breaker.js / pixel.js sprite engine (player sprite Remix).
 ##
@@ -394,7 +396,7 @@ static func _paint_runes_and_glitch(b: Buf, cx: int, geo: Dictionary, glitch: fl
 # ---- master builder ---------------------------------------------------
 # dir: one of N, NE, E, SE, S, SW, W, NW
 # mode: "idle" | "walk" | "cast"
-static func build(dir: String, frame: int, mode: String = "walk", glitch: float = 0.3) -> Buf:
+static func build(dir: String, frame: int, mode: String = "walk", glitch: float = 0.3, loadout: Dictionary = {}) -> Buf:
 	var b := Buf.new(W, H)
 	var m: Dictionary
 	if mode == "idle":
@@ -444,13 +446,28 @@ static func build(dir: String, frame: int, mode: String = "walk", glitch: float 
 
 	_paint_emblem(b, cx, m, draw_dir)
 	_paint_runes_and_glitch(b, cx, geo, glitch, draw_dir, frame)
+	_paint_build_layers(b, loadout, draw_dir)
 
 	return b.mirrored_x() if mirror else b
 
 
 # ---- render a buffer to an ImageTexture using a resolved palette ------
-static func build_texture(dir: String, frame: int, mode: String, pal: PackedColorArray, glitch: float = 0.3) -> ImageTexture:
-	var b := build(dir, frame, mode, glitch)
+static func _paint_build_layers(b: Buf, loadout: Dictionary, dir: String) -> void:
+	for layer: String in loadout.get("layers", []).slice(0, 3):
+		var p: Vector2 = VISUAL_LOADOUT.anchor_for(layer, dir)
+		var x := int(p.x); var y := int(p.y)
+		match layer:
+			"focus":
+				b.set_px(x, y, 11); b.set_px(x - 1, y, 12); b.set_px(x + 1, y, 13)
+			"back":
+				b.set_behind(x, y, 13); b.set_behind(x, y + 1, 12); b.set_behind(x + 1, y + 2, 13)
+			"emblem":
+				b.set_px(x, y, 11); b.set_px(x - 1, y, 14); b.set_px(x + 1, y, 14)
+			"body_accent":
+				b.set_px(x, y, 12); b.set_px(x, y + 1, 13)
+
+static func build_texture(dir: String, frame: int, mode: String, pal: PackedColorArray, glitch: float = 0.3, loadout: Dictionary = {}) -> ImageTexture:
+	var b := build(dir, frame, mode, glitch, loadout)
 	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
 	for y in H:
 		for x in W:

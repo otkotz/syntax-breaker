@@ -1,6 +1,9 @@
 class_name SkillManagerUI
 extends Control
 
+const BUILD_PORTRAIT := preload("res://scripts/ui/build_portrait.gd")
+const VISUAL_LOADOUT := preload("res://scripts/player/breaker_visual_loadout.gd")
+
 signal closed
 
 const C_BG := UITheme.C_BG
@@ -37,6 +40,7 @@ var _drawer_sub: Label
 var _drawer_actions: HBoxContainer
 var _footer_stage_lbl: Label
 var _footer_linked_lbl: Label
+var build_portrait: Control
 
 func open(skill_instances: Array[SkillInstance], supports: Array) -> void:
 	_skill_instances = skill_instances
@@ -251,6 +255,10 @@ func _build_drawer() -> void:
 
 func _rebuild_ui() -> void:
 	_clear_children(_scroll_vbox)
+	build_portrait = BUILD_PORTRAIT.new()
+	build_portrait.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	build_portrait.setup(VISUAL_LOADOUT.resolve(_skill_instances, _active_artifact_ids()))
+	_scroll_vbox.add_child(build_portrait)
 	_build_section_label(_scroll_vbox, "ACTIVE SKILLS", str(_skill_instances.size()))
 	for si in _skill_instances:
 		_build_skill_card(_scroll_vbox, si)
@@ -259,6 +267,13 @@ func _rebuild_ui() -> void:
 	_build_passives_section(_scroll_vbox)
 	_build_mutations_section(_scroll_vbox)
 	_update_footer()
+
+func _active_artifact_ids() -> Array[String]:
+	if ExpeditionManager.session != null:
+		return ExpeditionManager.session.artifact_loadout_ids.duplicate()
+	if ExpeditionManager.profile != null:
+		return ExpeditionManager.profile.equipped_artifact_ids.duplicate()
+	return []
 
 func _update_footer() -> void:
 	_footer_stage_lbl.text = "STAGE %d/%d" % [RunManager.current_stage, StageGenerator.MAX_DEPTH]
