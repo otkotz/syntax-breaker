@@ -121,10 +121,33 @@ func _update_facing() -> void:
 		_sprite.flip_h = not _facing_right
 
 func _draw() -> void:
+	_draw_role_outline()
 	_draw_health_bar()
 	_draw_status_icons()
 
+static func role_outline(role: String) -> PackedVector2Array:
+	match role:
+		"swarm", "split_fragment": return PackedVector2Array([Vector2(-12, 8), Vector2(0, -15), Vector2(12, 8)])
+		"ranged", "denial_caster": return PackedVector2Array([Vector2(-8, 13), Vector2(-5, -16), Vector2(5, -16), Vector2(8, 13)])
+		"tank": return PackedVector2Array([Vector2(-16, -12), Vector2(-12, 15), Vector2(12, 15), Vector2(16, -12)])
+		"shield_support": return PackedVector2Array([Vector2(0, -19), Vector2(14, 0), Vector2(0, 16), Vector2(-14, 0)])
+		"charger": return PackedVector2Array([Vector2(-17, -8), Vector2(15, 0), Vector2(-17, 8), Vector2(-8, 0)])
+		"elite", "boss", "mini_boss": return PackedVector2Array([Vector2(-17, -10), Vector2(-10, -18), Vector2(0, -13), Vector2(10, -18), Vector2(17, -10), Vector2(14, 16), Vector2(-14, 16)])
+		_: return PackedVector2Array([Vector2(-14, -13), Vector2(0, 15), Vector2(14, -13), Vector2(8, 12), Vector2(-8, 12)])
+
+func _draw_role_outline() -> void:
+	var role := str(get_meta("combat_role", get_meta("spawn_role", "trash")))
+	var points := role_outline(role)
+	points.append(points[0])
+	draw_polyline(points, Color(0.05, 0.02, 0.08, 0.72), 2.0, false)
+
+func should_show_health_bar() -> bool:
+	var role := str(get_meta("combat_role", get_meta("spawn_role", "trash")))
+	return current_hp < max_hp or role in ["elite", "boss", "mini_boss"]
+
 func _draw_health_bar() -> void:
+	if not should_show_health_bar():
+		return
 	var bar_width := 24.0
 	var bar_height := 3.0
 	var bar_y := _get_health_bar_y()
@@ -184,6 +207,7 @@ func _draw_status_icons() -> void:
 		active.append("slow")
 	if active.is_empty():
 		return
+	active = visible_statuses(active)
 	var icon := 7.0
 	var gap := 2.0
 	var total_w: float = active.size() * icon + (active.size() - 1) * gap
@@ -194,6 +218,14 @@ func _draw_status_icons() -> void:
 		var col: Color = STATUS_COLORS.get(key, Color(0.6, 0.6, 0.7))
 		var c := Vector2(start_x + i * (icon + gap) + icon / 2.0, cy)
 		_draw_status_glyph(key, c, icon / 2.0, col)
+
+static func visible_statuses(active: Array) -> Array[String]:
+	var priority: Array[String] = ["burn", "shock", "frostblight", "poison", "bleed", "slow"]
+	var shown: Array[String] = []
+	for key: String in priority:
+		if active.has(key) and shown.size() < 2: shown.append(key)
+	if active.size() > shown.size(): shown.append("+%d" % (active.size() - shown.size()))
+	return shown
 
 func _draw_status_glyph(key: String, c: Vector2, r: float, col: Color) -> void:
 	match key:
@@ -367,7 +399,7 @@ func consume_dot_stacks(dot_type: String, count: int) -> Array:
 	return consumed
 
 func _die() -> void:
-	DeathEffect.spawn(get_parent(), global_position + Vector2(0, -14), _dots)
+	DeathEffect.spawn(get_parent(), global_position + Vector2(0, -14), _dots, _kill_source)
 	Targeting.unregister(self)
 	RunManager.add_gold(gold_value)
 	RunManager.record_stat("enemies_killed", 1)

@@ -2,9 +2,10 @@ class_name DeathEffect
 extends Node2D
 
 var _timer: float = 0.0
-const DURATION := 0.55
-const PARTICLE_COUNT := 14
+const DURATION := 0.4
+const PARTICLE_COUNT := 6
 const RING_DURATION := 0.25
+const MAX_ACTIVE := 8
 
 var _particles: Array = []
 var _ring_color: Color = Color.WHITE
@@ -26,7 +27,9 @@ static func clear_all() -> void:
 			instance.queue_free()
 	_pool.clear()
 
-static func spawn(parent: Node, pos: Vector2, active_dots: Dictionary) -> void:
+static func spawn(parent: Node, pos: Vector2, active_dots: Dictionary, source: SkillResource = null) -> void:
+	if _active.size() >= MAX_ACTIVE:
+		return
 	var budget_id := _next_budget_id
 	_next_budget_id += 1
 	if not CombatVisualBudget.request(&"death_signature", 2, budget_id):
@@ -41,7 +44,7 @@ static func spawn(parent: Node, pos: Vector2, active_dots: Dictionary) -> void:
 		instance = DeathEffect.new()
 
 	instance._budget_id = budget_id
-	instance._configure(active_dots)
+	instance._configure(active_dots, source)
 	instance.global_position = pos
 	instance._timer = 0.0
 	instance.visible = true
@@ -68,8 +71,17 @@ const DOT_COLORS: Dictionary = {
 	"frostblight": Color(0.7, 0.9, 1.0),
 }
 
-func _configure(active_dots: Dictionary) -> void:
+static func signature_for(source: String) -> Dictionary:
+	var normalized := source.to_lower()
+	for kind: String in ["fire", "cold", "lightning", "poison", "void", "physical"]:
+		if normalized.contains(kind):
+			return {"shape": {"fire": "ash_cracks", "cold": "shards", "lightning": "collapse", "poison": "puddle", "void": "implosion", "physical": "directional_cut"}[kind], "fragment_count": PARTICLE_COUNT, "kind": kind}
+	return {"shape": "directional_cut", "fragment_count": PARTICLE_COUNT, "kind": "physical"}
+
+func _configure(active_dots: Dictionary, source: SkillResource = null) -> void:
 	_particles.clear()
+	var source_name := source.id + " " + " ".join(source.tags) if source else ""
+	var signature := signature_for(source_name)
 	var colors: Array = []
 	for c: Color in BODY_COLORS:
 		colors.append(c)
@@ -82,10 +94,12 @@ func _configure(active_dots: Dictionary) -> void:
 		var first_dot: String = active_dots.keys()[0]
 		_ring_color = DOT_COLORS.get(first_dot, Color.WHITE)
 	else:
-		_ring_color = Color(1.0, 0.85, 0.5)
+		_ring_color = {"fire": Color(1.0, 0.42, 0.08), "cold": Color(0.55, 0.9, 1.0), "lightning": Color(0.5, 0.72, 1.0), "poison": Color(0.35, 0.9, 0.25), "void": Color(0.72, 0.2, 1.0), "physical": Color(1.0, 0.85, 0.5)}[signature.kind]
 
 	for i in PARTICLE_COUNT:
 		var angle := randf() * TAU
+		if signature.kind == "physical": angle = randf_range(-0.35, 0.35)
+		elif signature.kind == "cold": angle = i * TAU / PARTICLE_COUNT
 		var speed := randf_range(80.0, 200.0)
 		var col: Color = colors[i % colors.size()]
 		var sz := randf_range(2.0, 5.0)

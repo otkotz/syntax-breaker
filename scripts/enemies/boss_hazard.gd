@@ -1,5 +1,7 @@
 extends Node2D
 
+const TELEGRAPH_STAGES: Array[StringName] = [&"pose", &"warning", &"active"]
+
 const Visual = preload("res://scripts/util/hazard_visual.gd")
 const ACTIVE_FILL_ALPHA := 0.18
 const ACTIVE_BORDER_ALPHA := 0.72

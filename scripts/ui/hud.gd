@@ -32,6 +32,7 @@ var omen_vignette: ColorRect
 var omen_rune: Label
 var omen_boss_frame_active := false
 var build_portrait: Control
+var _straggler_label: Label
 
 const C_BRONZE_LINE := UITheme.C_V_LINE
 const C_BRONZE_HI := UITheme.C_V_BRIGHT
@@ -81,6 +82,12 @@ func setup(player: Player) -> void:
 	var progress_fill := StyleBoxFlat.new()
 	progress_fill.bg_color = C_BRONZE_HI
 	_wave_progress.add_theme_stylebox_override("fill", progress_fill)
+	_straggler_label = Label.new()
+	_straggler_label.position = Vector2(180, 144)
+	_straggler_label.size = Vector2(720, 28)
+	_straggler_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_straggler_label.add_theme_color_override("font_color", Color(1.0, 0.72, 0.24))
+	add_child(_straggler_label)
 	add_child(_wave_progress)
 	# Set the compact height after entering the tree and receiving the HUD theme.
 	_wave_progress.size = Vector2(720, 8)
@@ -174,6 +181,8 @@ func update_wave(seconds: float, progress: float, remaining: int) -> void:
 		_wave_label.text = "%ds | %d%% | %d enemies" % [ceili(seconds), roundi(progress * 100), remaining]
 		_wave_progress.value = clampf(progress, 0.0, 1.0)
 		_update_modifiers()
+	if _straggler_label:
+		_straggler_label.text = "⌁ LAST SIGNAL — HUNT IT DOWN ⌁" if remaining == 1 else ""
 
 func _update_modifiers() -> void:
 	var modifiers: Array[String] = []
