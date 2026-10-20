@@ -20,7 +20,7 @@ func run_checks() -> void:
 	RunTelemetry.log_directory = "res://.godot/contracts_telemetry_" + Crypto.new().generate_random_bytes(6).hex_encode()
 	MetaProgression.region_victories = {}
 	var fire := load("res://resources/skills/fireball.tres") as SkillResource
-	var blade := load("res://resources/skills/blade_spin.tres") as SkillResource
+	var rollback := load("res://resources/skills/blade_spin.tres") as SkillResource
 	check(StarterContracts.is_unlocked("standard") and not StarterContracts.is_unlocked("miner"), "New profile has standard only")
 	RunManager.start_run()
 	check(not StarterContracts.apply("miner", SkillInstance.new(fire)) and RunManager.gold == 30, "Locked contract cannot alter budget")
@@ -29,8 +29,9 @@ func run_checks() -> void:
 	MetaProgression.region_victories = {}
 	MetaProgression.load_progress()
 	check(StarterContracts.is_unlocked("miner") and not StarterContracts.is_unlocked("architect"), "First persistent victory unlocks Miner")
-	check(not StarterContracts.rejection_reason("miner", blade).is_empty(), "Melee rejects Mine via common support validation")
-	check(not StarterContracts.apply("miner", SkillInstance.new(blade)), "Incompatible contract is rejected atomically")
+	check(StarterContracts.rejection_reason("miner", rollback).is_empty(), "Rollback accepts Mine as a projectile skill")
+	RunManager.start_run()
+	check(StarterContracts.apply("miner", SkillInstance.new(rollback)), "Rollback can start with the Miner contract")
 	MetaProgression.region_victories["storm_spire"] = 2
 	MetaProgression._sync_contract_supports()
 	check(StarterContracts.is_unlocked("architect"), "Three regional wins unlock Architect")
@@ -58,7 +59,7 @@ func run_checks() -> void:
 	picker.selected_contract = "miner"
 	picker._populate()
 	picker.contract_changed.emit()
-	check(picker.offered_skills.all(func(offer): return offer.id != "blade_spin"), "UI does not offer incompatible starter as available")
+	check(picker.offered_skills.any(func(offer): return offer.id == "blade_spin"), "UI offers the compatible Rollback starter")
 	picker.skill_chosen.emit(fire, "rare")
 	check(game.entered == 1 and game.get_skill_instances()[0].computed_stats.is_mine > 0, "GameManager enters first stage already configured as Mine")
 	check(RunManager.run_stats.non_mine_casts == 0 and RunManager.gold == 15, "Miner begins without ordinary cast or free gold")
