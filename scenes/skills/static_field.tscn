@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://static_field_scene"]
+[gd_scene load_steps=5 format=3 uid="uid://static_field_scene"]
 
 [ext_resource type="Script" path="res://scripts/skills/aoe_skill_base.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/effects/skill_visual_renderer.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/skill_visuals/static_field.tres" id="3"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_aoe"]
 radius = 100.0
@@ -12,3 +14,7 @@ script = ExtResource("1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_aoe")
+
+[node name="VisualIdentity" type="Node2D" parent="."]
+script = ExtResource("2")
+profile = ExtResource("3")

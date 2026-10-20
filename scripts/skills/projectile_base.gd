@@ -126,9 +126,13 @@ func _draw_fireball() -> void:
 		var local_pos := inv * _trail_positions[i]
 		_draw_trail_dot(local_pos, trail_r, Color(1.0, 0.38, 0.13, fade * 0.5))
 
-	draw_circle(Vector2.ZERO, 16.0, Color(1.0, 0.31, 0.13, 0.4))
-	draw_circle(Vector2.ZERO, 10.0, Color(1.0, 0.5, 0.12))
-	draw_circle(Vector2.ZERO, 6.0, Color(1.0, 0.97, 0.75))
+	# Three authored tail blocks and a compressed square core remain readable in grayscale.
+	for i in 3:
+		var size := 8.0 - i * 1.5
+		draw_rect(Rect2(Vector2(-15.0 - i * 8.0, -size * 0.5), Vector2(size, size)), Color(1.0, 0.25 + i * 0.1, 0.08, 0.55 - i * 0.1))
+	draw_rect(Rect2(-10, -10, 20, 20), Color(1.0, 0.32, 0.08, 0.45))
+	draw_rect(Rect2(-7, -7, 14, 14), Color(1.0, 0.52, 0.12))
+	draw_polyline(PackedVector2Array([Vector2(-5, -1), Vector2.ZERO, Vector2(5, -4)]), Color(1.0, 0.97, 0.75), 2.0)
 
 func _draw_lightning() -> void:
 	if _bolt_segments.size() < 2:

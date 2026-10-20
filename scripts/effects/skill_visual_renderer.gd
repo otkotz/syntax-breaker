@@ -1,0 +1,73 @@
+class_name SkillVisualRenderer
+extends Node2D
+
+@export var profile: SkillVisualProfile
+var primary_support_id := ""
+var support_signature: StringName = &""
+var evolution_signature: StringName = &""
+var hero_duration := 0.0
+var _hero_budgeted := false
+
+
+func configure(value: SkillVisualProfile, support_ids: Array[String], evolution_tier: int) -> void:
+	profile = value
+	var modifier := SupportVisualModifier.first_supported(support_ids)
+	primary_support_id = str(modifier.get("support_id", ""))
+	support_signature = modifier.get("signature", &"")
+	evolution_signature = StringName("tier_%d" % evolution_tier) if evolution_tier > 0 else &""
+	hero_duration = 0.0
+	if evolution_tier >= 3:
+		evolution_signature = &"tier_3_hero"
+		hero_duration = 0.12
+		_hero_budgeted = CombatVisualBudget.request(&"hero_moment", 3, get_instance_id())
+	set_process(_hero_budgeted)
+	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	hero_duration = maxf(0.0, hero_duration - delta)
+	if hero_duration <= 0.0:
+		CombatVisualBudget.release(&"hero_moment", get_instance_id())
+		_hero_budgeted = false
+		set_process(false)
+	queue_redraw()
+
+
+func _exit_tree() -> void:
+	if _hero_budgeted:
+		CombatVisualBudget.release(&"hero_moment", get_instance_id())
+
+
+func _draw() -> void:
+	if profile == null:
+		return
+	match profile.core_shape:
+		&"hooked_bracket":
+			draw_arc(Vector2.ZERO, 15.0, -2.4, 0.55, 12, profile.primary_color, 3.0)
+			draw_polyline(PackedVector2Array([Vector2(9, 10), Vector2(20, 7), Vector2(14, -2)]), profile.accent_color, 3.0)
+		&"compressed_square":
+			draw_rect(Rect2(-7, -7, 14, 14), profile.primary_color, true)
+			draw_polyline(PackedVector2Array([Vector2(-5, -1), Vector2.ZERO, Vector2(5, -4)]), profile.accent_color, 2.0)
+		&"four_anchor_perimeter":
+			for angle in [0.0, PI * 0.5, PI, PI * 1.5]:
+				var center := Vector2.from_angle(angle) * 22.0
+				draw_rect(Rect2(center - Vector2(3, 3), Vector2(6, 6)), profile.accent_color)
+	_draw_support()
+
+
+func _draw_support() -> void:
+	match support_signature:
+		&"network_nodes":
+			for point in [Vector2(-14, -12), Vector2(0, -17), Vector2(14, -12)]: draw_circle(point, 2.5, Color.WHITE)
+		&"reverse_arrow":
+			draw_polyline(PackedVector2Array([Vector2(12, 15), Vector2(0, 20), Vector2(5, 12)]), Color(1, 0.2, 0.8), 2.0)
+		&"offset_outline":
+			draw_arc(Vector2(4, 3), 19.0, -2.4, 0.55, 12, Color(0.7, 0.8, 1, 0.45), 2.0)
+		&"closing_diamond":
+			draw_polyline(PackedVector2Array([Vector2(0, -22), Vector2(22, 0), Vector2(0, 22), Vector2(-22, 0), Vector2(0, -22)]), Color(1, 0.75, 0.2, 0.8), 2.0)
+		&"transmitter_brackets":
+			draw_arc(Vector2.ZERO, 21.0, -0.7, 0.7, 6, Color(0.4, 1, 0.9), 2.0)
+			draw_arc(Vector2.ZERO, 21.0, PI - 0.7, PI + 0.7, 6, Color(0.4, 1, 0.9), 2.0)
+		&"duck_marker":
+			draw_circle(Vector2(0, -22), 4.0, Color(1, 0.9, 0.1))
+			draw_rect(Rect2(3, -23, 4, 2), Color(1, 0.5, 0.05))

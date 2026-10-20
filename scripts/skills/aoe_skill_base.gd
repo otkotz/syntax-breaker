@@ -105,9 +105,13 @@ func _draw_static_field() -> void:
 	var fade := 1.0 - t
 	var pulse := 0.7 + 0.3 * sin(_timer * 10.0)
 
-	draw_circle(Vector2.ZERO, area_radius, Color(0.25, 0.5, 0.75, 0.15 * pulse * fade))
-	if area_radius > 4.0:
-		draw_arc(Vector2.ZERO, area_radius, 0, TAU, 32, Color(0.63, 0.85, 1.0, 0.5 * pulse * fade), 3.0)
+	# Broken technical perimeter: four stable anchors, no opaque magic disk.
+	for quadrant in 4:
+		var start := quadrant * PI * 0.5 + 0.16
+		draw_arc(Vector2.ZERO, area_radius, start, start + PI * 0.5 - 0.32, 7,
+			Color(0.63, 0.85, 1.0, 0.5 * pulse * fade), 3.0)
+		var anchor := Vector2.from_angle(quadrant * PI * 0.5) * area_radius
+		draw_rect(Rect2(anchor - Vector2(5, 5), Vector2(10, 10)), Color(0.8, 0.94, 1.0, fade))
 
 	var flicker: float = 0.6 + 0.4 * abs(sin(_timer * 18.0))
 	for arc: Array in _arc_data:
@@ -121,9 +125,6 @@ func _draw_static_field() -> void:
 			draw_line(from, to, Color(0.63, 0.85, 1.0, 0.8 * flicker * fade), 3.0)
 			draw_line(from, to, Color(1.0, 1.0, 1.0, flicker * fade), 1.0)
 
-	var flash_op := maxf(0.0, 1.0 - t * 4.0)
-	if flash_op > 0.0:
-		draw_circle(Vector2.ZERO, area_radius * 0.5 * (1.0 - (1.0 - t) * (1.0 - t)), Color(1.0, 1.0, 1.0, flash_op * 0.5))
 
 func _draw_frost_nova() -> void:
 	var t := _timer / _lifetime

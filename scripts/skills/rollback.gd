@@ -17,6 +17,7 @@ var _recorded_path: Array[Vector2] = []
 var _ordered_hits: Array[Dictionary] = []
 var _outbound_hit_ids: Dictionary = {}
 var _return_hit_ids: Dictionary = {}
+const TIER_THREE_REWIND_SECONDS := 0.12
 
 func initialize(si: SkillInstance, dir: Vector2, pool: ObjectPool, attack_context: AttackContext = null) -> void:
 	skill_instance = si
@@ -94,6 +95,13 @@ func get_recorded_path() -> Array[Vector2]:
 func get_ordered_hits() -> Array[Dictionary]:
 	return _ordered_hits.duplicate(true)
 
+func visual_phase() -> StringName:
+	match state:
+		State.OUTBOUND: return &"outbound_continuous_cyan"
+		State.TURNING: return &"turn_bracket"
+		State.RETURNING: return &"return_dashed_magenta"
+		_: return &"catch_close_glyph"
+
 func _release_to_pool() -> void:
 	if pool_ref:
 		pool_ref.release(self)
@@ -112,5 +120,12 @@ func reset() -> void:
 	_return_hit_ids.clear()
 
 func _draw() -> void:
-	draw_arc(Vector2.ZERO, 16.0, -2.35, 0.75, 18, Color(0.15, 0.9, 1.0), 7.0)
-	draw_colored_polygon(PackedVector2Array([Vector2(11, 9), Vector2(22, 5), Vector2(15, -3)]), Color(1.0, 0.2, 0.9))
+	var color := Color(0.15, 0.9, 1.0) if state == State.OUTBOUND else Color(1.0, 0.2, 0.9)
+	if _recorded_path.size() > 1:
+		var inv := global_transform.affine_inverse()
+		for i in _recorded_path.size() - 1:
+			if state == State.RETURNING and i % 2 == 1:
+				continue
+			draw_line(inv * _recorded_path[i], inv * _recorded_path[i + 1], Color(color, 0.55), 3.0)
+	draw_arc(Vector2.ZERO, 16.0, -2.35, 0.75, 14, color, 6.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(11, 9), Vector2(22, 5), Vector2(15, -3)]), color.lightened(0.25))

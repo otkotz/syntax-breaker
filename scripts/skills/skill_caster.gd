@@ -169,6 +169,12 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 		if origin_flags.is_empty():
 			_last_cast_snapshot.append({"kind": "skill", "direction": direction,
 				"target": _target, "origin": projectile.global_position})
+	var visual := projectile.get_node_or_null("VisualIdentity") as SkillVisualRenderer
+	if visual:
+		var support_ids: Array[String] = []
+		for support: SupportResource in si.linked_supports:
+			support_ids.append(support.id)
+		visual.configure(visual.profile, support_ids, 0)
 
 	if projectile.has_method("set_orbit_parent"):
 		projectile.set_orbit_parent(get_parent())
