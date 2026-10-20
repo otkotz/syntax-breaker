@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillVisualProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/skill_visual_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_id = "static_field"
+core_shape = &"four_anchor_perimeter"
+cast_signature = &"process_boot"
+hit_signature = &"target_tick_arc"
+residue_signature = &"broken_technical_grid"
+primary_color = Color(0.42, 0.68, 1, 1)
+accent_color = Color(0.78, 0.92, 1, 1)
+max_screen_coverage = 0.16

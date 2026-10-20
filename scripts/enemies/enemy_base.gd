@@ -310,7 +310,8 @@ func _flash_guard_block() -> void:
 	tween.tween_property(self, "modulate", Color.WHITE, 0.1)
 
 func _spawn_damage_number(amount: float, crit: bool = false) -> void:
-	DamageNumber.spawn(get_parent(), global_position + Vector2(0, -36), amount, crit)
+	DamageNumber.spawn(get_parent(), global_position + Vector2(0, -36), amount, crit, false,
+		get_instance_id(), StringName(_kill_source.id) if _kill_source else &"unknown")
 
 func is_alive() -> bool:
 	return current_hp > 0.0

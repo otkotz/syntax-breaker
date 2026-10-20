@@ -4,6 +4,11 @@ const Visual = preload("res://scripts/util/hazard_visual.gd")
 const ACTIVE_FILL_ALPHA := 0.18
 const ACTIVE_BORDER_ALPHA := 0.72
 const WARNING_FILL_ALPHA := 0.24
+const TELEGRAPH_Z := 20
+const WARNING_DASHED := true
+const IMMINENT_SEGMENTS_CLOSE := true
+const ACTIVE_HATCHED := true
+const SAFE_CHEVRONS_INWARD := true
 
 var owner_boss: EnemyBase
 var target: Node2D
@@ -28,7 +33,7 @@ var activation_remaining: float = 0.0
 var _activated: bool = false
 
 func _ready() -> void:
-	z_index = 2
+	z_index = TELEGRAPH_Z
 	add_to_group("boss_hazards")
 	if kind in ["pool", "pressure"]:
 		add_to_group("boss_poison")
@@ -103,7 +108,7 @@ func _draw() -> void:
 			draw_colored_polygon(points, fill)
 			points.append(Vector2.ZERO)
 			Visual.outline(self, points, warning_remaining, warning_duration, outline_color, activation_remaining)
-			Visual.safe_arrow(self, Vector2.from_angle(angle) * minf(radius * 0.45, 100.0), angle)
+			Visual.safe_arrow(self, Vector2.from_angle(angle) * minf(radius * 0.45, 100.0), angle + PI)
 			badge_position = -Vector2.from_angle(angle) * minf(radius * 0.45, 90.0)
 			if warning_remaining <= 0.0:
 				for i in 5:

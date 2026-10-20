@@ -6,6 +6,7 @@ var is_crit: bool = false
 var is_player_damage: bool = false
 var _tween: Tween
 var _anim_id: int = 0
+var _aggregation_key := ""
 
 static var _pool: Array = []
 static var _active: Array = []
@@ -21,7 +22,17 @@ static func clear_all() -> void:
 			instance.queue_free()
 	_pool.clear()
 
-static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, player_dmg: bool = false) -> void:
+static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, player_dmg: bool = false,
+		target_id: int = -1, source_id: StringName = &"") -> void:
+	if target_id >= 0 and not crit and not player_dmg:
+		var aggregate := CombatVisualBudget.aggregate_damage(target_id, source_id, dmg, Time.get_ticks_msec() / 1000.0)
+		if aggregate.merged:
+			for active in _active:
+				if is_instance_valid(active) and active._aggregation_key == aggregate.key:
+					active.amount = aggregate.amount
+					active.modulate.a = 1.0
+					active._animate()
+					return
 	var instance: DamageNumber
 	while _pool.size() > 0:
 		var candidate = _pool.pop_back()
@@ -44,6 +55,7 @@ static func spawn(parent: Node, pos: Vector2, dmg: float, crit: bool = false, pl
 	instance.amount = dmg
 	instance.is_crit = crit
 	instance.is_player_damage = player_dmg
+	instance._aggregation_key = "%d:%s" % [target_id, source_id] if target_id >= 0 else ""
 	instance.global_position = pos
 	instance.modulate.a = 1.0
 	instance.scale = Vector2.ONE
@@ -62,6 +74,7 @@ func _force_recycle() -> void:
 		_tween.kill()
 	_tween = null
 	visible = false
+	_aggregation_key = ""
 	_active.erase(self)
 	_pool.append(self)
 
@@ -89,6 +102,7 @@ func _on_animation_done(id: int) -> void:
 		return
 	_tween = null
 	visible = false
+	_aggregation_key = ""
 	_active.erase(self)
 	_pool.append(self)
 

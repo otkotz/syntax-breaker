@@ -10,14 +10,18 @@ var _debris_color: Color = Color(1.0, 0.5, 0.19)
 var _debris_count: int = 10
 var _debris_data: Array = []
 var _element: String = "fire"
+var _budget_id := 0
+var _major := false
 
 static var _pool: Array = []
 static var _active: Array = []
+static var _next_budget_id := 1
 const MAX_POOL := 20
 
 static func clear_all() -> void:
 	for instance in _active:
 		if is_instance_valid(instance):
+			CombatVisualBudget.release(&"hit_flash", instance._budget_id)
 			instance.queue_free()
 	_active.clear()
 	for instance in _pool:
@@ -25,7 +29,11 @@ static func clear_all() -> void:
 			instance.queue_free()
 	_pool.clear()
 
-static func spawn(parent: Node, pos: Vector2, element: String, radius: float = 80.0) -> void:
+static func spawn(parent: Node, pos: Vector2, element: String, radius: float = 80.0, major: bool = false) -> void:
+	var budget_id := _next_budget_id
+	_next_budget_id += 1
+	if not CombatVisualBudget.request(&"hit_flash", 2 if major else 1, budget_id):
+		return
 	var instance: HitEffect
 	while _pool.size() > 0:
 		var candidate = _pool.pop_back()
@@ -35,7 +43,9 @@ static func spawn(parent: Node, pos: Vector2, element: String, radius: float = 8
 	if not instance:
 		instance = HitEffect.new()
 
-	instance._configure(element, radius)
+	instance._budget_id = budget_id
+	instance._major = major
+	instance._configure(element, radius if major else minf(radius, 28.0))
 	instance.global_position = pos
 	instance._timer = 0.0
 	instance.visible = true
@@ -97,6 +107,7 @@ func _process(delta: float) -> void:
 		visible = false
 		set_process(false)
 		_active.erase(self)
+		CombatVisualBudget.release(&"hit_flash", _budget_id)
 		_pool.append(self)
 		return
 	queue_redraw()
@@ -107,7 +118,10 @@ func _draw() -> void:
 	var r := eased * _max_radius
 	var fade := 1.0 - t
 
-	draw_circle(Vector2.ZERO, r, Color(_ring_color, fade * 0.45))
+	if not _major:
+		draw_line(Vector2(-r * 0.7, r * 0.35), Vector2(r * 0.7, -r * 0.35), Color(_core_color, fade), 3.0)
+		return
+	draw_circle(Vector2.ZERO, r, Color(_ring_color, fade * 0.32))
 	var flash_op := maxf(0.0, 1.0 - t * 3.0)
 	if flash_op > 0.0:
 		draw_circle(Vector2.ZERO, r * 0.6, Color(_core_color, flash_op))

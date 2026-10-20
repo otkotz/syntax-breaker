@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillVisualProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/skill_visual_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_id = "blade_spin"
+core_shape = &"hooked_bracket"
+cast_signature = &"open_undo_glyph"
+hit_signature = &"closing_bracket"
+residue_signature = &"reversed_history_trail"
+primary_color = Color(0.12, 0.88, 1, 1)
+accent_color = Color(1, 0.18, 0.78, 1)
+max_screen_coverage = 0.12

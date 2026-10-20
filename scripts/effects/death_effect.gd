@@ -8,14 +8,17 @@ const RING_DURATION := 0.25
 
 var _particles: Array = []
 var _ring_color: Color = Color.WHITE
+var _budget_id := 0
 
 static var _pool: Array = []
 static var _active: Array = []
+static var _next_budget_id := 1
 const MAX_POOL := 15
 
 static func clear_all() -> void:
 	for instance in _active:
 		if is_instance_valid(instance):
+			CombatVisualBudget.release(&"death_signature", instance._budget_id)
 			instance.queue_free()
 	_active.clear()
 	for instance in _pool:
@@ -24,6 +27,10 @@ static func clear_all() -> void:
 	_pool.clear()
 
 static func spawn(parent: Node, pos: Vector2, active_dots: Dictionary) -> void:
+	var budget_id := _next_budget_id
+	_next_budget_id += 1
+	if not CombatVisualBudget.request(&"death_signature", 2, budget_id):
+		return
 	var instance: DeathEffect
 	while _pool.size() > 0:
 		var candidate = _pool.pop_back()
@@ -33,6 +40,7 @@ static func spawn(parent: Node, pos: Vector2, active_dots: Dictionary) -> void:
 	if not instance:
 		instance = DeathEffect.new()
 
+	instance._budget_id = budget_id
 	instance._configure(active_dots)
 	instance.global_position = pos
 	instance._timer = 0.0
@@ -96,6 +104,7 @@ func _process(delta: float) -> void:
 		visible = false
 		set_process(false)
 		_active.erase(self)
+		CombatVisualBudget.release(&"death_signature", _budget_id)
 		_pool.append(self)
 		return
 	for p: Dictionary in _particles:
