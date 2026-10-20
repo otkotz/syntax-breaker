@@ -388,6 +388,191 @@ The approved visual target is the three-screen portrait flow `branching Burning 
 - [ ] **Step 8: Record screenshots and measured frame/VFX counts in the tuning document**, fix Critical/Important issues, and rerun the full native suite plus Android export.
 - [ ] **Step 9: Commit** with `test: verify expedition visual direction on phone`.
 
+## Milestone 6 — Living Build Visual Identity
+
+This milestone extends the approved Burned Manuscript / Ember Reliquary direction into combat. The
+player must be able to identify the dominant skill, support behavior, build power and immediate
+hostile danger from shape and motion rather than color or text. The guiding fantasy is a hacker whose
+increasingly powerful build compiles progressively more broken reality.
+
+**Visual grammar:** every attack owns four separable layers: stable skill silhouette, elemental
+material, one support modifier, and an evolution signature. Friendly spectacle degrades before
+gameplay information. Hostile telegraphs and projectiles always retain the strongest contour and
+highest draw priority. Player-facing Blade Spin artwork, naming and orbit imagery are forbidden;
+`blade_spin` may survive only as the internal save-compatible Rollback ID.
+
+**Shared budgets:** preserve the Task 13 limits of 12 artifact glyphs, 4 long trails, 2 simultaneous
+synergy signatures and 1 scrim. Add ceilings of 8 full hit flashes, 8 full death signatures, 24
+fully sampled projectile trails and 2 major hero moments. Aggregate ordinary damage numbers per
+target/source within 0.15–0.25 seconds. Reduced motion replaces travel/scale flourishes with short
+opacity or shape changes; it never removes gameplay feedback.
+
+### Task 14: Combat visual grammar and adaptive clutter budget
+
+**Files:**
+- Create: `scripts/effects/combat_visual_budget.gd`
+- Create: `scripts/effects/skill_visual_profile.gd`
+- Create: `resources/skill_visuals/rollback.tres`
+- Create: `resources/skill_visuals/fireball.tres`
+- Create: `resources/skill_visuals/static_field.tres`
+- Modify: `scripts/effects/hit_effect.gd`
+- Modify: `scripts/effects/death_effect.gd`
+- Modify: `scripts/ui/damage_number.gd`
+- Modify: `scripts/enemies/boss_hazard.gd`
+- Create: `tests/combat_visual_grammar_native.gd`
+- Create: `tests/combat_visual_grammar_native.tscn`
+
+**Interfaces:**
+- `SkillVisualProfile` exposes `skill_id`, `core_shape`, `cast_signature`, `hit_signature`,
+  `residue_signature`, `primary_color`, `accent_color`, and `max_screen_coverage`.
+- `CombatVisualBudget.request(kind: StringName, priority: int, origin_id: int) -> bool` admits,
+  merges or drops cosmetic work; hostile warnings bypass friendly cosmetic limits.
+- Draw order remains hostile warning/projectile → player/elite/boss → skill core → cosmetic trail,
+  debris and ordinary damage numbers.
+
+- [ ] **Step 1: Write failing profile tests** proving Rollback, Fireball and Static Field have non-color-distinct core shapes and complete cast/travel-or-field/hit identities.
+- [ ] **Step 2: Write failing budget tests** for 8 hit flashes, 8 death signatures, 24 full trails, 2 hero moments, target/source damage-number aggregation and hostile-priority bypass.
+- [ ] **Step 3: Run the grammar, readability and Task 13 VFX-budget tests** and verify RED on the missing profile and budget interfaces.
+- [ ] **Step 4: Implement the shared profiles and adaptive budget**, degrading ambient particles, old trails, ordinary hit sparks and ordinary damage numbers in that order.
+- [ ] **Step 5: Replace the generic full hit/death ring for ordinary damage** with a small directional mark; reserve full signatures for crit, execute, kill, synergy and evolution events.
+- [ ] **Step 6: Implement telegraph phases without color-only state**: dashed warning, closing imminent segments, hatched active area, inward safe-space chevrons and a single activation impulse.
+- [ ] **Step 7: Run grammar, combat-readability, boss and artifact-VFX tests** and verify pass at full and reduced-motion settings.
+- [ ] **Step 8: Commit** with `feat: establish living combat visual grammar`.
+
+### Task 15: Three-skill visual identity vertical slice
+
+**Files:**
+- Modify: `scripts/skills/rollback.gd`
+- Modify: `scenes/skills/rollback.tscn`
+- Modify: `scenes/skills/fireball.tscn`
+- Modify: `scenes/skills/static_field.tscn`
+- Create: `scripts/effects/skill_visual_renderer.gd`
+- Create: `scripts/effects/support_visual_modifier.gd`
+- Modify: `scripts/skills/skill_caster.gd`
+- Modify: `tests/rollback_native.gd`
+- Create: `tests/skill_visual_slice_native.gd`
+- Create: `tests/skill_visual_slice_native.tscn`
+
+**Interfaces:**
+- `SkillVisualRenderer.configure(profile: SkillVisualProfile, support_ids: Array[String], evolution_tier: int) -> void` composes one core silhouette, elemental material, at most one primary support modifier and one bounded evolution signature.
+- Support glyphs are shared across skills: Chain nodes, Split `Y`, Pierce notch, Returning reverse arrow,
+  Echo offset outline, Mine closing diamond, Totem transmitter brackets and Rubber Duck marker.
+- Rollback uses a hooked bracket/boomerang silhouette: continuous cyan outbound trail, turn bracket,
+  dashed/reversed magenta return trail and a closing catch glyph. It never uses orbiting knives.
+
+- [ ] **Step 1: Write failing visual-slice tests** for the three distinct silhouettes, Rollback outbound/turn/return/catch phases and absence of player-facing Blade Spin name, icon and orbit scene.
+- [ ] **Step 2: Write failing support-modifier tests** proving Chain, Returning, Echo, Mine, Totem and Rubber Duck change geometry while respecting the shared budgets.
+- [ ] **Step 3: Run the slice, Rollback, contracts and support-combination tests** and verify RED.
+- [ ] **Step 4: Implement Rollback as the poster skill**, including the reversed return language and a Tier III cosmetic rewind of trails/debris only, capped at 120 ms.
+- [ ] **Step 5: Implement Fireball** as a compressed square ember core with three tail blocks and a directional compilation-error impact rather than a circular blast.
+- [ ] **Step 6: Implement Static Field** as a broken technical perimeter with four anchors and tick-only target arcs rather than a filled aura.
+- [ ] **Step 7: Add the six support modifiers** with 120–250 ms identifying punctuation and no repeating combat text.
+- [ ] **Step 8: Run the slice and dense-combat fixtures**, verifying each skill remains recognizable in grayscale and under saturated friendly caps.
+- [ ] **Step 9: Commit** with `feat: give core skills visible build identity`.
+
+### Task 16: Reactive Breaker avatar and build portrait
+
+**Files:**
+- Create: `scripts/player/breaker_visual_loadout.gd`
+- Modify: `scripts/util/breaker_sprite.gd`
+- Modify: `scripts/player/player.gd`
+- Modify: `scripts/ui/hud.gd`
+- Modify: `scripts/ui/skill_manager.gd`
+- Create: `scripts/ui/build_portrait.gd`
+- Create: `tests/breaker_visual_loadout_native.gd`
+- Create: `tests/breaker_visual_loadout_native.tscn`
+
+**Interfaces:**
+- `BreakerVisualLoadout.resolve(skill_instances: Array, artifact_ids: Array[String]) -> Dictionary`
+  returns at most three visible layers selected from `focus`, `back`, `body_accent` and `emblem`.
+- Dominant tags map to authored procedural accents: fire ember hand/charred hem, lightning antenna/rune,
+  poison respirator/vials, cold crystal shoulder, physical/Rollback hooked forearm/back bracket.
+- Covenant, Bloodwritten Sigil and memetic supports may claim the emblem/back slot but never obscure
+  the player's feet, canonical hood, 2–3 px dark outline or bright chest/head anchor.
+- `BuildPortrait.setup(loadout: Dictionary) -> void` renders a 160–256 px authored bust from the same
+  layer data; it does not upscale the combat sprite.
+
+- [ ] **Step 1: Write failing loadout tests** for deterministic dominant-tag selection, three-layer cap, slot conflicts, eight-direction anchors and save-independent cosmetic reconstruction.
+- [ ] **Step 2: Write failing portrait/HUD tests** for matching hood, focus, dominant element and Covenant/Omen emblem at portrait scale.
+- [ ] **Step 3: Run avatar, skill-manager-art and combat-readability tests** and verify RED.
+- [ ] **Step 4: Implement the canonical Breaker layers** without changing collision, animation timing or the base 32×36 gameplay silhouette.
+- [ ] **Step 5: Add short cast accents and a segmented shield**, keeping the foot anchor visible through friendly fields.
+- [ ] **Step 6: Implement the build portrait** for skill manager and run summary; omit multiple operator/classes until this canonical avatar passes phone QA.
+- [ ] **Step 7: Run avatar, UI, save/resume and reduced-motion tests** and verify pass.
+- [ ] **Step 8: Commit** with `feat: make the breaker reflect the active build`.
+
+### Task 17: Enemy silhouettes, source deaths and Expedition boss readability
+
+**Files:**
+- Modify: `scripts/enemies/enemy_base.gd`
+- Modify: `scripts/enemies/regional_boss.gd`
+- Modify: `scripts/enemies/boss_hazard.gd`
+- Modify: `scripts/effects/death_effect.gd`
+- Modify: `scripts/expedition/expedition_game_manager.gd`
+- Modify: `scripts/ui/hud.gd`
+- Create: `tests/enemy_visual_roles_native.gd`
+- Create: `tests/enemy_visual_roles_native.tscn`
+- Modify: `tests/boss_native.gd`
+- Modify: `tests/combat_readability_native.gd`
+
+**Interfaces:**
+- Combat roles use distinct outlines: swarm wedge, melee broad `V`, ranged tall eye/barrel, tank
+  square shoulders, support diamond/antennae, charger directional body, elite outer error crown.
+- Trash health bars hide at full health and appear after damage; elite/boss bars remain visible.
+  Status display shows at most two priority glyphs plus `+N`.
+- Source deaths are pooled and last 0.25–0.45 s with at most six fragments: fire ash cracks,
+  cold shards, lightning collapse, poison puddle, physical directional cut and void implosion.
+- Boss phase change may use one 120–180 ms corruption punctuation but cannot delay room completion,
+  settlement or checkpoint teardown.
+
+- [ ] **Step 1: Write failing role tests** for outline distinction at gameplay scale, health-bar policy, status cap and elite/boss recognition without color.
+- [ ] **Step 2: Write failing source-death tests** for six signatures, pooling, eight-effect cap and immediate gameplay teardown after the last enemy/boss dies.
+- [ ] **Step 3: Write failing boss-telegraph tests** for pose → warning → active order, safe-gap shape, Omen distinction and friendly-VFX overlap.
+- [ ] **Step 4: Run enemy, boss, finale-performance and readability tests** and verify RED.
+- [ ] **Step 5: Implement role silhouettes and health/status decluttering** without enlarging colliders with their visual bodies.
+- [ ] **Step 6: Implement pooled source-death signatures and boss phase punctuation**; cosmetic completion signals observe state and never own it.
+- [ ] **Step 7: Add boss/offscreen and last-straggler brackets** so remaining enemies cannot stall the room flow invisibly.
+- [ ] **Step 8: Run the dense encounter and stage-end regression fixtures**, verifying no reintroduction of the last-kill freeze.
+- [ ] **Step 9: Commit** with `feat: clarify expedition enemies and boss combat`.
+
+### Task 18: Complete skill catalog, loot punctuation and phone stress QA
+
+**Files:**
+- Create: `resources/skill_visuals/lightning_bolt.tres`
+- Create: `resources/skill_visuals/poison_dart.tres`
+- Create: `resources/skill_visuals/flame_wave.tres`
+- Create: `resources/skill_visuals/frost_nova.tres`
+- Modify: `scenes/skills/lightning_bolt.tscn`
+- Modify: `scenes/skills/poison_dart.tscn`
+- Modify: `scenes/skills/flame_wave.tscn`
+- Modify: `scenes/skills/frost_nova.tscn`
+- Modify: `scripts/ui/expedition_reward_overlay.gd`
+- Modify: `scripts/ui/skill_manager.gd`
+- Create: `tests/skill_visual_catalog_native.gd`
+- Create: `tests/combat_visual_stress_native.gd`
+- Create: `tests/combat_visual_stress_native.tscn`
+- Modify: `docs/expedition-loot-hunt-tuning.md`
+
+**Interfaces:**
+- Remaining silhouettes: Lightning jagged trace/network nodes; Poison needle/drop pips; Flame Wave
+  broken directional firewall; Frost Nova hexagonal fracture with an empty center.
+- Evolution tiers are additive but bounded: Tier I changes hit mark, Tier II adds route/residue,
+  Tier III allows one cooldown-governed hero punctuation; damage alone never scales VFX coverage.
+- Reward punctuation remains skippable: Shards magnet streak, Duplicate double-image fracture, New
+  line-print reveal, Set copper seal assembly, Set Complete three linked relic glyphs, Chase five-cut
+  crimson seal. Last-enemy rewards travel to the player automatically.
+
+- [ ] **Step 1: Write failing catalog tests** requiring all seven skill profiles, unique grayscale core shapes, shared support glyphs and base/support/evolution preview states.
+- [ ] **Step 2: Write failing reward tests** for all six punctuation classes, automatic collection, skip by 0.25 s and reduced-motion final-frame behavior.
+- [ ] **Step 3: Write the failing stress fixture** with 80 enemies, saturated friendly budgets, crossing hostile projectile, active boss telegraph, low-resolution profile and reduced-motion/VFX-density variants.
+- [ ] **Step 4: Run catalog, reward, stress, item-art and combat-readability tests** and verify RED.
+- [ ] **Step 5: Implement the remaining four profiles and tiered evolution signatures** using pooled Line2D/Polygon2D or atlas sprites with at most 16–20 segments per effect.
+- [ ] **Step 6: Implement the six reward punctuation treatments and automatic last-drop travel** without adding blocking animation to settlement.
+- [ ] **Step 7: Add the skill-manager `before → after` loop** for a selected support/evolution; stop playback when the panel is hidden and never require hover.
+- [ ] **Step 8: Run the full native suite and Android export**, then install without clearing data and test at 1080×1920, smallest supported portrait viewport, 50% brightness and a 30 fps capture.
+- [ ] **Step 9: Record screenshots and measurements**: identify player/nearest hostile/safe zone within 200 ms, identify every skill in grayscale, friendly opaque coverage below 20%, and 95th-percentile frame-time regression no worse than 1.5 ms on the target phone.
+- [ ] **Step 10: Commit** with `test: verify living build visuals on phone`.
+
 ---
 
 ## Deferred Follow-up Plans
@@ -402,4 +587,4 @@ Create separate specifications and plans only after Milestone 4 telemetry is rev
 
 ## Completion Gate
 
-The expansion is complete only when a found artifact can alter the next room through a checkpointed Echo, a duplicate offers Temper or Shatter, elite/treasure always advance the player, Covenant collection is protected without becoming guaranteed, Ember Shards have three deterministic non-power sinks, three curated pairs create safe discoverable interactions, the initial Sigil remains guaranteed by victory five, all six artifacts have distinct production icons, the approved node-map/reveal/Echo visual flow remains readable on the target phone, friendly VFX stay within their budgets and below enemy-warning priority, and the full Expedition/roguelite regression suite plus Android portrait build pass from fresh evidence.
+The expansion is complete only when a found artifact can alter the next room through a checkpointed Echo, a duplicate offers Temper or Shatter, elite/treasure always advance the player, Covenant collection is protected without becoming guaranteed, Ember Shards have three deterministic non-power sinks, three curated pairs create safe discoverable interactions, the initial Sigil remains guaranteed by victory five, all six artifacts have distinct production icons, the approved node-map/reveal/Echo visual flow remains readable on the target phone, every skill and major support has a recognizable bounded combat silhouette, the Breaker visibly reflects the active build without losing its player anchor, hostile warnings remain readable under the 80-enemy stress fixture, Blade Spin is absent from player-facing content, friendly VFX stay within their budgets and below enemy-warning priority, and the full Expedition/roguelite regression suite plus Android portrait build pass from fresh evidence.
