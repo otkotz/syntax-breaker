@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillVisualProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/skill_visual_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_id = "lightning_bolt"
+core_shape = &"jagged_trace"
+cast_signature = &"forked_rune"
+hit_signature = &"network_nodes"
+residue_signature = &"three_node_afterimage"
+primary_color = Color(0.25, 0.62, 1, 1)
+accent_color = Color(0.82, 0.94, 1, 1)
+max_screen_coverage = 0.1

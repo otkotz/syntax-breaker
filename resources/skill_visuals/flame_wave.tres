@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillVisualProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/skill_visual_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_id = "flame_wave"
+core_shape = &"broken_firewall"
+cast_signature = &"forward_brackets"
+hit_signature = &"ash_teeth"
+residue_signature = &"broken_embers"
+primary_color = Color(1, 0.26, 0.05, 1)
+accent_color = Color(1, 0.78, 0.22, 1)
+max_screen_coverage = 0.14

@@ -350,6 +350,11 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 	name_lbl.add_theme_font_size_override("font_size", 24)
 	name_lbl.add_theme_color_override("font_color", card_color)
 	info.add_child(name_lbl)
+	var evolution_preview := Label.new()
+	evolution_preview.text = "BASE → SUPPORT → EVOLUTION"
+	evolution_preview.add_theme_font_size_override("font_size", 13)
+	evolution_preview.add_theme_color_override("font_color", C_INK_LOW)
+	info.add_child(evolution_preview)
 
 	var tag_row := HBoxContainer.new()
 	tag_row.add_theme_constant_override("separation", 5)

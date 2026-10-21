@@ -2,6 +2,7 @@ class_name CombatVisualBudget
 extends RefCounted
 
 const DAMAGE_AGGREGATION_WINDOW := 0.25
+const MAX_FRIENDLY_COVERAGE := 0.20
 const CAPS := {
 	&"hit_flash": 8,
 	&"death_signature": 8,

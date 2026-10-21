@@ -1,6 +1,8 @@
 class_name SkillVisualRenderer
 extends Node2D
 
+const MAX_SEGMENTS := 20
+
 @export var profile: SkillVisualProfile
 var primary_support_id := ""
 var support_signature: StringName = &""
@@ -52,6 +54,21 @@ func _draw() -> void:
 			for angle in [0.0, PI * 0.5, PI, PI * 1.5]:
 				var center := Vector2.from_angle(angle) * 22.0
 				draw_rect(Rect2(center - Vector2(3, 3), Vector2(6, 6)), profile.accent_color)
+		&"jagged_trace":
+			draw_polyline(PackedVector2Array([Vector2(-20, 8), Vector2(-8, -5), Vector2(-2, 2), Vector2(8, -14), Vector2(5, -2), Vector2(20, -9)]), profile.primary_color, 3.0)
+			for point in [Vector2(-20, 8), Vector2(-2, 2), Vector2(20, -9)]: draw_circle(point, 2.5, profile.accent_color)
+		&"needle":
+			draw_polyline(PackedVector2Array([Vector2(-19, 5), Vector2(16, -5), Vector2(21, -1)]), profile.primary_color, 3.0)
+			for x in [-10.0, 0.0, 10.0]: draw_circle(Vector2(x, 9), 2.0, profile.accent_color)
+		&"broken_firewall":
+			for x in [-20.0, -7.0, 8.0]: draw_polyline(PackedVector2Array([Vector2(x, 12), Vector2(x + 3, -10), Vector2(x + 9, 12)]), profile.primary_color, 3.0)
+		&"hollow_hex_fracture":
+			var points := PackedVector2Array()
+			for i in 7: points.append(Vector2.from_angle(i * TAU / 6.0) * 20.0)
+			draw_polyline(points, profile.primary_color, 3.0)
+			for i in 6:
+				var p := Vector2.from_angle(i * TAU / 6.0) * 20.0
+				draw_line(p, p * 1.35, profile.accent_color, 2.0)
 	_draw_support()
 
 

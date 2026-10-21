@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SkillVisualProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/effects/skill_visual_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_id = "frost_nova"
+core_shape = &"hollow_hex_fracture"
+cast_signature = &"six_point_lock"
+hit_signature = &"ice_shards"
+residue_signature = &"empty_center_rime"
+primary_color = Color(0.45, 0.86, 1, 1)
+accent_color = Color(0.9, 0.98, 1, 1)
+max_screen_coverage = 0.13

@@ -40,6 +40,7 @@ var reveal_complete := false
 var skip_available_after := 0.25
 var blocks_gameplay := true
 var flash_strength := 0.0
+var reveal_pattern := "line_print"
 var _reveal_tween: Tween
 
 func _ready() -> void:
@@ -172,6 +173,8 @@ func configure_presentation(reward: Dictionary, session: ExpeditionSession, redu
 	blocks_gameplay = presentation_class != SHARDS
 	mouse_filter = Control.MOUSE_FILTER_STOP if blocks_gameplay else Control.MOUSE_FILTER_IGNORE
 	reveal_accent = "blood_seal" if presentation_class == CHASE else ("hot_gold" if presentation_class == SET_COMPLETE else "ember")
+	reveal_pattern = {SHARDS: "magnet_streak", DUPLICATE: "double_image_fracture", NEW: "line_print",
+		SET_PIECE: "copper_seal_assembly", SET_COMPLETE: "three_linked_relics", CHASE: "five_cut_crimson_seal"}[presentation_class]
 	var rank_title := "NEW SET PIECE" if presentation_class == SET_PIECE else presentation_class.replace("_", " ")
 	accent_label.text = "%s · %s" % [rank_title, reveal_accent.replace("_", " ").to_upper()]
 	accent_label.add_theme_color_override("font_color", Color("e52f4f") if presentation_class == CHASE else (Color("ffc04a") if presentation_class == SET_COMPLETE else Color("ffb02e")))

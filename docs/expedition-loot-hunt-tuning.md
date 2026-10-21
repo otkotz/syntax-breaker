@@ -44,3 +44,12 @@ The native dense-feedback fixture measures the enforced simultaneous ceilings ra
 Artifact feedback uses pooled `Node2D`/`Line2D` objects, 16–20 arc segments, short open glyphs, and draw priority 1. Hostile projectiles remain at priority 20. Reduced motion removes rotation and scale animation. Blood Omen adds five readable seal cuts, explicit `+RISK / +CHASE CHANCE` wording, a non-color-only Omen boss label, one peripheral rune, and a distinct boss-bar frame.
 
 Android debug export `.tmp/expedition-visual-debug.apk` completed, signed, and verified with Godot 4.7.2. At verification time `adb devices -l` and `adb mdns services` returned no device, so installation and the physical low-brightness/manual-comprehension checklist remain unclaimed until the phone is visible again.
+
+## Living-build visual contract — 2026-10-20
+
+- Seven active skills have unique grayscale core shapes; color is secondary identification.
+- One support glyph and one bounded evolution treatment may decorate a skill. Tier III has a 120 ms cosmetic budget and cannot pause gameplay.
+- Friendly effects target at most 20% opaque coverage, use no more than 20 segments per authored effect, and always render below hostile warnings.
+- Source deaths use at most six fragments for 0.4 seconds with eight simultaneous effects. Overflow is discarded cosmetically while death and room completion remain immediate.
+- The Breaker uses at most three build layers and a shared 192 px portrait model; hood, outline, feet and movement anchor remain protected.
+- Reward classes map to six non-blocking signatures: magnet streak, double-image fracture, line print, copper seal assembly, three linked relics and five-cut crimson seal. Reduced motion lands on the final frame.

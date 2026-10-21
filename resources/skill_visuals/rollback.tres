@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-skill_id = "blade_spin"
+skill_id = "rollback"
 core_shape = &"hooked_bracket"
 cast_signature = &"open_undo_glyph"
 hit_signature = &"closing_bracket"
