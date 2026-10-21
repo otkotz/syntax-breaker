@@ -9,6 +9,7 @@ const MAX_ACTIVE := 8
 
 var _particles: Array = []
 var _ring_color: Color = Color.WHITE
+var _signature_kind := "physical"
 var _budget_id := 0
 
 static var _pool: Array = []
@@ -82,6 +83,7 @@ func _configure(active_dots: Dictionary, source: SkillResource = null) -> void:
 	_particles.clear()
 	var source_name := source.id + " " + " ".join(source.tags) if source else ""
 	var signature := signature_for(source_name)
+	_signature_kind = str(signature.kind)
 	var colors: Array = []
 	for c: Color in BODY_COLORS:
 		colors.append(c)
@@ -98,9 +100,13 @@ func _configure(active_dots: Dictionary, source: SkillResource = null) -> void:
 
 	for i in PARTICLE_COUNT:
 		var angle := randf() * TAU
+		var speed := randf_range(80.0, 200.0)
 		if signature.kind == "physical": angle = randf_range(-0.35, 0.35)
 		elif signature.kind == "cold": angle = i * TAU / PARTICLE_COUNT
-		var speed := randf_range(80.0, 200.0)
+		elif signature.kind == "lightning": angle = (-PI / 2.0) + randf_range(-0.18, 0.18)
+		elif signature.kind == "poison": angle = randf_range(0.25, PI - 0.25)
+		elif signature.kind == "void": speed = randf_range(-110.0, -55.0)
+		elif signature.kind == "fire": speed = randf_range(45.0, 115.0); angle = randf_range(-2.8, -0.35)
 		var col: Color = colors[i % colors.size()]
 		var sz := randf_range(2.0, 5.0)
 		_particles.append({
@@ -131,8 +137,14 @@ func _draw() -> void:
 	var t := _timer / DURATION
 	var fade := 1.0 - t * t
 
-	# Ring burst
-	if _timer < RING_DURATION:
+	# Source grammar: poison pools and void implodes; other sources punctuate outward.
+	if _signature_kind == "poison":
+		draw_set_transform(Vector2(0, 8), 0.0, Vector2(1.5, 0.45))
+		draw_circle(Vector2.ZERO, 18.0 * minf(1.0, _timer / 0.18), Color(_ring_color, fade * 0.45))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	elif _signature_kind == "void":
+		draw_arc(Vector2.ZERO, 30.0 * (1.0 - t), 0, TAU, 12, Color(_ring_color, fade), 3.0)
+	elif _timer < RING_DURATION:
 		var rt := _timer / RING_DURATION
 		var ring_r := rt * 40.0
 		var ring_op := (1.0 - rt) * 0.7

@@ -31,6 +31,7 @@ const FACE_RANGE := 1200.0
 
 signal hp_changed(current: float, maximum: float)
 signal shield_changed(current: float, maximum: float)
+signal visual_loadout_changed(loadout: Dictionary)
 signal died
 
 func try_spend_artifact_health(percent: float) -> bool:
@@ -176,6 +177,7 @@ func _connect_caster() -> void:
 	var caster := get_node_or_null("SkillCaster") as SkillCaster
 	if caster:
 		caster.spell_cast.connect(_on_spell_cast)
+		caster.skills_changed.connect(_refresh_visual_loadout)
 		call_deferred("_refresh_visual_loadout")
 
 func _refresh_visual_loadout() -> void:
@@ -189,6 +191,7 @@ func _refresh_visual_loadout() -> void:
 	var resolved := VISUAL_LOADOUT.resolve(skills, artifacts)
 	if resolved == visual_loadout: return
 	visual_loadout = resolved
+	visual_loadout_changed.emit(visual_loadout)
 	if is_instance_valid(_anim_sprite):
 		var old := _anim_sprite
 		remove_child(old); old.queue_free()

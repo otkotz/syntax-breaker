@@ -453,18 +453,28 @@ static func build(dir: String, frame: int, mode: String = "walk", glitch: float 
 
 # ---- render a buffer to an ImageTexture using a resolved palette ------
 static func _paint_build_layers(b: Buf, loadout: Dictionary, dir: String) -> void:
+	var element := str(loadout.get("element", "physical"))
 	for layer: String in loadout.get("layers", []).slice(0, 3):
 		var p: Vector2 = VISUAL_LOADOUT.anchor_for(layer, dir)
 		var x := int(p.x); var y := int(p.y)
 		match layer:
 			"focus":
-				b.set_px(x, y, 11); b.set_px(x - 1, y, 12); b.set_px(x + 1, y, 13)
+				match element:
+					"fire": b.set_px(x, y - 1, 11); b.set_px(x - 1, y, 12); b.set_px(x + 1, y, 13)
+					"lightning": b.line(x - 1, y - 2, x + 1, y + 2, 11); b.set_px(x + 2, y, 13)
+					"poison": b.set_px(x, y, 12); b.set_px(x, y + 1, 13); b.set_px(x - 2, y + 2, 12)
+					"cold": b.line(x, y - 2, x, y + 2, 11); b.set_px(x - 1, y, 12); b.set_px(x + 1, y, 12)
+					_: b.line(x - 2, y - 1, x + 1, y + 1, 11); b.set_px(x + 2, y - 1, 13)
 			"back":
 				b.set_behind(x, y, 13); b.set_behind(x, y + 1, 12); b.set_behind(x + 1, y + 2, 13)
 			"emblem":
 				b.set_px(x, y, 11); b.set_px(x - 1, y, 14); b.set_px(x + 1, y, 14)
 			"body_accent":
-				b.set_px(x, y, 12); b.set_px(x, y + 1, 13)
+				if element == "fire": b.hline(x - 2, x + 2, y + 1, 13)
+				elif element == "lightning": b.line(x - 1, y - 2, x + 1, y + 2, 12)
+				elif element == "poison": b.set_px(x - 2, y, 12); b.set_px(x + 2, y + 1, 12)
+				elif element == "cold": b.set_px(x, y - 1, 11); b.set_px(x - 1, y, 12); b.set_px(x + 1, y, 12)
+				else: b.line(x - 2, y, x + 2, y, 12)
 
 static func build_texture(dir: String, frame: int, mode: String, pal: PackedColorArray, glitch: float = 0.3, loadout: Dictionary = {}) -> ImageTexture:
 	var b := build(dir, frame, mode, glitch, loadout)

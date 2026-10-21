@@ -228,6 +228,9 @@ static func visible_statuses(active: Array) -> Array[String]:
 	return shown
 
 func _draw_status_glyph(key: String, c: Vector2, r: float, col: Color) -> void:
+	if key.begins_with("+"):
+		draw_string(ThemeDB.fallback_font, c + Vector2(-r, r), key, HORIZONTAL_ALIGNMENT_CENTER, r * 2.5, r * 2.6, Color.WHITE)
+		return
 	match key:
 		"burn":  # flame — upward triangle
 			_draw_outlined_poly(PackedVector2Array([

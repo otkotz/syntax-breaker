@@ -51,6 +51,8 @@ func setup(player: Player) -> void:
 	build_portrait.position = Vector2(12, 150)
 	build_portrait.setup(player.visual_loadout)
 	add_child(build_portrait)
+	if not player.visual_loadout_changed.is_connected(_on_visual_loadout_changed):
+		player.visual_loadout_changed.connect(_on_visual_loadout_changed)
 	var hp_fill := StyleBoxFlat.new()
 	hp_fill.bg_color = Color(0.18, 0.55, 0.25)
 	hp_bar.add_theme_stylebox_override("fill", hp_fill)
@@ -130,6 +132,10 @@ func setup(player: Player) -> void:
 	add_child(_keystone_label)
 	GameBus.keystone_triggered.connect(_on_keystone)
 
+func _on_visual_loadout_changed(loadout: Dictionary) -> void:
+	if build_portrait:
+		build_portrait.setup(loadout)
+
 func _on_keystone(display_name: String) -> void:
 	if _keystone_cooldown > 0.0:
 		return
@@ -182,7 +188,16 @@ func update_wave(seconds: float, progress: float, remaining: int) -> void:
 		_wave_progress.value = clampf(progress, 0.0, 1.0)
 		_update_modifiers()
 	if _straggler_label:
-		_straggler_label.text = "⌁ LAST SIGNAL — HUNT IT DOWN ⌁" if remaining == 1 else ""
+		_straggler_label.text = _last_signal_text() if remaining == 1 else ""
+
+func _last_signal_text() -> String:
+	if not is_instance_valid(_player): return "⌁ LAST SIGNAL ⌁"
+	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
+		if enemy is EnemyBase and enemy.is_alive():
+			var delta: Vector2 = enemy.global_position - _player.global_position
+			var arrow := "→" if absf(delta.x) >= absf(delta.y) and delta.x >= 0.0 else ("←" if absf(delta.x) >= absf(delta.y) else ("↓" if delta.y >= 0.0 else "↑"))
+			return "⌁ LAST SIGNAL %s  %dm ⌁" % [arrow, roundi(delta.length() / 10.0)]
+	return "⌁ LAST SIGNAL ⌁"
 
 func _update_modifiers() -> void:
 	var modifiers: Array[String] = []

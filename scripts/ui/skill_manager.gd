@@ -351,7 +351,7 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 	name_lbl.add_theme_color_override("font_color", card_color)
 	info.add_child(name_lbl)
 	var evolution_preview := Label.new()
-	evolution_preview.text = "BASE → SUPPORT → EVOLUTION"
+	evolution_preview.text = _visual_preview_text(si)
 	evolution_preview.add_theme_font_size_override("font_size", 13)
 	evolution_preview.add_theme_color_override("font_color", C_INK_LOW)
 	info.add_child(evolution_preview)
@@ -410,6 +410,18 @@ func _build_skill_card(parent: Control, si: SkillInstance) -> void:
 		var slot_btn := _build_slot_row(filled, support, card_color)
 		slot_btn.pressed.connect(_on_slot_clicked.bind(si, i))
 		socket_list.add_child(slot_btn)
+
+func _visual_preview_text(si: SkillInstance) -> String:
+	var profile_id := "rollback" if si.base.id == "blade_spin" else si.base.id
+	var path := "res://resources/skill_visuals/%s.tres" % profile_id
+	var profile := load(path) as SkillVisualProfile if ResourceLoader.exists(path) else null
+	var base_shape := str(profile.core_shape).replace("_", " ").to_upper() if profile else "BASE"
+	var support_shape := "CLEAN"
+	if not si.linked_supports.is_empty():
+		var modifier := SupportVisualModifier.definition_for(si.linked_supports[0].id)
+		support_shape = str(modifier.get("signature", "linked")).replace("_", " ").to_upper()
+	var tier := RarityTiers.tier_index(si.rarity_tier)
+	return "%s  →  %s  →  TIER %d" % [base_shape, support_shape, tier]
 
 func _build_gem_main(color: Color) -> PanelContainer:
 	var container := PanelContainer.new()

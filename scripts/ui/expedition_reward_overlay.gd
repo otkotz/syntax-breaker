@@ -175,6 +175,7 @@ func configure_presentation(reward: Dictionary, session: ExpeditionSession, redu
 	reveal_accent = "blood_seal" if presentation_class == CHASE else ("hot_gold" if presentation_class == SET_COMPLETE else "ember")
 	reveal_pattern = {SHARDS: "magnet_streak", DUPLICATE: "double_image_fracture", NEW: "line_print",
 		SET_PIECE: "copper_seal_assembly", SET_COMPLETE: "three_linked_relics", CHASE: "five_cut_crimson_seal"}[presentation_class]
+	queue_redraw()
 	var rank_title := "NEW SET PIECE" if presentation_class == SET_PIECE else presentation_class.replace("_", " ")
 	accent_label.text = "%s · %s" % [rank_title, reveal_accent.replace("_", " ").to_upper()]
 	accent_label.add_theme_color_override("font_color", Color("e52f4f") if presentation_class == CHASE else (Color("ffc04a") if presentation_class == SET_COMPLETE else Color("ffb02e")))
@@ -211,6 +212,29 @@ func skip_reveal() -> void:
 	modulate.a = 1.0
 	scale = Vector2.ONE
 	reveal_complete = true
+	queue_redraw()
+
+func _draw() -> void:
+	var center := size * Vector2(0.5, 0.25)
+	var ink := Color("ffb02e") if presentation_class != CHASE else Color("e52f4f")
+	match reveal_pattern:
+		"magnet_streak":
+			for y in [-18.0, 0.0, 18.0]: draw_line(center + Vector2(-110, y), center + Vector2(70, y * 0.25), Color(ink, 0.65), 3.0)
+		"double_image_fracture":
+			draw_rect(Rect2(center - Vector2(58, 42), Vector2(76, 84)), Color(ink, 0.14), false, 4.0)
+			draw_rect(Rect2(center - Vector2(18, 42), Vector2(76, 84)), Color(ink, 0.28), false, 4.0)
+			draw_line(center + Vector2(-8, -50), center + Vector2(8, 50), ink, 3.0)
+		"copper_seal_assembly":
+			draw_arc(center, 58, 0.2, 2.0, 8, ink, 5.0); draw_arc(center, 58, 2.3, 4.0, 8, ink, 5.0); draw_arc(center, 58, 4.3, 6.1, 8, ink, 5.0)
+		"three_linked_relics":
+			var points := [center + Vector2(0, -55), center + Vector2(-52, 35), center + Vector2(52, 35)]
+			for i in 3: draw_line(points[i], points[(i + 1) % 3], ink, 5.0); draw_circle(points[i], 12, ink)
+		"five_cut_crimson_seal":
+			for i in 5:
+				var d := Vector2.from_angle(i * TAU / 5.0)
+				draw_line(center + d * 24, center + d * 74, ink, 6.0)
+		_:
+			for i in 6: draw_line(center + Vector2(-75, -45 + i * 18), center + Vector2(75, -45 + i * 18), Color(ink, 0.7), 2.0)
 
 func _auto_close_toast() -> void:
 	await get_tree().create_timer(reveal_duration).timeout

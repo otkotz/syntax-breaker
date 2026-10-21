@@ -28,15 +28,22 @@ static func resolve(skill_instances: Array, artifact_ids: Array[String] = []) ->
 			best = int(scores[candidate]); element = candidate
 	var ids := artifact_ids.duplicate()
 	ids.sort()
+	var support_ids: Array[String] = []
+	for instance: Variant in skill_instances:
+		if instance == null: continue
+		for support: SupportResource in instance.linked_supports:
+			if not support_ids.has(support.id): support_ids.append(support.id)
+	support_ids.sort()
 	var layers: Array[String] = []
 	if ids.has("bloodwritten_sigil"): layers.append("emblem")
 	for id: String in ids:
 		if id in EMBER_ARTIFACTS and not layers.has("back"):
 			layers.append("back")
+	if not support_ids.is_empty() and layers.size() < 3: layers.append("body_accent")
 	if layers.size() < 3: layers.append("focus")
 	if layers.size() < 3: layers.append("body_accent")
 	return {"element": element, "layers": layers.slice(0, 3), "artifact_ids": ids,
-		"focus_shape": _focus_shape(element), "body_accent": _body_accent(element)}
+		"support_ids": support_ids, "focus_shape": _focus_shape(element), "body_accent": _body_accent(element)}
 
 static func anchor_for(layer: String, dir: String) -> Vector2:
 	return ANCHORS.get(layer, ANCHORS["body_accent"]).get(dir, Vector2(16, 20))

@@ -2,6 +2,7 @@ class_name SkillCaster
 extends Node2D
 
 signal spell_cast
+signal skills_changed
 
 var skill_instances: Array[SkillInstance] = []
 var _cooldown_timers: Array[float] = []
@@ -21,6 +22,7 @@ func set_skills(instances: Array[SkillInstance]) -> void:
 	_cooldown_timers.fill(0.0)
 	_setup_pools()
 	_bind_on_death_recast()
+	skills_changed.emit()
 
 func _setup_pools() -> void:
 	for si in skill_instances:
@@ -174,7 +176,7 @@ func _spawn_skill(si: SkillInstance, direction: Vector2, _target: Node2D,
 		var support_ids: Array[String] = []
 		for support: SupportResource in si.linked_supports:
 			support_ids.append(support.id)
-		visual.configure(visual.profile, support_ids, 0)
+		visual.configure(visual.profile, support_ids, RarityTiers.tier_index(si.rarity_tier))
 
 	if projectile.has_method("set_orbit_parent"):
 		projectile.set_orbit_parent(get_parent())
