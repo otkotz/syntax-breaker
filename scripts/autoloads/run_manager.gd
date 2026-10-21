@@ -15,6 +15,7 @@ var owned_passives: Array = []
 var owned_consumables: Array[Dictionary] = []
 var run_stats: Dictionary = {}
 var shop_bonuses: Dictionary = {}
+var shop_upgrade_counts: Dictionary = {}
 var reroll_cost: int = 2
 var current_stage_data: StageData
 var current_region: String = ""
@@ -35,6 +36,7 @@ func start_run(region: String = "", ascension: int = -1) -> void:
 	owned_passives = []
 	owned_consumables = []
 	shop_bonuses = {}
+	shop_upgrade_counts = {}
 	reroll_cost = 2
 	current_stage_data = null
 	stage_tree = null
@@ -192,6 +194,7 @@ func save_run(skill_data: Array[Dictionary]) -> void:
 		"shield_recharge_remaining": shield_recharge_remaining,
 		"skill_slots_unlocked": skill_slots_unlocked,
 		"shop_bonuses": shop_bonuses,
+		"shop_upgrade_counts": shop_upgrade_counts,
 		"reroll_cost": reroll_cost,
 		"run_stats": run_stats,
 		"telemetry": RunTelemetry.snapshot(),
@@ -222,6 +225,15 @@ func clear_saved_run() -> void:
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
 
+func _infer_shop_upgrade_counts(bonuses: Dictionary) -> Dictionary:
+	# Keep pre-Momentum saves honest without coupling this autoload to the shop scene.
+	var amounts := {"damage": 2.5, "cooldown": 0.04, "crit_chance": 0.02}
+	var inferred := {}
+	for key: String in amounts:
+		var value := absf(float(bonuses.get(key, 0.0)))
+		inferred[key] = clampi(roundi(value / float(amounts[key])), 0, 3)
+	return inferred
+
 func restore_from_save(data: Dictionary) -> void:
 	current_stage = int(data.get("current_stage", 0))
 	gold = int(data.get("gold", 0))
@@ -231,6 +243,7 @@ func restore_from_save(data: Dictionary) -> void:
 	shield_recharge_remaining = maxf(0.0, float(data.get("shield_recharge_remaining", 0.0)))
 	skill_slots_unlocked = int(data.get("skill_slots_unlocked", 1))
 	shop_bonuses = data.get("shop_bonuses", {})
+	shop_upgrade_counts = data.get("shop_upgrade_counts", _infer_shop_upgrade_counts(shop_bonuses))
 	reroll_cost = int(data.get("reroll_cost", 2))
 	run_stats = data.get("run_stats", {})
 	RunTelemetry.restore(data.get("telemetry", {}))

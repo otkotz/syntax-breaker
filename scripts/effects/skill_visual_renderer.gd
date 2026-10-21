@@ -8,6 +8,8 @@ var primary_support_id := ""
 var support_signature: StringName = &""
 var evolution_signature: StringName = &""
 var hero_duration := 0.0
+var punch_remaining := 0.0
+var punch_duration := 0.10
 var _hero_budgeted := false
 
 
@@ -18,19 +20,28 @@ func configure(value: SkillVisualProfile, support_ids: Array[String], evolution_
 	support_signature = modifier.get("signature", &"")
 	evolution_signature = StringName("tier_%d" % evolution_tier) if evolution_tier > 0 else &""
 	hero_duration = 0.0
+	punch_remaining = 0.0 if QualitySettings.reduced_motion else punch_duration
+	scale = Vector2.ONE if QualitySettings.reduced_motion else Vector2.ONE * 0.82
 	if evolution_tier >= 3:
 		evolution_signature = &"tier_3_hero"
 		hero_duration = 0.12
 		_hero_budgeted = CombatVisualBudget.request(&"hero_moment", 3, get_instance_id())
-	set_process(_hero_budgeted)
+	set_process(_hero_budgeted or punch_remaining > 0.0)
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
 	hero_duration = maxf(0.0, hero_duration - delta)
-	if hero_duration <= 0.0:
+	punch_remaining = maxf(0.0, punch_remaining - delta)
+	if punch_remaining > 0.0:
+		var progress := 1.0 - punch_remaining / punch_duration
+		scale = Vector2.ONE * lerpf(0.82, 1.0, ease(progress, 2.0))
+	else:
+		scale = Vector2.ONE
+	if hero_duration <= 0.0 and _hero_budgeted:
 		CombatVisualBudget.release(&"hero_moment", get_instance_id())
 		_hero_budgeted = false
+	if hero_duration <= 0.0 and punch_remaining <= 0.0:
 		set_process(false)
 	queue_redraw()
 

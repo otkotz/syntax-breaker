@@ -29,6 +29,8 @@ var _pending_skill_instance: SkillInstance = null
 var _skill_manager: SkillManagerUI
 var _decision_id: int = 0
 var _offer_generation: int = 0
+var _stat_upgrade_bought := false
+const STAT_UPGRADE_RUN_CAP := 3
 
 func _ready() -> void:
 	reroll_button.pressed.connect(_on_reroll)
@@ -40,6 +42,7 @@ func _ready() -> void:
 
 func setup(skill_instances: Array[SkillInstance]) -> void:
 	_skill_instances = skill_instances
+	_stat_upgrade_bought = false
 	RunManager.reroll_cost = 2
 	_generate_offerings()
 	_decision_id = RunTelemetry.open_decision("shop", RunTelemetry.describe_offers(_offerings))
@@ -89,9 +92,10 @@ func _generate_offerings() -> void:
 		legendary_pool.shuffle()
 		_offerings.append(legendary_pool[0])
 
-	var upgrades_copy := STAT_UPGRADES.duplicate()
+	var upgrades_copy := available_stat_upgrades(STAT_UPGRADES, _stat_upgrade_bought)
 	upgrades_copy.shuffle()
-	_offerings.append(_make_stat_upgrade(upgrades_copy[0]))
+	if not upgrades_copy.is_empty():
+		_offerings.append(_make_stat_upgrade(upgrades_copy[0]))
 
 	build_pool.shuffle()
 	if not build_pool.is_empty():
@@ -143,6 +147,16 @@ func _make_stat_upgrade(upgrade_def: Dictionary) -> Dictionary:
 	var times_bought: int = roundi(absf(current) / absf(upgrade_def["amount"]))
 	var cost: int = upgrade_def["base_cost"] + times_bought * upgrade_def["cost_step"]
 	return {"type": "stat_upgrade", "cost": cost, "upgrade": upgrade_def}
+
+static func can_buy_stat_upgrade(key: String, bought_this_visit: bool) -> bool:
+	return not bought_this_visit and int(RunManager.shop_upgrade_counts.get(key, 0)) < STAT_UPGRADE_RUN_CAP
+
+static func available_stat_upgrades(upgrades: Array, bought_this_visit: bool) -> Array[Dictionary]:
+	var available: Array[Dictionary] = []
+	for upgrade: Dictionary in upgrades:
+		if can_buy_stat_upgrade(str(upgrade.key), bought_this_visit):
+			available.append(upgrade)
+	return available
 
 func _get_cost(item_type: String, rarity: String) -> int:
 	return RARITY_COSTS.get(item_type, {}).get(rarity, 10)
@@ -273,6 +287,8 @@ func _set_card_affordability(card: Button, offering: Dictionary) -> void:
 func _on_buy(offering: Dictionary) -> void:
 	if offering not in _offerings:
 		return
+	if offering.get("type", "") == "stat_upgrade" and not can_buy_stat_upgrade(str(offering.upgrade.key), _stat_upgrade_bought):
+		return
 	if not RunManager.spend_gold(offering["cost"]):
 		return
 
@@ -304,8 +320,9 @@ func _on_buy(offering: Dictionary) -> void:
 			var key: String = upg["key"]
 			var current: float = RunManager.shop_bonuses.get(key, 0.0)
 			RunManager.shop_bonuses[key] = current + upg["amount"]
+			RunManager.shop_upgrade_counts[key] = int(RunManager.shop_upgrade_counts.get(key, 0)) + 1
+			_stat_upgrade_bought = true
 			_recompute_all_skills()
-			_offerings.append(_make_stat_upgrade(upg))
 	_refresh_ui()
 
 func _show_link_panel() -> void:

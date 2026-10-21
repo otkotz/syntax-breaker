@@ -56,8 +56,12 @@ var _is_final_boss_stage: bool = false
 var _elite_interval: int = 999
 var _pulses_since_elite: int = 0
 var _power_pulse_interval: int = 5
+var _straggler_elapsed := 0.0
 
 const MIN_PULSE_COOLDOWN := 2.0
+const EMPTY_REFILL_DELAY := 0.3
+const STRAGGLER_RECALL_DELAY := 3.0
+const STRAGGLER_RECALL_DISTANCE := 190.0
 const EliteAffix = preload("res://scripts/enemies/elite_affix.gd")
 # Load scenes at encounter creation, not while parsing this global class. Regional
 # bosses reference Player -> SkillCaster -> Arena -> Spawner; preloading their
@@ -102,6 +106,7 @@ func setup(player: Node2D, arena_rect: Rect2, stage_data: StageData = null) -> v
 	_pulse_count = 0
 	_pulse_cooldown = 0.0
 	_pulses_since_elite = 0
+	_straggler_elapsed = 0.0
 	_mini_boss_spawned = false
 	_active = false
 	_completed = false
@@ -197,10 +202,19 @@ func _process(delta: float) -> void:
 	_pulse_cooldown -= delta
 
 	var can_spawn := _stage_timer > 0.0 and _spawned_count < _total_budget
+	if can_spawn and _enemies_alive == 0:
+		_pulse_cooldown = minf(_pulse_cooldown, EMPTY_REFILL_DELAY)
+	if _enemies_alive == 1 and not can_spawn and _pending_split_fragments == 0 and not _is_boss_stage:
+		_straggler_elapsed += delta
+		if should_recall_straggler(_straggler_elapsed, _enemies_alive, can_spawn, _is_boss_stage, _pending_split_fragments):
+			_recall_straggler()
+			_straggler_elapsed = 0.0
+	else:
+		_straggler_elapsed = 0.0
 
 	if can_spawn and _pulse_cooldown <= 0.0 and _enemies_alive <= _spawn_threshold:
 		_spawn_pulse()
-		_pulse_cooldown = MIN_PULSE_COOLDOWN
+		_pulse_cooldown = next_pulse_delay(_enemies_alive)
 
 	if not can_spawn and _enemies_alive <= 0 and _pending_split_fragments == 0:
 		_complete_stage()
@@ -211,6 +225,11 @@ func _spawn_pulse() -> void:
 
 	var is_power := _pulse_count > 1 and _pulse_count % _power_pulse_interval == 0
 	var count := _enemies_per_pulse
+	var remaining_budget := _total_budget - _spawned_count
+	var is_finale := should_force_finale_pulse(remaining_budget, _enemies_per_pulse, _is_boss_stage)
+	if is_finale:
+		is_power = true
+		count = remaining_budget
 	if is_power:
 		count *= 2
 
@@ -238,7 +257,8 @@ func _spawn_pulse() -> void:
 		var formation: SpawnFormation.Type = available_formations[i]
 		var positions := SpawnFormation.get_positions(formation, f_count, _arena_rect, _player.global_position)
 		for pos: Vector2 in positions:
-			_spawn_enemy_at(pos, _pick_role())
+			var role := "charger" if is_finale and count == 1 else _pick_role()
+			_spawn_enemy_at(pos, role)
 
 	if _pulses_since_elite >= _elite_interval and _phase >= 2 and not _is_boss_stage:
 		_pulses_since_elite = 0
@@ -543,6 +563,26 @@ func _on_enemy_died(enemy: EnemyBase) -> void:
 
 func get_stage_timer() -> float:
 	return maxf(_stage_timer, 0.0)
+
+static func next_pulse_delay(enemies_alive: int) -> float:
+	return EMPTY_REFILL_DELAY if enemies_alive <= 0 else MIN_PULSE_COOLDOWN
+
+static func should_force_finale_pulse(remaining_budget: int, enemies_per_pulse: int, boss_stage: bool) -> bool:
+	return not boss_stage and remaining_budget > 0 and remaining_budget <= maxi(2, enemies_per_pulse)
+
+static func should_recall_straggler(elapsed: float, enemies_alive: int, can_spawn: bool, boss_stage: bool, pending_fragments: int) -> bool:
+	return elapsed >= STRAGGLER_RECALL_DELAY and enemies_alive == 1 and not can_spawn and not boss_stage and pending_fragments == 0
+
+func _recall_straggler() -> void:
+	if not is_instance_valid(_player): return
+	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
+		if enemy is EnemyBase and enemy.is_alive() and enemy.get_parent() == self:
+			var direction := _player.global_position.direction_to(enemy.global_position)
+			if direction == Vector2.ZERO: direction = Vector2.RIGHT
+			enemy.global_position = (_player.global_position + direction * STRAGGLER_RECALL_DISTANCE).clamp(
+				_arena_rect.position + Vector2(30, 30), _arena_rect.end - Vector2(30, 30))
+			enemy.set_meta("recalled_straggler", true)
+			break
 
 func is_final_boss_encounter() -> bool:
 	return _is_final_boss_stage
